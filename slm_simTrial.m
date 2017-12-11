@@ -20,9 +20,14 @@ nDecision = 1;           % Current decision to male
 numPresses = 0;          % Number of presses produced 
 isPressing = 0;          % Is the motor system currently occupied? 
 
+% Set up parameters 
+dec=[1:maxPresses]; % Number of decision 
+A  = eye(M.numOptions)*(M.Aintegrate-M.Ainhibit)+...
+     ones(M.numOptions)*M.Ainhibit; 
+
 % Start time-by-time simulation 
-while numPresses<maxPresses && i<=maxTime/dT
-    
+while numPresses<maxPresses && i<maxTime/dT
+   
     % Update the stimulus: Fixed stimulus time  
     indx = find(t(i)>(T.stimTime+M.dT_visual)); % Index of which stimuli are present T.
     for j=indx' 
@@ -31,8 +36,11 @@ while numPresses<maxPresses && i<=maxTime/dT
     
     % Update the evidence state 
     eps = randn([M.numOptions 1 maxPresses]) * M.SigEps; 
-    X(:,i+1,:)= X(:,i,:) + M.theta_stim * S(:,i,:) + dT*eps; 
-    
+    mult=exp(-[dec-nDecision]./M.capacity);  % How much stimulus 
+    mult(dec<nDecision)=0;                  % Made decisions will just decay 
+    for j=1:maxPresses 
+        X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j); 
+    end; 
     % Determine if we issue a decision 
     if nDecision<=maxPresses && ~isPressing && any(X(:,i+1,nDecision)>B(i+1)) 
         [~,T.response]=max(X(:,i+1,nDecision));

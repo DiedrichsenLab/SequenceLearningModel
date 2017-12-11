@@ -9,11 +9,12 @@ vararginoptions(varargin,{'style'});
 
 for i=1:numPresses 
     subplot(numPresses,1,i); 
-    plot(SIM.t,SIM.X); 
+    plot(SIM.t,SIM.X(:,:,i)); 
     hold on; 
     plot(SIM.t,SIM.B,'k'); 
-    drawline(T.stimTime(i),'r:'); 
-    drawline(T.decisionTime(i),'r'); 
-    drawline(T.pressTime(i),'k'); 
+    drawline(T.stimTime(i),'color','r','linestyle',':'); 
+    drawline(T.decisionTime(i),'color','r'); 
+    drawline(T.pressTime(i),'color','k'); 
+    hold off; 
 end; 
 
