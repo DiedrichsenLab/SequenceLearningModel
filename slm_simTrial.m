@@ -1,5 +1,5 @@
-function T=slm_simTrial(M,T,varargin);
-% function T=slm_simTrial(M,T);
+function [T,SIM]=slm_simTrial(M,T,varargin);
+% function [T,SIM]=slm_simTrial(M,T);
 % Simulates a trial using a parallel evidence-accumulation model 
 % for sequential response tasks 
 
@@ -18,12 +18,13 @@ t = [1:maxTime/dT]*dT-dT;   % Time in ms
 i = 1;                    % Index of simlation 
 nDecision = 1;           % Current decision to male 
 numPresses = 0;          % Number of presses produced 
+isPressing = 0;          % Is the motor system currently occupied? 
 
 % Start time-by-time simulation 
-while numPresses<maxPresses 
+while numPresses<maxPresses && i<=maxTime/dT
     
     % Update the stimulus: Fixed stimulus time  
-    indx = find(t(i)>(T.stimTime+M.dT_visual)); % Index of which stimuli are present 
+    indx = find(t(i)>(T.stimTime+M.dT_visual)); % Index of which stimuli are present T.
     for j=indx' 
         S(T.stimulus(j),i,j)=1;
     end; 
@@ -33,13 +34,28 @@ while numPresses<maxPresses
     X(:,i+1,:)= X(:,i,:) + M.theta_stim * S(:,i,:) + dT*eps; 
     
     % Determine if we issue a decision 
-    if (any(X(:,i+1,nDecision)>B(i+1)) 
+    if nDecision<=maxPresses && ~isPressing && any(X(:,i+1,nDecision)>B(i+1)) 
         [~,T.response]=max(X(:,i+1,nDecision));
         T.decisionTime(nDecision) = t(i+1);                            % Decision made at this time    
-        T.pressTime(nDecision) = T.decisionTime(nDecision)+M.dt_motor; % Press time delayed by motor delay  
-        
+        T.pressTime(nDecision) = T.decisionTime(nDecision)+M.dT_motor; % Press time delayed by motor delay  
+        isPressing = 1;                % Motor system engaged
+        nDecision = nDecision+1;       % Waiting for the next decision 
+    end; 
+    
+    % Update the motor system: Checking if current movement is done 
+    if (isPressing) 
+        if (t(i+1))>=T.pressTime(nDecision-1)
+            isPressing = 0; 
+            numPresses = numPresses+1; 
+        end; 
+    end 
+    i=i+1; 
 end; 
 
-
-
+if (nargout>1) 
+SIM.X = X(:,1:i-1,:); % Hidden state 
+SIM.S = S(:,1:i-1,:); % Stimulus present 
+SIM.B = B(1,1:i-1);     % Bound 
+SIM.t = t(1,1:i-1);    % Time 
+end; 
 
