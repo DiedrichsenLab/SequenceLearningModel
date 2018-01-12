@@ -98,6 +98,5 @@ T.stimulus=string(T.cueP(1:nTrials)); % visual cue (instruction to participant)
 T.stimTime=zeros(nTrials,1); % when the stimulus appears (with respect to beginning of trial: 0 means right away)
 T.numPress=ones(nTrials,1)*size(T.stimulus{1},2); % how many finger presses are required in this task
 T.forcedPressTime=[ones(nTrials,1)*Inf, ones(nTrials,1)*Inf]; % required response window in forced RT paradigm (with respect to beginning of trial: Inf means free RT)
-
 end
 
