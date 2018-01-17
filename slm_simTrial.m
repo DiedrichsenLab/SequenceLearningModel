@@ -7,10 +7,28 @@ function [T,SIM]=slm_simTrial(M,T,varargin);
 % for sequential response tasks 
 M.capacity = 1; % always set capacity to 1 since it's soft capacity
 dT = 2;     % delta-t in ms
-maxTime = 50000; % Maximal time for trial simulation 
-vararginoptions(varargin,{'dT','maxTime'}); 
-% Determine length of the trial 
-maxPresses = max(T.numPress); 
+maxTime = 50000; % Maximal time for trial simulation
+c = 1;
+while(c<=length(varargin))
+    switch(varargin{c})
+        case {'DecayFunc'}
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+            % define the parameters for the decay function
+        case {'DecayParam'}  
+            % for 'exp' this would be the time constant (defaul = 1)
+            % for 'linear' this would be a negative slope (default = -1/seqlength)
+            % for 'boxcar' this would be the number of 1s in a row (default = 5)
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        otherwise
+            error(sprintf('Unknown option: %s',varargin{c}));
+    end
+end
+
+
+% Determine length of the trial
+maxPresses = max(T.numPress);
 
 % number of decision steps is defined by the M.capacity and T.Horizon, whichever results in more decision steps
 dec=1: maxPresses;  % Number of decision
@@ -34,6 +52,7 @@ numPresses = 0;          % Number of presses produced
 isPressing = 0;          % Is the motor system currently occupied? 
 remPress = maxPresses;   % Remaining presses. This variable will be useful if/whenever multiple digits are being planned in every decsion step
 % Set up parameters 
+
 A  = eye(M.numOptions)*(M.Aintegrate-M.Ainhibit)+...
      ones(M.numOptions)*M.Ainhibit; 
 
@@ -50,7 +69,25 @@ while remPress && i<maxTime/dT
     
     % Update the evidence state
     eps = randn([M.numOptions 1 maxPresses]) * M.SigEps;
-    mult=exp(-[dec-nDecision]./maxPlan);      % How much stimulus exponentia decay
+    switch DecayFunc
+        case 'exp'
+            if ~exist('DecayParam')
+                DecayParam = maxPlan;
+            end
+            mult=exp(-[dec-nDecision]./DecayParam);      % How much stimulus exponentia decay
+        case 'linear'
+             if ~exist('DecayParam')
+                DecayParam = 1/(1-max(dec));
+            end
+            linDecay=DecayParam*(dec-max(dec));  % How much stimulus linear decay
+            mult(nDecision:end) = linDecay(1:max(dec)-nDecision+1);  % How much stimulus linear decay
+        case 'boxcar'
+            if ~exist('DecayParam')
+                DecayParam = 5;
+            end
+            bc = min(max(dec) , nDecision+DecayParam);
+            mult(nDecision:bc) = 1;  % How much stimulus linear decay    
+    end
     mult(dec<nDecision)=0;                    % Made decisions will just decay
     for j =1:maxPresses
         X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
