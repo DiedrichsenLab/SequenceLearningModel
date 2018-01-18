@@ -1,8 +1,7 @@
 function [T,SIM]=slm_simTrial(M,T,varargin);
 % function [T,SIM]=slm_simTrialCap(M,T);
-% incoporates horizon size (T.Horizon) as well as buffer size (M.capacity)
+% incoporates horizon size (T.Horizon) 
 % multiple planning possible
-% as long as M.capacity = 1,this funcion should work exacly same as [T,SIM]=slm_simTrial(M,T);
 % Simulates a trial using a parallel evidence-accumulation model 
 % for sequential response tasks 
 M.capacity = 1; % always set capacity to 1 since it's soft capacity
@@ -23,6 +22,7 @@ while(c<=length(varargin))
             c=c+2;
         otherwise
             error(sprintf('Unknown option: %s',varargin{c}));
+            
     end
 end
 
