@@ -41,6 +41,7 @@ if ~exist('DecayFunc')
     DecayFunc = 'exp';
 end
 
+figure('color' , 'white');
 
 AllT = T;
 
@@ -179,8 +180,12 @@ for tn = 1:length(AllT.TN)
     
     T_ammended = addstruct(T_ammended , T);
     T_ammended.MT = T_ammended.pressTime(:,end) - T_ammended.pressTime(:,1);
+    S = getrow(T_ammended , T_ammended.seqType > 0);
+    R = getrow(T_ammended , T_ammended.seqType ==0);
     subplot(131)
-    plot(T_ammended.MT)
+    plot(S.MT , 'color' , 'b');
+    hold on
+    plot(R.MT , 'color' , 'r')
     title(['MT after ' , num2str(tn) , ' trials.'])
     drawnow()
     
@@ -201,6 +206,9 @@ for tn = 1:length(AllT.TN)
     
 %     SIM_ammended = addstruct(SIM_ammended , SIM);
 end
+
+
+
 out = 1;
 % because the muber of presses to be planned is high, sometime the trial
 % times out and the decisionis not reached, so we need to account for that
