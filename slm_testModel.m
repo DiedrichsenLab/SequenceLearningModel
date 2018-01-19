@@ -24,6 +24,19 @@ while(c<=length(varargin))
             % default is 10
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'RandPortion'}
+            % assign a proportion to the random sequences in the training block
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'numTrials'}
+            % Number of trials in the training block
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'Sequences'}
+            % the sequences you want to train the model on
+            % this is a matrix of size N*SeqLength, where N is the number of sequences
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error(sprintf('Unknown option: %s',varargin{c}));
     end
@@ -34,6 +47,12 @@ if ~exist('DecayFunc')
 end
 if ~exist('SeqLength')
     SeqLength = 10;
+end
+if ~exist('RandPortion')
+    RandPortion = .5;
+end
+if ~exist('numTrials')
+    numTrials = 1000;
 end
 
 
@@ -122,6 +141,10 @@ switch(what)
         keyboard;
         
     case 'SeqLearn'
+        RndPor = ceil(numTrials*RandPortion);         % number of random sequences in the block
+        SeqPor = numTrials - RndPor;                  % number of trained sequences in the block
+        trPerSeq = ceil(SeqPor/size(Sequences, 1));   % number of trails per trained sequence
+        
         
         R=[];
         cap= 1;
@@ -151,11 +174,12 @@ switch(what)
         % Make Models with defferent horizons
         AllT = [];
         for hrzn = SeqLength
-            for tn=1:1000
+            for tn=1:RndPor
+                % Random Sequences
                 % Make experiment
-                T.TN = tn;
                 T.bufferSize = cap;  % useful is we decide to maipulate buffersize (inherited from M)
                 T.numPress = SeqLength;
+                T.seqType = 0;       % denoting it's random
                 T.stimTime = zeros(1 , SeqLength);
                 T.forcedPressTime = nan(1 , SeqLength);
                 % Horizon feature added. stimTime will be the actual time that the stimulus came on.
@@ -163,9 +187,32 @@ switch(what)
                 T.Horizon(1:hrzn) = NaN;
                 T.stimulus = randi(5 , 1, SeqLength );
                 AllT  = addstruct(AllT , T);
-            end;
+            end
+            for ns = 1:size(Sequences, 1)
+                for tn=1:trPerSeq
+                    % Random Sequences
+                    % Make experiment
+                    T.bufferSize = cap;  % useful is we decide to maipulate buffersize (inherited from M)
+                    T.numPress = SeqLength;
+                    T.stimTime = zeros(1 , SeqLength);
+                    T.forcedPressTime = nan(1 , SeqLength);
+                    T.seqType = ns;       % denoting sequence number
+                    % Horizon feature added. stimTime will be the actual time that the stimulus came on.
+                    T.Horizon = hrzn*(ones(1,SeqLength));
+                    T.Horizon(1:hrzn) = NaN;
+                    T.stimulus = Sequences(ns , :);
+                    AllT  = addstruct(AllT , T);
+                end
+            end
         end
+        
+        % Shuffle the trails to make them intermixed
+        mixedTN = randperm(length(1:length(AllT.numPress)));
+        AllT = getrow(AllT , mixedTN);
+        AllT.TN = [1:length(AllT.numPress)]';
+        
         [T,SIM]=slm_Learn(M,AllT);
+        
         slm_plotTrial('BlockMT' , SIM , R )
         slm_plotTrial('IPIHorizon' , SIM , R )
         keyboard;
