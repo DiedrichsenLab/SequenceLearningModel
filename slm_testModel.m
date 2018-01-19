@@ -19,7 +19,7 @@ while(c<=length(varargin))
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
             
-        case {'SeqLength'} 
+        case {'SeqLength'}
             % defines the length of the sequence
             % default is 10
             eval([varargin{c} '= varargin{c+1};']);
@@ -73,32 +73,33 @@ switch(what)
         
         R=[];
         tn = 1;
+        
+        
+        M.Aintegrate = 0.98;    % Diagnonal of A
+        M.Ainhibit = 0;      % Inhibition of A
+        M.theta_stim = 0.01;  % Rate constant for integration of sensory information
+        M.dT_motor = 90;     % Motor non-decision time
+        M.dT_visual = 70;    % Visual non-decision time
+        M.SigEps    = 0.01;   % Standard deviation of the gaussian noise
+        M.Bound     = 0.45;     % Boundary condition
+        M.numOptions = 5;    % Number of response options
+        M.capacity   = cap;   % Capacity for preplanning (buffer size)
+        switch DecayFunc
+            case 'exp'
+                if ~exist('DecayParam')
+                    DecayParam = cap;
+                end
+            case 'linear'
+                if ~exist('DecayParam')
+                    DecayParam = 1/(1-SeqLength);
+                end
+            case 'boxcar'
+                if ~exist('DecayParam')
+                    DecayParam = 5;
+                end
+        end
         % Make Models with defferent horizons
-        cap= 1;
         for hrzn = 1:SeqLength - 1
-            M.Aintegrate = 0.98;    % Diagnonal of A
-            M.Ainhibit = 0;      % Inhibition of A
-            M.theta_stim = 0.01;  % Rate constant for integration of sensory information
-            M.dT_motor = 90;     % Motor non-decision time
-            M.dT_visual = 70;    % Visual non-decision time
-            M.SigEps    = 0.01;   % Standard deviation of the gaussian noise
-            M.Bound     = 0.45;     % Boundary condition
-            M.numOptions = 5;    % Number of response options
-            M.capacity   = cap;   % Capacity for preplanning (buffer size)
-            switch DecayFunc
-                case 'exp'
-                    if ~exist('DecayParam')
-                        DecayParam = cap;
-                    end
-                case 'linear'
-                    if ~exist('DecayParam')
-                        DecayParam = 1/(1-SeqLength);
-                    end
-                case 'boxcar'
-                    if ~exist('DecayParam')
-                        DecayParam = 5;
-                    end
-            end
             % Make experiment
             T.TN = tn;
             T.bufferSize = cap;  % useful is we decide to maipulate buffersize (inherited from M)
@@ -116,6 +117,55 @@ switch(what)
             end;
             tn = tn +1;
         end
+        slm_plotTrial('BlockMT' , SIM , R )
+        slm_plotTrial('IPIHorizon' , SIM , R )
+        keyboard;
+        
+    case 'SeqLearn'
+        
+        R=[];
+        cap= 1;
+        M.Aintegrate = 0.98;    % Diagnonal of A
+        M.Ainhibit = 0;      % Inhibition of A
+        M.theta_stim = 0.01;  % Rate constant for integration of sensory information
+        M.dT_motor = 90;     % Motor non-decision time
+        M.dT_visual = 70;    % Visual non-decision time
+        M.SigEps    = 0.01;   % Standard deviation of the gaussian noise
+        M.Bound     = 0.45;     % Boundary condition
+        M.numOptions = 5;    % Number of response options
+        M.capacity   = cap;   % Capacity for preplanning (buffer size)
+        switch DecayFunc
+            case 'exp'
+                if ~exist('DecayParam')
+                    DecayParam = cap;
+                end
+            case 'linear'
+                if ~exist('DecayParam')
+                    DecayParam = 1/(1-SeqLength);
+                end
+            case 'boxcar'
+                if ~exist('DecayParam')
+                    DecayParam = 5;
+                end
+        end
+        % Make Models with defferent horizons
+        AllT = [];
+        for hrzn = SeqLength
+            for tn=1:1000
+                % Make experiment
+                T.TN = tn;
+                T.bufferSize = cap;  % useful is we decide to maipulate buffersize (inherited from M)
+                T.numPress = SeqLength;
+                T.stimTime = zeros(1 , SeqLength);
+                T.forcedPressTime = nan(1 , SeqLength);
+                % Horizon feature added. stimTime will be the actual time that the stimulus came on.
+                T.Horizon = hrzn*(ones(1,SeqLength));
+                T.Horizon(1:hrzn) = NaN;
+                T.stimulus = randi(5 , 1, SeqLength );
+                AllT  = addstruct(AllT , T);
+            end;
+        end
+        [T,SIM]=slm_Learn(M,AllT);
         slm_plotTrial('BlockMT' , SIM , R )
         slm_plotTrial('IPIHorizon' , SIM , R )
         keyboard;

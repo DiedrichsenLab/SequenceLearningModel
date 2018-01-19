@@ -1,4 +1,4 @@
-function [T,SIM]=slm_simTrial(M,T,varargin);
+function [T_ammended,SIM_ammended]=slm_Learn(M,T,varargin);
 % function [T,SIM]=slm_simTrialCap(M,T);
 % incoporates horizon size (T.Horizon)
 % T is a batch of trials
@@ -37,16 +37,21 @@ while(c<=length(varargin))
             error(sprintf('Unknown option: %s',varargin{c}));
     end
 end
-% Learning implimented 
+if ~exist('DecayFunc')
+    DecayFunc = 'exp';
+end
+
+
 AllT = T;
 
+% Initialize the trials structure to be ammended with response times, decision times...
+T_ammended = [];
+SIM_ammended = [];
 firstTrans = zeros(M.numOptions , M.numOptions); %initialize the matrix of first order conditional probabilities
-
+BoundMat = M.Bound * ones(M.numOptions , M.numOptions);
 for tn = 1:length(AllT.TN)
     T = getrow(AllT , tn);
     maxPresses = T.numPress;
-    
-  
     % number of decision steps is defined by the M.capacity and T.Horizon, whichever results in more decision steps
     dec=1: maxPresses;  % Number of decision
     maxPlan = M.capacity; % Number of digits being planned in every decision step
@@ -61,7 +66,7 @@ for tn = 1:length(AllT.TN)
     % initialize variables
     X = zeros(M.numOptions,maxTime/dT,maxPresses); % Hidden state
     S = zeros(M.numOptions,maxTime/dT,maxPresses); % Stimulus present
-    B = ones(1,maxTime/dT)*M.Bound;                % Decision Bound - constant value
+    B = ones(maxTime/dT , M.numOptions)*M.Bound;                % Decision Bound - constant value
     t = [1:maxTime/dT]*dT-dT;   % Time in ms
     i = 1;                   % Index of simlation
     nDecision = 1;           % Current decision to male
@@ -77,10 +82,11 @@ for tn = 1:length(AllT.TN)
     
     while remPress && i<maxTime/dT
         % extract the probability of the current transition, and apply it to the decision boundry
+        currentTransP = zeros(1,M.numOptions);
         if remPress<maxPresses
-            currentTransP = firstTrans(T.stimulus(maxPresses-remPress) , T.stimulus(maxPresses-remPress+1));
-        else
-            currentTransP =0;
+            for opt = 1: M.numOptions
+                currentTransP(opt) = firstTrans(T.stimulus(maxPresses-remPress) , opt);
+            end
         end
         mult = zeros(1,length(dec));
         % Update the stimulus: Fixed stimulus time
@@ -121,7 +127,7 @@ for tn = 1:length(AllT.TN)
         indx1= nDecision * maxPlan - (maxPlan-1):min(nDecision * maxPlan , maxPresses);
         % Determine if we issue a decision
         % motor command is not issued unless all the presses that have to planned in one step hit the boundry
-        if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1))>(1-currentTransP)*B(i+1))) == length(indx1)
+        if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1))>((1-2*currentTransP).*B(i+1 , :))')) == length(indx1)
             count = 1;
             for prs = indx1
                 [~,T.response(1,prs)]=max(X(:,i+1,prs));
@@ -152,45 +158,52 @@ for tn = 1:length(AllT.TN)
         end
         i=i+1;
         % update the rransition probabilities with every new trials
-        firstTrans = zeros(M.numOptions , M.numOptions); %Re-initialize and update the matrix of first order probabilities
-        for tn1 = 1:tn
-            for prs = 1:AllT.numPress(tn1)-1
-                firstTrans(AllT.stimulus(tn1 , prs) ,AllT.stimulus(tn1 , prs+1)) = firstTrans(AllT.stimulus(tn1 , prs) ,AllT.stimulus(tn1 , prs+1))+1;
-            end
-        end
-        % deivde the values in the firstTrans matrix by the total number of double tansitions
-        num2Trans = sum(AllT.numPress(1:tn)) - tn; % a sequence of length N has N-1 double transitions
-        firstTrans = firstTrans/num2Trans;
+        
     end;
-end
-% because the muber of presses to be planned is high, sometime the trial
-% times out and the decisionis not reached, so we need to account for that
-if ~isfield(T , 'pressTime') || (length(T.pressTime) < maxPresses && i >= maxTime/dT)
-    T.decisionTime(length(T.pressTime)+1 : maxPresses) = NaN;
-    T.response(length(T.pressTime)+1 : maxPresses) = NaN;
-    T.pressTime(length(T.pressTime)+1 : maxPresses) = NaN;
-    tmax = NaN;
-    if (nargout>1)
-        SIM.X = NaN; % Hidden state
-        SIM.S = NaN; % Stimulus present
-        SIM.B = NaN;     % Bound
-        SIM.t = NaN;    % Time
-        SIM.bufferSize = M.capacity;
-    end;
-else
-    T.MT = max(T.pressTime,[],2);
     T.isError = zeros(size(T.TN));
     for i = 1:length(T.isError)
         T.isError(i) = ~isequal(T.stimulus(i,:) , T.response(i,:));
     end
-    tmax = T.pressTime(maxPresses);
-    i = find(t == tmax);
-    if (nargout>1)
-        SIM.X = X(:,1:i-1,:); % Hidden state
-        SIM.S = S(:,1:i-1,:); % Stimulus present
-        SIM.B = B(1,1:i-1);     % Bound
-        SIM.t = t(1,1:i-1);    % Time
-        SIM.bufferSize = M.capacity;
-    end;
+    
+    
+    
+    firstTrans = zeros(M.numOptions , M.numOptions); %Re-initialize and update the matrix of first order probabilities
+    for tn1 = 1:tn
+        for prs = 1:AllT.numPress(tn1)-1
+            firstTrans(AllT.stimulus(tn1 , prs) ,AllT.stimulus(tn1 , prs+1)) = firstTrans(AllT.stimulus(tn1 , prs) ,AllT.stimulus(tn1 , prs+1))+1;
+        end
+    end
+    % deivde the values in the firstTrans matrix by the total number of double tansitions
+    num2Trans = sum(AllT.numPress(1:tn)) - tn; % a sequence of length N has N-1 double transitions
+    firstTrans = firstTrans/num2Trans;
+    
+    T_ammended = addstruct(T_ammended , T);
+    T_ammended.MT = T_ammended.pressTime(:,end) - T_ammended.pressTime(:,1);
+    subplot(131)
+    plot(T_ammended.MT)
+    title(['MT after ' , num2str(tn) , ' trials.'])
+    drawnow()
+    
+    subplot(132)
+    imagesc((1-5*firstTrans).*BoundMat)
+    axis square
+    title(['Boundry Matrix after ' , num2str(tn) , ' trials.'])
+    colorbar
+    drawnow()
+    
+    subplot(133)
+    imagesc(firstTrans)
+    axis square
+    title(['Probability Matrix after ' , num2str(tn) , ' trials.'])
+    colorbar
+    drawnow()
+    
+    
+%     SIM_ammended = addstruct(SIM_ammended , SIM);
 end
+out = 1;
+% because the muber of presses to be planned is high, sometime the trial
+% times out and the decisionis not reached, so we need to account for that
+
+
 
