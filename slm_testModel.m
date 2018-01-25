@@ -37,10 +37,33 @@ while(c<=length(varargin))
             % this is a matrix of size N*SeqLength, where N is the number of sequences
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'MapLearning'}
+            % 0 or 1
+            % Represents the general learnig of finger mappings that happens even in random sequences. could be implimented by lowering
+            % the noise level, and can co-occur with either 'prob' , 'chunk' in parallel
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'AssLearnConst'}
+            % Associative Learning Constant by which first order probabilities affect performance 
+            %(the higher the number the bigger the effect) Default  = 2
+            % can set to 0 to onserve just the effect of MapLearning
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'MapLearnConst'}
+            % Mapping Learning Constant by which the repetitions affect performance 
+            %(the higher the number the bigger the effect) Default  = 2
+            % can set to 0 to onserve just the effect of just associations
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+            
         otherwise
             error(sprintf('Unknown option: %s',varargin{c}));
     end
 end
+
+
+
+figure('color' , 'white');
 
 if ~exist('DecayFunc')
     DecayFunc = 'exp';
@@ -54,7 +77,15 @@ end
 if ~exist('numTrials')
     numTrials = 1000;
 end
-
+if ~exist('MapLearning')
+    MapLearning = 0;
+end
+if ~exist('AssLearnConst')
+    AssLearnConst = 2;
+end
+if ~exist('MapLearnConst')
+    MapLearnConst = .1;
+end
 
 switch(what)
     
@@ -93,7 +124,7 @@ switch(what)
         R=[];
         tn = 1;
         
-        
+        cap=1;
         M.Aintegrate = 0.98;    % Diagnonal of A
         M.Ainhibit = 0;      % Inhibition of A
         M.theta_stim = 0.01;  % Rate constant for integration of sensory information
@@ -211,7 +242,7 @@ switch(what)
         AllT = getrow(AllT , mixedTN);
         AllT.TN = [1:length(AllT.numPress)]';
         
-        [T,SIM]=slm_Learn(M,AllT);
+        [T,SIM]=slm_Learn(M,AllT , 'MapLearning' , MapLearning , 'AssLearnConst' , AssLearnConst , 'MapLearnConst' , MapLearnConst);
         
         slm_plotTrial('BlockMT' , SIM , R )
         slm_plotTrial('IPIHorizon' , SIM , R )

@@ -100,7 +100,7 @@ while remPress && i<maxTime/dT
     indx1= nDecision * maxPlan - (maxPlan-1):min(nDecision * maxPlan , maxPresses);
     % Determine if we issue a decision
     % motor command is not issued unless all the presses that have to planned in one step hit the boundry
-    if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1))>onesB(i+1))) == length(indx1)
+    if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1))>B(i+1))) == length(indx1)
         count = 1;
         for prs = indx1
             [~,T.response(1,prs)]=max(X(:,i+1,prs));

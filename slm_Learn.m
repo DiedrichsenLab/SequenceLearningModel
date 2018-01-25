@@ -33,12 +33,34 @@ while(c<=length(varargin))
             % the noise level, and can co-occur with either 'prob' , 'chunk' in parallel
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'AssLearnConst'}
+            % Associative Learning Constant by which first order probabilities affect performance 
+            %(the higher the number the bigger the effect) Default  = 2
+            % can set to 0 to onserve just the effect of MapLearning
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'MapLearnConst'}
+            % Mapping Learning Constant by which the repetitions affect performance 
+            %(the higher the number the bigger the effect) Default  = 2
+            % can set to 0 to onserve just the effect of just associations
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+            
         otherwise
             error(sprintf('Unknown option: %s',varargin{c}));
     end
 end
 if ~exist('DecayFunc')
     DecayFunc = 'exp';
+end
+if ~exist('MapLearning')
+    MapLearning = 0;
+end
+if ~exist('AssLearnConst')
+    AssLearnConst = 2;
+end
+if ~exist('MapLearnConst')
+    MapLearnConst = .1;
 end
 
 figure('color' , 'white');
@@ -50,6 +72,7 @@ T_ammended = [];
 SIM_ammended = [];
 firstTrans = zeros(M.numOptions , M.numOptions); %initialize the matrix of first order conditional probabilities
 BoundMat = M.Bound * ones(M.numOptions , M.numOptions);
+OptionsPressed = zeros(1, M.numOptions);
 for tn = 1:length(AllT.TN)
     T = getrow(AllT , tn);
     maxPresses = T.numPress;
@@ -98,7 +121,10 @@ for tn = 1:length(AllT.TN)
         end;
         
         % Update the evidence state
-        eps = randn([M.numOptions 1 maxPresses]) * M.SigEps;
+        % update the noise std using the MapLearning rule
+        for nop = 1:M.numOptions
+            eps(nop , 1 ,:) = randn([1 1 maxPresses]) * (1- 0.01*MapLearnConst*OptionsPressed(nop))*M.SigEps;
+        end
         switch DecayFunc
             case 'exp'
                 if ~exist('DecayParam')
@@ -128,7 +154,7 @@ for tn = 1:length(AllT.TN)
         indx1= nDecision * maxPlan - (maxPlan-1):min(nDecision * maxPlan , maxPresses);
         % Determine if we issue a decision
         % motor command is not issued unless all the presses that have to planned in one step hit the boundry
-        if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1))>((1-2*currentTransP).*B(i+1 , :))')) == length(indx1)
+        if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1))>((1-AssLearnConst*currentTransP).*B(i+1 , :))')) == length(indx1)
             count = 1;
             for prs = indx1
                 [~,T.response(1,prs)]=max(X(:,i+1,prs));
@@ -166,8 +192,7 @@ for tn = 1:length(AllT.TN)
         T.isError(i) = ~isequal(T.stimulus(i,:) , T.response(i,:));
     end
     
-    
-    
+    % update the first order transition probabilities
     firstTrans = zeros(M.numOptions , M.numOptions); %Re-initialize and update the matrix of first order probabilities
     for tn1 = 1:tn
         for prs = 1:AllT.numPress(tn1)-1
@@ -178,19 +203,32 @@ for tn = 1:length(AllT.TN)
     num2Trans = sum(AllT.numPress(1:tn)) - tn; % a sequence of length N has N-1 double transitions
     firstTrans = firstTrans/num2Trans;
     
+    % maplearning: find the number of times each finger has been pressed to modify the noise std
+    for nop = 1:M.numOptions
+        OptionsPressed(nop) = OptionsPressed(nop) + sum(find(T.stimulus == nop)); 
+    end
+    
+    
     T_ammended = addstruct(T_ammended , T);
     T_ammended.MT = T_ammended.pressTime(:,end) - T_ammended.pressTime(:,1);
     S = getrow(T_ammended , T_ammended.seqType > 0);
     R = getrow(T_ammended , T_ammended.seqType ==0);
+    if isempty(R.MT)
+        R.MT = 0
+    elseif isempty(S.MT)
+        S.MT = 0;
+    end
     subplot(131)
     plot(S.MT , 'color' , 'b');
     hold on
     plot(R.MT , 'color' , 'r')
-    title(['MT after ' , num2str(tn) , ' trials.'])
+    legend({'Blue Trained Sequences' , 'Red Random Sequences'})
+    title(['MT after ' , num2str(tn) , ' trials. Average Random_MT  = ' num2str(nanmean(R.MT)) , '    Average Trained_MT  = ' num2str(nanmean(S.MT))])
     drawnow()
     
+    
     subplot(132)
-    imagesc((1-5*firstTrans).*BoundMat)
+    imagesc((1-AssLearnConst*firstTrans).*BoundMat)
     axis square
     title(['Boundry Matrix after ' , num2str(tn) , ' trials.'])
     colorbar
