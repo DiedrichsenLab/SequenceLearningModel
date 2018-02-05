@@ -237,7 +237,7 @@ switch what
         
         subplot(212)
         legenslabel = {};
-        for dp = 1:length(Horizon)
+        for dp = 1:length(DecayParam)
             legenslabel = [legenslabel , ['Decay = ' , num2str(DecayParam(dp))]];
             errorbar(x{dp} , p{dp} , e{dp} , 'LineWidth' , 3, 'color' , colorz{dp});
             hold on

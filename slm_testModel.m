@@ -1,6 +1,18 @@
 function [R,SIM,T,M]=slm_testModel(what,varargin)
 % Wrapper function to test different aspects of the sml toolbox
 c = 1;
+%% Set default parameters
+DecayFunc = 'exp';
+SeqLength = 10;
+numSimulations = 200;
+Aintegrate = 0.98;
+Ainhibit = 0.0;
+theta_stim = 0.01;
+dT_motor = 90;
+SigEps = 0.01;
+Bound = 0.45;
+
+%% manage varargin
 while(c<=length(varargin))
     switch(varargin{c})
         
@@ -51,36 +63,16 @@ while(c<=length(varargin))
             % Standard deviation of the gaussian noise Default = 0.01
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'Bound'}
+            % Decision Bound Default = 0.
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error(sprintf('Unknown option: %s',varargin{c}));
     end
 end
 
-if ~exist('DecayFunc')
-    DecayFunc = 'exp';
-end
-if ~exist('SeqLength')
-    SeqLength = 10;
-end
-if ~exist('numSimulations')
-    numSimulations = 200;
-end
-if ~exist('Aintegrate')
-    Aintegrate = 0.98;
-end
-if ~exist('Ainhibit')
-    Ainhibit = 0.0;
-end
-if ~exist('theta_stim')
-    theta_stim = 0.01;
-end
-if ~exist('dT_motor')
-    dT_motor = 90;
-end
-if ~exist('SigEps')
-    SigEps = 0.01;
-end
-
+%% the cases
 
 switch(what)
     
@@ -120,14 +112,14 @@ switch(what)
         tn = 1;
         % Make Models with defferent horizons
         cap= 1;
-        for hrzn = 1:SeqLength
+        for hrzn = 1:2:SeqLength
             M.Aintegrate = Aintegrate;  % Diagnonal of A
             M.Ainhibit = Ainhibit;      % Inhibition of A
             M.theta_stim = theta_stim;        % Rate constant for integration of sensory information
             M.dT_motor = dT_motor;            % Motor non-decision time
             M.dT_visual = 70;           % Visual non-decision time
             M.SigEps    = SigEps;         % Standard deviation of the gaussian noise
-            M.Bound     = 0.45;         % Boundary condition
+            M.Bound     = Bound;         % Boundary condition
             M.numOptions = 5;           % Number of response options
             M.capacity   = cap;         % Capacity for preplanning (buffer size)
             switch DecayFunc
@@ -157,15 +149,18 @@ switch(what)
                 % generate random stimuli every rep
                 T.stimulus = randi(5 , 1, SeqLength );
                 [TR,SIM]=slm_simTrial(M,T,'DecayFunc' , DecayFunc,'DecayParam' , DecayParam);
+                slm_plotTrial('TrialHorseRace' , SIM , TR )
                 if i>1 & isequal(fields(TR) , fields(R))
                     R=addstruct(R,TR);
                 elseif i == 1
                     R=addstruct(R,TR);
                 end
-            end;
+            end
             tn = tn +1;
         end
 %         slm_plotTrial('BlockMT' , SIM , R )
 %         slm_plotTrial('IPIHorizon' , SIM , R )
+
+
         
 end
