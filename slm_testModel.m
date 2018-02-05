@@ -1,4 +1,4 @@
-function vararout=slm_testModel(what,varargin)
+function [R,SIM,T,M]=slm_testModel(what,varargin)
 % Wrapper function to test different aspects of the sml toolbox
 c = 1;
 while(c<=length(varargin))
@@ -24,6 +24,33 @@ while(c<=length(varargin))
             % default is 10
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'numSimulations'} 
+            % defines the number of sequences to be simulated Default = 200
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'Aintegrate'}
+            % Diagonal of A: determines the efect of the previous value of each horserace on it's next value
+            % (the one-back autoregressive coefficinnt) Default :  0.98
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'Ainhibit'}
+            % off-Diagonal of A: determines the effect of the previous
+            % values of other horseraces on eachother's next values aka Lateral inhibition 
+            % Lateral inhibition Default 0
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'theta_stim'}
+            % constant rate of information integration Default = 0.01
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'dt_motor'}
+            % execution delta T Default = 90 ms
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'SigEps'}
+            % Standard deviation of the gaussian noise Default = 0.01
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error(sprintf('Unknown option: %s',varargin{c}));
     end
@@ -34,6 +61,24 @@ if ~exist('DecayFunc')
 end
 if ~exist('SeqLength')
     SeqLength = 10;
+end
+if ~exist('numSimulations')
+    numSimulations = 200;
+end
+if ~exist('Aintegrate')
+    Aintegrate = 0.98;
+end
+if ~exist('Ainhibit')
+    Ainhibit = 0.0;
+end
+if ~exist('theta_stim')
+    theta_stim = 0.01;
+end
+if ~exist('dT_motor')
+    dT_motor = 90;
+end
+if ~exist('SigEps')
+    SigEps = 0.01;
 end
 
 
@@ -75,16 +120,16 @@ switch(what)
         tn = 1;
         % Make Models with defferent horizons
         cap= 1;
-        for hrzn = 1:SeqLength - 1
-            M.Aintegrate = 0.98;    % Diagnonal of A
-            M.Ainhibit = 0;      % Inhibition of A
-            M.theta_stim = 0.01;  % Rate constant for integration of sensory information
-            M.dT_motor = 90;     % Motor non-decision time
-            M.dT_visual = 70;    % Visual non-decision time
-            M.SigEps    = 0.01;   % Standard deviation of the gaussian noise
-            M.Bound     = 0.45;     % Boundary condition
-            M.numOptions = 5;    % Number of response options
-            M.capacity   = cap;   % Capacity for preplanning (buffer size)
+        for hrzn = 1:SeqLength
+            M.Aintegrate = Aintegrate;  % Diagnonal of A
+            M.Ainhibit = Ainhibit;      % Inhibition of A
+            M.theta_stim = theta_stim;        % Rate constant for integration of sensory information
+            M.dT_motor = dT_motor;            % Motor non-decision time
+            M.dT_visual = 70;           % Visual non-decision time
+            M.SigEps    = SigEps;         % Standard deviation of the gaussian noise
+            M.Bound     = 0.45;         % Boundary condition
+            M.numOptions = 5;           % Number of response options
+            M.capacity   = cap;         % Capacity for preplanning (buffer size)
             switch DecayFunc
                 case 'exp'
                     if ~exist('DecayParam')
@@ -108,16 +153,19 @@ switch(what)
             % Horizon feature added. stimTime will be the actual time that the stimulus came on.
             T.Horizon = hrzn*(ones(1,SeqLength));
             T.Horizon(1:hrzn) = NaN;
-            for i=1:20
+            for i=1:numSimulations
                 % generate random stimuli every rep
                 T.stimulus = randi(5 , 1, SeqLength );
                 [TR,SIM]=slm_simTrial(M,T,'DecayFunc' , DecayFunc,'DecayParam' , DecayParam);
-                R=addstruct(R,TR);
+                if i>1 & isequal(fields(TR) , fields(R))
+                    R=addstruct(R,TR);
+                elseif i == 1
+                    R=addstruct(R,TR);
+                end
             end;
             tn = tn +1;
         end
-        slm_plotTrial('BlockMT' , SIM , R )
-        slm_plotTrial('IPIHorizon' , SIM , R )
-        keyboard;
+%         slm_plotTrial('BlockMT' , SIM , R )
+%         slm_plotTrial('IPIHorizon' , SIM , R )
         
 end

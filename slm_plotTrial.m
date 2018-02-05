@@ -58,6 +58,9 @@ switch what
         elseif length(bs)>1 && length(H)==1
             [x, p , e] = lineplot([T.bufferSize]  ,  T.MT , 'style_shade');
             xlabel('Buffer size')
+        elseif length(bs)==1 && length(H)==1
+            [x, p , e] = lineplot([T.bufferSize]  ,  T.MT , 'style_shade');
+            xlabel('Buffer size')
         end
         P = reshape(p  , length(bs),length(H));
         E = reshape(e , length(bs),length(H));
@@ -118,7 +121,7 @@ switch what
             end
             xlabel('IPI number')
             title('Inter-press intervals')
-        elseif length(bs)>1 && length(H)==1
+        elseif length(bs)>=1 && length(H)==1
             leg = {};
             for buff = 1:length(bs)
                 plot(S.IPI(S.bufferSize==bs(buff) , :) , 'Linewidth' , 3 , 'color' , colorz{bs(buff)});

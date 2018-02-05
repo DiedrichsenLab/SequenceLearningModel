@@ -131,16 +131,16 @@ while remPress && i<maxTime/dT
 end;
 % because the muber of presses to be planned is high, sometime the trial
 % times out and the decisionis not reached, so we need to account for that
-if ~isfield(T , 'pressTime') || (length(T.pressTime) < maxPresses && i >= maxTime/dT)
+if ~isfield(T , 'pressTime') || ~isfield(T , 'response') || (length(T.pressTime) < maxPresses && i >= maxTime/dT)
     T.decisionTime(length(T.pressTime)+1 : maxPresses) = NaN;
     T.response(length(T.pressTime)+1 : maxPresses) = NaN;
     T.pressTime(length(T.pressTime)+1 : maxPresses) = NaN;
     tmax = NaN;
     if (nargout>1)
-        SIM.X = NaN; % Hidden state
-        SIM.S = NaN; % Stimulus present
+        SIM.X = NaN;     % Hidden state
+        SIM.S = NaN;     % Stimulus present
         SIM.B = NaN;     % Bound
-        SIM.t = NaN;    % Time
+        SIM.t = NaN;     % Time
         SIM.bufferSize = M.capacity;
     end;
 else
