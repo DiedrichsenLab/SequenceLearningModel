@@ -40,7 +40,7 @@ end
 if ~exist('theta_select')
     theta_select = 0.01;
 end
-
+colorz = {[0 0  1],[1 0 0],[0 1 0],[1 0 1],[0 1 1],[0.7 0.7 0.7],[1 1 0],[.3 .3 .3],[.4 .4 .4] [.2 .5 .7]};
 %% plot MTs and RTs for different decay constants and different Theta stims IPIs.Aintegrate == 0.98 for full horizon
 theta_stim = unique(IPIs.theta_stim);
 Aintegrate = unique(IPIs.Aintegrate);
@@ -79,7 +79,7 @@ switch what
         % for better visibility of the other theta stims
         subplot(223)
         for ts = 2:length(theta_stim)
-            errorbar(xm{ts} , pm{ts} , em{ts} , 'LineWidth' , 3);
+            errorbar(xm{ts} , pm{ts} , em{ts} , 'LineWidth' , 3, 'color' , colorz{dp});
             hold on
         end
         legend(legenslabel(2:end))
@@ -97,7 +97,7 @@ switch what
         legenslabel = {};
         for ts = 1:length(theta_stim)
             legenslabel = [legenslabel , ['theta stim = ' , num2str(theta_stim(ts))]];
-            errorbar(x{ts} , p{ts} , e{ts} , 'LineWidth' , 3);
+            errorbar(x{ts} , p{ts} , e{ts} , 'LineWidth' , 3, 'color' , colorz{ts});
             hold on
         end
         legend(legenslabel)
@@ -109,7 +109,7 @@ switch what
         % for better visibility of the other theta stims
         subplot(224)
         for ts = 2:length(theta_stim)
-            errorbar(x{ts} , p{ts} , e{ts} , 'LineWidth' , 3);
+            errorbar(x{ts} , p{ts} , e{ts} , 'LineWidth' , 3, 'color' , colorz{ts});
             hold on
         end
         legend(legenslabel(2:end))
@@ -136,7 +136,7 @@ switch what
         subplot(211)
         for ai = 1:length(Aintegrate)
             legenslabel = [legenslabel , ['A integrate = ' , num2str(Aintegrate(ai))]];
-            errorbar(x{ai} , p{ai} , e{ai} , 'LineWidth' , 3);
+            errorbar(x{ai} , p{ai} , e{ai} , 'LineWidth' , 3, 'color' , colorz{ai});
             hold on
         end
         legend(legenslabel)
@@ -176,7 +176,7 @@ switch what
         legenslabel = {};
         for h = 1:length(Horizon)
             legenslabel = [legenslabel , ['Horizon = ' , num2str(Horizon(h))]];
-            errorbar(xm{h} , pm{h} , em{h} , 'LineWidth' , 3);
+            errorbar(xm{h} , pm{h} , em{h} , 'LineWidth' , 3, 'color' , colorz{h});
             hold on
         end
         legend(legenslabel)
@@ -194,7 +194,7 @@ switch what
         legenslabel = {};
         for h = 1:length(Horizon)
             legenslabel = [legenslabel , ['Horizon = ' , num2str(Horizon(h))]];
-            errorbar(x{h} , p{h} , e{h} , 'LineWidth' , 3);
+            errorbar(x{h} , p{h} , e{h} , 'LineWidth' , 3, 'color' , colorz{h});
             hold on
         end
         legend(legenslabel)
@@ -222,7 +222,7 @@ switch what
         legenslabel = {};
         for dp = 1:length(DecayParam)
             legenslabel = [legenslabel , ['Decay = ' , num2str(DecayParam(dp))]];
-            errorbar(xm{dp} , pm{dp} , em{dp} , 'LineWidth' , 3);
+            errorbar(xm{dp} , pm{dp} , em{dp} , 'LineWidth' , 3, 'color' , colorz{dp});
             hold on
         end
         legend(legenslabel)
@@ -239,7 +239,7 @@ switch what
         legenslabel = {};
         for dp = 1:length(Horizon)
             legenslabel = [legenslabel , ['Decay = ' , num2str(DecayParam(dp))]];
-            errorbar(x{dp} , p{dp} , e{dp} , 'LineWidth' , 3);
+            errorbar(x{dp} , p{dp} , e{dp} , 'LineWidth' , 3, 'color' , colorz{dp});
             hold on
         end
         legend(legenslabel)
@@ -273,7 +273,6 @@ switch what
         end
         
         figure('color' , 'white')
-        subplot(211)
         for dp = 1:length(DecayParam)
             for ai = 1:length(Aintegrate)
                 errorbar( X{ai,dp} , ipis_p{ai,dp} , ipis_e{ai,dp} , 'LineWidth' , 3 , 'color' , colorz{ai});
@@ -292,7 +291,7 @@ switch what
     case 'IPIs_vs_theta'
         %% plot satrt and end IPIs with different decay constants and different Theta stims IPIs.Aintegrate == 0.98
         % ********************** varying decay
-        colorz = {[0 0  1],[1 0 0],[0 1 0],[1 0 1],[0 1 1],[0.7 0.7 0.7],[1 1 0],[.3 .3 .3],[.4 .4 .4] [.2 .5 .7]};
+        
         legenslabel = {};
         
         for ts = 1:length(Aintegrate)
