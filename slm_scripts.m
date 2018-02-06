@@ -19,17 +19,21 @@ load('slm_IPIsBoxcar.mat')
 % separate the full horizons only
 % A = getrow( IPIs , IPIs.Horizon == max(IPIs.Horizon));
 % A = getrow( IPIs , IPIs.Horizon == 14);
-slm_diagModelViz(IPIs , 'MT_RT_vs_theta' , 'Aintegrate_select' , 0.975)
-slm_diagModelViz(IPIs , 'MT_RT_vs_Aintegrate' , 'theta_select' , 0.01)
+slm_diagModelViz(IPIs , 'MT_RT_freez_Aintegrate' , 'Aintegrate_select' , 0.975)
+slm_diagModelViz(IPIs , 'MT_RT_freez_theta' , 'theta_select' , 0.01)
 %%
-slm_diagModelViz(IPIs , 'MT_RT_vs_Horizon_constantAiTs', 'Aintegrate_select' , 0.9950)
+slm_diagModelViz(IPIs , 'MT_RT_freez_AiTheta', 'Aintegrate_select' , 0.9950)
 %%
 A = getrow( IPIs , IPIs.Aintegrate == 0.98 & IPIs.theta_stim == 0.01);
 slm_diagModelViz(IPIs , 'MT_RT_vs_Horizon','Aintegrate_select' , 0.975)
 slm_diagModelViz(IPIs , 'MT_RT_vs_Horizon')
 %%
 % A = getrow( IPIs , IPIs.Horizon == 10);
-slm_diagModelViz(IPIs , 'IPIs_vs_theta')
+slm_diagModelViz(IPIs , 'IPIs_freez_Aintegrate')
 
-slm_diagModelViz(A, 'IPIs_vs_Aintegrate')
+slm_diagModelViz(A, 'IPIs_freez_theta')
+
+%%
+A = getrow( IPIs , IPIs.Horizon == 14);
+slm_diagModelViz(A, 'MT_RT_freez_decay')
 

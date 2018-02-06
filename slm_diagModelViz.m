@@ -1,4 +1,14 @@
 function slm_diagModelViz(IPIs , what , varargin)
+theta_stim = unique(IPIs.theta_stim);
+Aintegrate = unique(IPIs.Aintegrate);
+DecayParam = unique(IPIs.DecayParam);
+Horizon    = unique(IPIs.Horizon);
+
+%% for parameter freezing
+decay_select = DecayParam(1);
+Aintegrate_select = 0.98;
+Ainhibit_select = 0;
+theta_select = 0.01;
 
 c = 1;
 while(c<=length(varargin))
@@ -31,24 +41,12 @@ while(c<=length(varargin))
     end
 end
 
-if ~exist('Aintegrate_select')
-    Aintegrate_select = 0.98;
-end
-if ~exist('Ainhibit_select')
-    Ainhibit_select = 0;
-end
-if ~exist('theta_select')
-    theta_select = 0.01;
-end
-colorz = {[0 0  1],[1 0 0],[0 1 0],[1 0 1],[0 1 1],[0.7 0.7 0.7],[1 1 0],[.3 .3 .3],[.4 .4 .4] [.2 .5 .7]};
+colorz = {[0 0  1],[1 0 0],[0 1 0],[1 0 1],[0 1 1],[0.7 0.7 0.7],[1 1 0],[.3 .3 .3],[.4 .4 .4] [.2 .5 .7] [.1 .3 .7]};
 %% plot MTs and RTs for different decay constants and different Theta stims IPIs.Aintegrate == 0.98 for full horizon
-theta_stim = unique(IPIs.theta_stim);
-Aintegrate = unique(IPIs.Aintegrate);
-DecayParam = unique(IPIs.DecayParam);
-Horizon    = unique(IPIs.Horizon);
+
 
 switch what
-    case 'MT_RT_vs_theta'
+    case 'MT_RT_freez_Aintegrate'
         
         h = figure;
         for ts = 1:length(theta_stim)
@@ -119,7 +117,7 @@ switch what
         set(gca, 'FontSize' , 20 ,'Box' , 'off')% , 'GridAlpha' , 1)
         title(['Initial Reaction Time for Different Exponential Decay Constants - Aintegrate = ', num2str(Aintegrate_select)])
     %%'MT_RT_vs_Aintegrate'
-    case 'MT_RT_vs_Aintegrate'
+    case 'MT_RT_freez_theta'
         
         h = figure;
         hold on
@@ -157,8 +155,59 @@ switch what
         xlabel('Exponential Decay Constant')
         set(gca, 'FontSize' , 20 ,'Box' , 'off')% , 'GridAlpha' , 1)
         title(['Initial Reaction Time for Different Exponential Decay Constants - theta_stim = ' , num2str(theta_select)])
+    case 'MT_RT_freez_decay'
         
-    case 'MT_RT_vs_Horizon_constantAiTs'
+        h = figure;
+        hold on
+        for ai = 1:length(Aintegrate)
+            A = getrow(IPIs , IPIs.Aintegrate == Aintegrate(ai) & IPIs.DecayParam == decay_select);
+            temp = repmat(A.theta_stim , 1,length(A.MT{1}))';
+            TLabel = reshape(temp , numel(temp) , 1);
+            [x{ai} , p{ai} , e{ai}] = lineplot(TLabel , cell2mat(A.MT) , 'plotfcn','nanmean' ,'style_thickline');
+            [xr{ai} , pr{ai} , er{ai}] = lineplot(TLabel , cell2mat(A.RT) , 'plotfcn','nanmean' ,'style_thickline');
+        end
+        close(h)
+        legenslabel = {};
+        figure('color' , 'white')
+        subplot(211)
+        for ai = 1:length(Aintegrate)
+            legenslabel = [legenslabel , ['A integrate = ' , num2str(Aintegrate(ai))]];
+            errorbar(x{ai} , p{ai} , e{ai} , 'LineWidth' , 3, 'color' , colorz{ai});
+            hold on
+        end
+        legend(legenslabel)
+        grid on
+        ylabel('ms')
+        xlabel('Theta stim')
+        set(gca, 'FontSize' , 20 ,'Box' , 'off')% , 'GridAlpha' , 1)
+        title(['Movement Time for Different theta_stim and Aintegrate - DecayParam = ' , num2str(decay_select)])
+        
+        subplot(212)
+        for ai = 1:length(Aintegrate)
+            errorbar(xr{ai} , pr{ai} , er{ai} , 'LineWidth' , 3, 'color' , colorz{ai});
+            hold on
+        end
+        legend(legenslabel)
+        grid on
+        ylabel('ms')
+        xlabel('Theta stim')
+        set(gca, 'FontSize' , 20 ,'Box' , 'off')% , 'GridAlpha' , 1)
+        title(['Initial Reaction Time for Different theta_stim and Aintegrate - DecayParam = ' , num2str(decay_select)])
+        
+        figure('color' , 'white')
+        for ai = 1:length(Aintegrate)
+            plot(p{ai} , pr{ai} , '--o' , 'LineWidth'  , 3, 'color' , colorz{ai});
+            hold on
+        end
+        legend(legenslabel)
+        grid on
+        ylabel('RT(ms)')
+        xlabel('MT(ms)')
+        set(gca, 'FontSize' , 20 ,'Box' , 'off')% , 'GridAlpha' , 1)
+        title(['Movement Time vs Reaction Time - DecayParam = ' , num2str(decay_select)])
+        
+        
+    case 'MT_RT_freez_AiTheta'
         h1 = figure;
         for h = 1:length(Horizon)
             A = getrow(IPIs , IPIs.Horizon == Horizon(h) & IPIs.Aintegrate == Aintegrate_select  & IPIs.theta_stim == theta_select);
@@ -250,9 +299,8 @@ switch what
         title(['Initial Reaction Time for Different Exponential Decay Constants'])
         
         
-        %% plot MTs and RTs for different decay constants and different Aintegrates IPIs.theta_stim = theta_select
-        
-    case 'IPIs_vs_Aintegrate'
+        %% plot MTs and RTs for different decay constants and different Aintegrates IPIs.theta_stim = theta_select        
+    case 'IPIs_freez_theta'
         %% plot satrt and end IPIs with different decay constants and different Aintegrates IPIs.theta_stim = theta_select
         % ********************** varying decay
         colorz = {[0 0  1],[1 0 0],[0 1 0],[1 0 1],[0 1 1],[0.7 0.7 0.7],[1 1 0],[.3 .3 .3],[.4 .4 .4] [.2 .5 .7]};
@@ -287,8 +335,7 @@ switch what
         set(gca, 'FontSize' , 20 ,'Box' , 'off' , 'XtickLabel' , xlab , 'XTick' , [0: 2*dp-1],...
             'XLim' ,  [-1 2*dp],'XTickLabelRotation' , 45)% , 'GridAlpha' , 1)
         title(['Movement Time for Different Exponential Decay Constants - thetastim = ' , num2str(theta_select)])
-        
-    case 'IPIs_vs_theta'
+    case 'IPIs_freez_Aintegrate'
         %% plot satrt and end IPIs with different decay constants and different Theta stims IPIs.Aintegrate == 0.98
         % ********************** varying decay
         
