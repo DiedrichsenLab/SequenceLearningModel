@@ -11,6 +11,7 @@ theta_stim = 0.01;
 dT_motor = 90;
 SigEps = 0.01;
 Bound = 0.45;
+Horizons = [1:SeqLength];
 
 %% manage varargin
 while(c<=length(varargin))
@@ -22,7 +23,6 @@ while(c<=length(varargin))
             % default is exponential
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
-            
         case {'DecayParam'}
             % defines the parameters for the decay function
             % for 'exp' this would be the time constant (defaul = 1)
@@ -30,7 +30,6 @@ while(c<=length(varargin))
             % for 'boxcar' this would be the number of 1s in a row (default = 5)
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
-            
         case {'SeqLength'} 
             % defines the length of the sequence
             % default is 10
@@ -65,6 +64,10 @@ while(c<=length(varargin))
             c=c+2;
         case {'Bound'}
             % Decision Bound Default = 0.
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'Horizons'}
+            % The horizon sizes you want to include in the simulation
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
         otherwise
@@ -112,7 +115,7 @@ switch(what)
         tn = 1;
         % Make Models with defferent horizons
         cap= 1;
-        for hrzn = 1:2:SeqLength
+        for hrzn = Horizons
             M.Aintegrate = Aintegrate;  % Diagnonal of A
             M.Ainhibit = Ainhibit;      % Inhibition of A
             M.theta_stim = theta_stim;        % Rate constant for integration of sensory information
@@ -149,7 +152,7 @@ switch(what)
                 % generate random stimuli every rep
                 T.stimulus = randi(5 , 1, SeqLength );
                 [TR,SIM]=slm_simTrial(M,T,'DecayFunc' , DecayFunc,'DecayParam' , DecayParam);
-                slm_plotTrial('TrialHorseRace' , SIM , TR )
+%                 slm_plotTrial('TrialHorseRace' , SIM , TR )
                 if i>1 & isequal(fields(TR) , fields(R))
                     R=addstruct(R,TR);
                 elseif i == 1
