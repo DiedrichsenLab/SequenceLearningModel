@@ -99,7 +99,7 @@ while remPress && i<maxTime/dT
     % implement forced-RT collapsing decision boundary (exponential decay)
     if ~isnan(T.forcedPressTime(1,1)) && collapsedBound==0
         if t(i+1)>=T.forcedPressTime(1,1)-T.respWindow(1,1)
-            B(i+1:i+1+T.respWindow*2)=-exp((1:numel(B(i+1:i+1+T.respWindow*2)))./(DecayParam*125)) + abs(max(-exp((1:numel(B(i+1:i+1+T.respWindow*2)))./(DecayParam*125)))) + B(1); 
+            B(i+1:i+1+T.respWindow*2)=-exp((1:numel(B(i+1:i+1+T.respWindow*2)))./250) + abs(max(-exp((1:numel(B(i+1:i+1+T.respWindow*2)))./250))) + B(1); 
             B(B<0)=0; B(find(B==min(B)):end)=0;
             collapsedBound=1;
         end
@@ -111,7 +111,7 @@ while remPress && i<maxTime/dT
     
     % determine if we issue a decision
     % motor command is not issued unless all the presses that have to planned in one step hit the boundary
-    if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1))>B(i+1))) == length(indx1) && t(i+1)>=3000
+    if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1))>B(i+1))) == length(indx1) && t(i+1)>=2800
         count = 1;
         for prs = indx1
             [~,T.response(1,prs)]=max(X(:,i+1,prs));

@@ -40,6 +40,7 @@ path2tgt='/Volumes/motorcontrol/robotcode/projects/SequenceRepetition/sr1/target
 
 % read in example target file from this project
 tgt=dir(fullfile(path2tgt,sprintf('sr1_s%02d_b%02d.tgt',s,b))); % select tgt file
+if isempty(tgt); error('Target file not found for this combination of path, subject, and block number! Make sure that the inputs are correct.'); end
 D=dload(fullfile(path2tgt,tgt(1).name)); % load the tgt file
 if numel(trial)>numel(D.seqNum); trial=1:numel(D.seqNum); end
 T=getrow(D,trial); % select how many trials of this block
@@ -62,6 +63,7 @@ path2tgt='/Volumes/motorcontrol/robotcode/projects/SequenceRepetition/sr2/target
 
 % read in example target file from this project
 tgt=dir(fullfile(path2tgt,sprintf('sr2_rt_s%02d_b%02d.tgt',s,b))); % select tgt file
+if isempty(tgt); error('Target file not found for this combination of path, subject, and block number! Make sure that the inputs are correct.'); end
 D=dload(fullfile(path2tgt,tgt(1).name)); % load the tgt file
 if numel(trial)>numel(D.seqNum); trial=1:numel(D.seqNum); end
 T=getrow(D,trial); % select how many trials of this block
@@ -84,6 +86,7 @@ path2tgt='/Volumes/motorcontrol/robotcode/projects/SequenceRepetition/sr2/target
 
 % read in example target file from this project
 tgt=dir(fullfile(path2tgt,sprintf('sr2_rs_s%02d_b%02d.tgt',s,b))); % select tgt file
+if isempty(tgt); error('Target file not found for this combination of path, subject, and block number! Make sure that the inputs are correct.'); end
 D=dload(fullfile(path2tgt,tgt(1).name)); % load the tgt file
 if numel(trial)>numel(D.seqNum); trial=1:numel(D.seqNum); end
 T=getrow(D,trial); % select how many trials of this block
@@ -106,6 +109,7 @@ path2tgt='/Volumes/motorcontrol/robotcode/projects/SeqEye_Horizon/target';
 
 % read in example target file from this project
 tgt=dir(fullfile(path2tgt,'*1.tgt')); % select tgt file
+if isempty(tgt); error('Target file not found for this combination of path, subject, and block number! Make sure that the inputs are correct.'); end
 D=dload(fullfile(path2tgt,tgt(1).name)); % load the tgt file
 if numel(trial)>numel(D.seqNum); trial=1:numel(D.seqNum); end
 T=getrow(D,trial); % select how many trials of this block

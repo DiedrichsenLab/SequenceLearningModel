@@ -1,6 +1,6 @@
 function [R,S,B,SIM,T,TR,M]=slm_testModel(what,varargin)
 %% example call:
-% [R,S,B,SIM,T,TR,M]=slm_testModel('singleResp','Aintegrate',.85,'theta_stim',0.01,'DecayParam',1,'SigEps',0.01,'Bound',.50);
+% [R,S,B,SIM,T,TR,M]=slm_testModel('singleResp','Aintegrate',.9,'theta_stim',0.02,'DecayParam',10,'SigEps',0.040,'Bound',.45);
 %
 % Wrapper function to test different aspects of the sml toolbox
 c = 1;
@@ -8,7 +8,7 @@ c = 1;
 %% Set default parameters
 % subj = 1;
 % block = 1;
-% trial = 1;
+% trial = 8:10;
 % plotSim = 1; %0|1: whether to plot each single trial simulation, or not
 
 subj = 1:20;
@@ -23,7 +23,7 @@ numSimulations = 200;
 Aintegrate = 0.98;
 Ainhibit = 0.0;
 theta_stim = 0.01;
-dT_motor = 10\\\0;
+dT_motor = 100;
 dT_visual = 70;
 SigEps = 0.01;
 Bound = 0.50;
@@ -122,9 +122,11 @@ switch(what)
         M.numOptions    = numOptions;           % Number of response options
         M.capacity      = cap;         % Capacity for preplanning (buffer size)
         %% Make experiment
-        R=[]; S=[]; B=[];
+        R=[]; 
         for s=subj
+             S=[];
             for b=block
+                B=[];
                 [T]=slm_genTrial('sr2_rt',trial,s,b);
                 for t=1:numel(trial)
                     [TR,SIM]=slm_simTrial(M,getrow(T,t),'DecayFunc',DecayFunc,'DecayParam',DecayParam);
