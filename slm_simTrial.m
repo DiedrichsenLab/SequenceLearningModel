@@ -1,11 +1,10 @@
 function [T,SIM]=slm_simTrial(M,T,varargin)
-% function [T,SIM]=slm_simTrialCap(M,T);
-% incoporates horizon size (T.Horizon) as well as buffer size (M.capacity),
-% and preparation time (M.prepTime)
-% multiple planning possible
-% as long as M.capacity = 1, this funcion should work exacly same as [T,SIM]=slm_simTrial(M,T);
-% Simulates a trial using a parallel evidence-accumulation model
-% for sequential response tasks
+%% function [T,SIM]=slm_simTrial(M,T,varargin);
+%
+% Incoporates horizon size (T.Horizon) as well as buffer size (M.capacity), and preparation time (M.prepTime)
+% Multiple planning possible as long as M.capacity = 1, this funcion should work exacly same as [T,SIM]=slm_simTrial(M,T);
+% Simulates a trial using a parallel evidence-accumulation model for sequential response tasks
+
 M.capacity = 1; % always set capacity to 1 since it's soft capacity
 dT = 2;     % delta-t in ms
 maxTime = 5000; % Maximal time for trial simulation
@@ -27,21 +26,20 @@ while(c<=length(varargin))
     end
 end
 
-
 % Determine length of the trial
 maxPresses = max(T.numPress);
 
 % number of decision steps is defined by the M.capacity and T.Horizon, whichever results in more decision steps
-dec=1: maxPresses;  % Number of decision
+dec=1:maxPresses;  % Number of decision
 maxPlan = M.capacity; % Number of digits being planned in every decision step
-if isfield(T , 'Horizon')
+if isfield(T,'Horizon')
     % set the stimTime for presses that are not shown at time 0 to NaN.
     % These will be filled with press times
     T.stimTime(~isnan(T.Horizon)) = NaN;
 else
     T.Horizon=nan(size(T.stimulus,1),size(T.stimulus,2)); % default to full horizon
 end
-T.pressTime = nan(size(T.stimulus,1),size(T.stimulus,2)); % to be fiied with press times
+T.pressTime = nan(size(T.stimulus,1),size(T.stimulus,2)); % to be filled with press times
 %decSteps = max(dec);
 
 % initialize variables
@@ -51,7 +49,7 @@ B = ones(1,maxTime/dT)*M.Bound;                % Decision Bound - constant value
 t = (1:maxTime/dT)*dT-dT;   % Time in ms
 i = 1;                   % Index of simlation
 nDecision = 1;           % Current decision to make
-%numPresses = 0;          % Number of presses produced
+%numPresses = 0;         % Number of presses produced
 isPressing = 0;          % Is the motor system currently occupied?
 remPress = maxPresses;   % Remaining presses. This variable will be useful if/whenever multiple digits are being planned in every decsion step
 collapsedBound = 0;
@@ -60,8 +58,7 @@ collapsedBound = 0;
 A  = eye(M.numOptions)*(M.Aintegrate-M.Ainhibit)+...
     ones(M.numOptions)*M.Ainhibit;
 
-% Start time-by-time simulation
-
+%% Start time-by-time simulation
 while remPress && i<maxTime/dT
     mult = zeros(1,length(dec));
     % Update the stimulus: Fixed stimulus time
@@ -96,15 +93,14 @@ while remPress && i<maxTime/dT
     end
     mult(dec<nDecision)=0;                    % Made decisions will just decay
     for j =1:maxPresses
-        X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
+        X(:,i+1,j) = A * X(:,i,j) + M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
     end
     
     % implement forced-RT collapsing decision boundary (exponential decay)
     if ~isnan(T.forcedPressTime(1,1)) && collapsedBound==0
         if t(i+1)>=T.forcedPressTime(1,1)-T.respWindow(1,1)
-            %B(i+1:i+1+T.respWindow*2)=-exp((1:numel(B(i+1:i+1+T.respWindow*2)))./(DecayParam*300)) + abs(max(-exp((1:numel(B(i+1:i+1+T.respWindow*2)))./(DecayParam*300)))) + B(1); 
             B(i+1:i+1+T.respWindow*2)=-exp((1:numel(B(i+1:i+1+T.respWindow*2)))./(DecayParam*125)) + abs(max(-exp((1:numel(B(i+1:i+1+T.respWindow*2)))./(DecayParam*125)))) + B(1); 
-            B(B<0)=0; B(find(B==min(B)):end)=0; %B(i+1+T.respWindow*2:end)=0;
+            B(B<0)=0; B(find(B==min(B)):end)=0;
             collapsedBound=1;
         end
     end
@@ -112,8 +108,9 @@ while remPress && i<maxTime/dT
     % find the press indecies that have to be planed in this decision cycle
     % doing it this way will be useful if/whenever multiple digits are being planned in every decsion step
     indx1= nDecision * maxPlan - (maxPlan-1):min(nDecision * maxPlan , maxPresses);
-    % Determine if we issue a decision
-    % motor command is not issued unless all the presses that have to planned in one step hit the boundry
+    
+    % determine if we issue a decision
+    % motor command is not issued unless all the presses that have to planned in one step hit the boundary
     if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1))>B(i+1))) == length(indx1) && t(i+1)>=3000
         count = 1;
         for prs = indx1
@@ -145,12 +142,14 @@ while remPress && i<maxTime/dT
     end
     i=i+1;
 end;
-% because the muber of presses to be planned is high, sometime the trial
-% times out and the decisionis not reached, so we need to account for that
+
+%% because the muber of presses to be planned is high, sometimes the trial times out and the decisionis not reached, so we need to account for that
 if ~isfield(T , 'pressTime') || ~isfield(T , 'response') || (length(T.pressTime) < maxPresses && i >= maxTime/dT)
     T.decisionTime(length(T.pressTime)+1 : maxPresses) = NaN;
     T.response(length(T.pressTime)+1 : maxPresses) = NaN;
     T.pressTime(length(T.pressTime)+1 : maxPresses) = NaN;
+    T.timingError=1;
+    T.isError=1;
     %tmax = NaN;
     if (nargout>1)
         SIM.X = NaN;     % Hidden state

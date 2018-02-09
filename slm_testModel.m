@@ -1,39 +1,44 @@
 function [R,S,B,SIM,T,TR,M]=slm_testModel(what,varargin)
 %% example call:
-% [R,S,B,SIM,T,TR,M]=slm_testModel('singleResp','DecayFunc','exp','Aintegrate',0.975,'theta_stim',0.01,'DecayParam',2,'SigEps',0.01);
-
+% [R,S,B,SIM,T,TR,M]=slm_testModel('singleResp','Aintegrate',.85,'theta_stim',0.01,'DecayParam',1,'SigEps',0.01,'Bound',.50);
+%
 % Wrapper function to test different aspects of the sml toolbox
 c = 1;
+
 %% Set default parameters
+% subj = 1;
+% block = 1;
+% trial = 1;
+% plotSim = 1; %0|1: whether to plot each single trial simulation, or not
+
 subj = 1:20;
 block = [1,2];
-trial = 6:55;
-plotSim = 0; % whether to plot each single trial simulation, or not
+trial = 1:55;
+plotSim = 0; %0|1: whether to plot each single trial simulation, or not
+
 DecayFunc = 'exp';
 DecayParam = 2;
-SeqLength = 10;
-%numSimulations = 200;
+SeqLength = 5;
+numSimulations = 200;
 Aintegrate = 0.98;
 Ainhibit = 0.0;
 theta_stim = 0.01;
-dT_motor = 90;
+dT_motor = 10\\\0;
 dT_visual = 70;
 SigEps = 0.01;
-Bound = 0.50; %0.90; %0.45;
+Bound = 0.50;
 numOptions = 5;
 cap = 1;
 
 %% manage varargin
 while(c<=length(varargin))
     switch(varargin{c})
-        
         case {'DecayFunc'}
             % defines the decay type
             % can be 'exp', 'linear' or 'boxcar'
             % default is exponential
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
-            
         case {'DecayParam'}
             % defines the parameters for the decay function
             % for 'exp' this would be the time constant (defaul = 1)
@@ -41,13 +46,12 @@ while(c<=length(varargin))
             % for 'boxcar' this would be the number of 1s in a row (default = 5)
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
-            
-        case {'SeqLength'} 
+        case {'SeqLength'}
             % defines the length of the sequence
             % default is 10
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
-        case {'numSimulations'} 
+        case {'numSimulations'}
             % defines the number of sequences to be simulated Default = 200
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
@@ -58,7 +62,7 @@ while(c<=length(varargin))
             c=c+2;
         case {'Ainhibit'}
             % off-Diagonal of A: determines the effect of the previous
-            % values of other horseraces on eachother's next values aka Lateral inhibition 
+            % values of other horseraces on eachother's next values aka Lateral inhibition
             % Lateral inhibition Default 0
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
@@ -78,28 +82,46 @@ while(c<=length(varargin))
             % Decision Bound Default = 0.
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'subj'}
+            % how many subjects in the simulation
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'block'}
+            % how many blocks per subject
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'trial'}
+            % how many trials per block
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'plotSim'}
+            % whether to plot each trial of the simulaiton, or not
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'cap'}
+            % maximum capacity for planning buffer
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error('Unknown option: %s',varargin{c});
     end
 end
 
 %% the cases
-
 switch(what)
     
-    case 'singleResp'
-        % Make Model
-        M.Aintegrate = Aintegrate;  % Diagnonal of A
-        M.Ainhibit = Ainhibit;      % Inhibition of A
-        M.theta_stim = theta_stim;        % Rate constant for integration of sensory information
-        M.dT_motor = dT_motor;            % Motor non-decision time
-        M.dT_visual = dT_visual;           % Visual non-decision time
-        M.SigEps    = SigEps;         % Standard deviation of the gaussian noise
-        M.Bound     = Bound;         % Boundary condition
-        M.numOptions = numOptions;           % Number of response options
-        M.capacity   = cap;         % Capacity for preplanning (buffer size)
-        
-        % Make experiment
+    case 'singleResp' % SRTT
+        %% Make Model
+        M.Aintegrate    = Aintegrate;  % Diagnonal of A
+        M.Ainhibit      = Ainhibit;      % Inhibition of A
+        M.theta_stim    = theta_stim;        % Rate constant for integration of sensory information
+        M.dT_motor      = dT_motor;            % Motor non-decision time
+        M.dT_visual     = dT_visual;           % Visual non-decision time
+        M.SigEps        = SigEps;         % Standard deviation of the gaussian noise
+        M.Bound         = Bound;         % Boundary condition
+        M.numOptions    = numOptions;           % Number of response options
+        M.capacity      = cap;         % Capacity for preplanning (buffer size)
+        %% Make experiment
         R=[]; S=[]; B=[];
         for s=subj
             for b=block
@@ -115,13 +137,13 @@ switch(what)
             S.SN=ones(numel(S.TN),1)*s;
             R=addstruct(R,S);
         end
-        R1=tapply(R,{'SN','prepTime'},{R.isError,'nanmean','name','ER','subset',R.timingError==0});
-        plt.line(R1.prepTime,(1-R1.ER)*100,'errorbars','shade');
-        xlabel('prep time'); ylabel('accuracy %');
-        %keyboard;
+        if plotSim==0
+            R1=tapply(R,{'SN','prepTime'},{R.isError,'nanmean','name','ER','subset',R.timingError==0});
+            plt.line(R1.prepTime,(1-R1.ER)*100,'errorbars','shade');
+            xlabel('prep time'); ylabel('accuracy %');
+        end
         
     case 'simpleSeq'
-        
         R=[];
         tn = 1;
         % Make Models with defferent horizons
@@ -172,9 +194,6 @@ switch(what)
             end
             tn = tn +1;
         end
-%         slm_plotTrial('BlockMT' , SIM , R )
-%         slm_plotTrial('IPIHorizon' , SIM , R )
-
-
-        
+        %         slm_plotTrial('BlockMT' , SIM , R )
+        %         slm_plotTrial('IPIHorizon' , SIM , R )
 end
