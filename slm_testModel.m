@@ -6,15 +6,15 @@ function [R,S,B,SIM,T,TR,M]=slm_testModel(what,varargin)
 c = 1;
 
 %% Set default parameters
-% subj = 1;
-% block = 1;
-% trial = 8:10;
-% plotSim = 1; %0|1: whether to plot each single trial simulation, or not
+subj = 1;
+block = 1;
+trial = 8:10;
+plotSim = 1; %0|1: whether to plot each single trial simulation, or not
 
-subj = 1:20;
-block = [1,2];
-trial = 1:55;
-plotSim = 0; %0|1: whether to plot each single trial simulation, or not
+% subj = 1:20;
+% block = [1,2];
+% trial = 1:55;
+% plotSim = 0; %0|1: whether to plot each single trial simulation, or not
 
 DecayFunc = 'exp';
 DecayParam = 2;

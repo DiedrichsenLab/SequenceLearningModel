@@ -47,11 +47,9 @@ T=getrow(D,trial); % select how many trials of this block
 
 % ensure "mandatory" fields are present (common fields across experiments)
 T.TN=(1:numel(trial))'; % keep track of how many trials
-T.stimulus=string(T.cueP); % visual cue (instruction to participant) 
-for t=1:numel(trial); T.stimulus(t,1:4)=[str2double(T.stimulus{t}(1)),str2double(T.stimulus{t}(2)),str2double(T.stimulus{t}(3)),str2double(T.stimulus{t}(4))]; end
-T.stimulus=str2double(T.stimulus);
+T.stimulus=double(num2str(T.cueP))-double('0'); % visual cue (instruction to participant)
 T.forcedPressTime=(ones(numel(trial),1)*Inf); % forced-RT time in forced RT paradigm (with respect to beginning of trial: Inf means free RT)
-T.stimTime=zeros(numel(trial),1); % when the stimulus appears (with respect to beginning of trial: 0 means right away)
+T.stimTime=repmat(T.forcedPressTime-T.prepTime,1,size(T.stimulus,2)); % when the stimulus appears (with respect to beginning of trial: 0 means right away)
 T.numPress=ones(numel(trial),1)*numel(T.stimulus(1,:)); % how many finger presses are required in this task
 
 end
@@ -70,11 +68,9 @@ T=getrow(D,trial); % select how many trials of this block
 
 % ensure "mandatory" fields are present (common fields across experiments)
 T.TN=(1:numel(trial))'; % keep track of how many trials
-T.stimulus=string(T.cueP); % visual cue (instruction to participant) 
-for t=1:numel(trial); T.stimulus(t,1:5)=[str2double(T.stimulus{t}(1)),str2double(T.stimulus{t}(2)),str2double(T.stimulus{t}(3)),str2double(T.stimulus{t}(4)),str2double(T.stimulus{t}(5))]; end
-T.stimulus=str2double(T.stimulus);
+T.stimulus=double(num2str(T.cueP))-double('0'); % visual cue (instruction to participant) 
 T.forcedPressTime=(ones(numel(trial),1)*3200); % forced-RT time in forced RT paradigm (with respect to beginning of trial: Inf means free RT)
-T.stimTime=ones(numel(trial),numel(T.stimulus(1,:))).*(T(1).forcedPressTime-T.prepTime); % when the stimulus appears (with respect to beginning of trial: 0 means right away)
+T.stimTime=repmat(T.forcedPressTime-T.prepTime,1,size(T.stimulus,2)); % when the stimulus appears (with respect to beginning of trial: 0 means right away)
 T.numPress=ones(numel(trial),1); % how many finger presses are required in this task
 
 end
@@ -93,11 +89,9 @@ T=getrow(D,trial); % select how many trials of this block
 
 % ensure "mandatory" fields are present (common fields across experiments)
 T.TN=(1:numel(trial))'; % keep track of how many trials
-T.stimulus=string(T.cueP); % visual cue (instruction to participant) 
-for t=1:numel(trial); T.stimulus(t,1:5)=[str2double(T.stimulus{t}(1)),str2double(T.stimulus{t}(2)),str2double(T.stimulus{t}(3)),str2double(T.stimulus{t}(4)),str2double(T.stimulus{t}(5))]; end
-T.stimulus=str2double(T.stimulus);
+T.stimulus=double(num2str(T.cueP))-double('0'); % visual cue (instruction to participant)
 T.forcedPressTime=(ones(numel(trial),1)*3200); % forced-RT time in forced RT paradigm (with respect to beginning of trial: Inf means free RT)
-T.stimTime=ones(numel(trial),numel(T.stimulus(1,:))).*(T(1).forcedPressTime-T.prepTime); % when the stimulus appears (with respect to beginning of trial: 0 means right away)
+T.stimTime=repmat(T.forcedPressTime-T.prepTime,1,size(T.stimulus,2)); % when the stimulus appears (with respect to beginning of trial: 0 means right away)
 T.numPress=ones(numel(trial),1)*numel(T.stimulus(1,:)); % how many finger presses are required in this task
 
 end
@@ -116,11 +110,9 @@ T=getrow(D,trial); % select how many trials of this block
 
 % ensure "mandatory" fields are present (common fields across experiments)
 T.TN=(1:numel(trial))'; % keep track of how many trials
-T.stimulus=string(T.cueP); % visual cue (instruction to participant) 
-for t=1:numel(trial); T.stimulus(t,1:5)=[str2double(T.stimulus{t}(1)),str2double(T.stimulus{t}(2)),str2double(T.stimulus{t}(3)),str2double(T.stimulus{t}(4)),str2double(T.stimulus{t}(5))]; end
-T.stimulus=str2double(T.stimulus);
+T.stimulus=double(num2str(T.cueP))-double('0'); % visual cue (instruction to participant)
 T.forcedPressTime=(ones(numel(trial),1)*Inf); % forced-RT time in forced RT paradigm (with respect to beginning of trial: Inf means free RT)
-T.stimTime=zeros(numel(trial),1); % when the stimulus appears (with respect to beginning of trial: 0 means right away)
+T.stimTime=repmat(T.forcedPressTime-T.prepTime,1,size(T.stimulus,2)); % when the stimulus appears (with respect to beginning of trial: 0 means right away)
 T.numPress=ones(numel(trial),1)*numel(T.stimulus(1,:)); % how many finger presses are required in this task
 
 end
