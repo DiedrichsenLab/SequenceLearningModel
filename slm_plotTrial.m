@@ -1,5 +1,5 @@
 function slm_plotTrial(what,SIM,T,varargin)
-% function slm_plotTrial(SIM,T);
+%% function slm_plotTrial(SIM,T);
 % Plots the horse race on the current sequence trial
 
 vararginoptions(varargin,{'style'});

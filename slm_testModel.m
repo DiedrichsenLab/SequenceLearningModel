@@ -1,20 +1,21 @@
 function [R,S,B,SIM,T,TR,M]=slm_testModel(what,varargin)
 %% example call:
 % [R,S,B,SIM,T,TR,M]=slm_testModel('singleResp','Aintegrate',.9,'theta_stim',0.02,'DecayParam',10,'SigEps',0.040,'Bound',.45);
+% [R,S,B,SIM,T,TR,M]=slm_testModel('singleResp','Aintegrate',.85,'theta_stim',0.02,'DecayParam',100,'SigEps',0.020,'Bound',.45);
 %
 % Wrapper function to test different aspects of the sml toolbox
 c = 1;
 
 %% Set default parameters
-subj = 1;
-block = 1;
-trial = 8:10;
-plotSim = 1; %0|1: whether to plot each single trial simulation, or not
+% subj = 1;
+% block = 1;
+% trial = 8:10;
+% plotSim = 1; %0|1: whether to plot each single trial simulation, or not
 
-% subj = 1:20;
-% block = [1,2];
-% trial = 1:55;
-% plotSim = 0; %0|1: whether to plot each single trial simulation, or not
+subj = 1:20;
+block = [1,2];
+trial = 1:55;
+plotSim = 0; %0|1: whether to plot each single trial simulation, or not
 
 DecayFunc = 'exp';
 DecayParam = 2;
