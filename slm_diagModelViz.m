@@ -2,14 +2,15 @@ function slm_diagModelViz(IPIs , what , varargin)
 theta_stim = unique(IPIs.theta_stim);
 Aintegrate = unique(IPIs.Aintegrate);
 DecayParam = unique(IPIs.DecayParam);
-Horizon    = unique(IPIs.Horizon);
+Horizon    = unique(IPIs.singleH);
+SigEps    = unique(IPIs.SigEps);
 
 %% for parameter freezing
 decay_select = DecayParam(1);
-Aintegrate_select = 0.98;
-Ainhibit_select = 0;
-theta_select = 0.01;
-
+Aintegrate_select = Aintegrate(1);
+theta_select = theta_stim(1);
+Horizon = max(Horizon);
+SigEps_select = max(SigEps);
 c = 1;
 while(c<=length(varargin))
     switch(varargin{c})
@@ -156,15 +157,13 @@ switch what
         set(gca, 'FontSize' , 20 ,'Box' , 'off')% , 'GridAlpha' , 1)
         title(['Initial Reaction Time for Different Exponential Decay Constants - theta_stim = ' , num2str(theta_select)])
     case 'MT_RT_freez_decay'
-        
+        % data has to contain a signle capacity
         h = figure;
         hold on
         for ai = 1:length(Aintegrate)
             A = getrow(IPIs , IPIs.Aintegrate == Aintegrate(ai) & IPIs.DecayParam == decay_select);
-            temp = repmat(A.theta_stim , 1,length(A.MT{1}))';
-            TLabel = reshape(temp , numel(temp) , 1);
-            [x{ai} , p{ai} , e{ai}] = lineplot(TLabel , cell2mat(A.MT) , 'plotfcn','nanmean' ,'style_thickline');
-            [xr{ai} , pr{ai} , er{ai}] = lineplot(TLabel , cell2mat(A.RT) , 'plotfcn','nanmean' ,'style_thickline');
+            [x{ai} , p{ai} , e{ai}] = lineplot(A.theta_stim , A.MT , 'plotfcn','nanmean' ,'style_thickline');
+            [xr{ai} , pr{ai} , er{ai}] = lineplot(A.theta_stim  , A.RT , 'plotfcn','nanmean' ,'style_thickline');
         end
         close(h)
         legenslabel = {};
@@ -204,9 +203,7 @@ switch what
         ylabel('RT(ms)')
         xlabel('MT(ms)')
         set(gca, 'FontSize' , 20 ,'Box' , 'off')% , 'GridAlpha' , 1)
-        title(['Movement Time vs Reaction Time - DecayParam = ' , num2str(decay_select)])
-        
-        
+        title(['Movement Time vs Reaction Time - DecayParam = ' , num2str(decay_select)])                
     case 'MT_RT_freez_AiTheta'
         h1 = figure;
         for h = 1:length(Horizon)

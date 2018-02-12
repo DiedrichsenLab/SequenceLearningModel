@@ -1,4 +1,4 @@
-function [R,SIM,T,M]=slm_testModel(what,varargin)
+function [R,SIM,Trials,Models]=slm_testModel(what,varargin)
 % Wrapper function to test different aspects of the sml toolbox
 c = 1;
 %% Set default parameters
@@ -11,8 +11,8 @@ theta_stim = 0.01;
 dT_motor = 90;
 SigEps = 0.01;
 Bound = 0.45;
-Horizons = [1:SeqLength];
-
+Horizons = [SeqLength];
+Capacity = 1;
 %% manage varargin
 while(c<=length(varargin))
     switch(varargin{c})
@@ -70,6 +70,10 @@ while(c<=length(varargin))
             % The horizon sizes you want to include in the simulation
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'Capacity'}
+            % The plannign buffer size
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error(sprintf('Unknown option: %s',varargin{c}));
     end
@@ -112,9 +116,10 @@ switch(what)
     case 'simpleSeq'
         
         R=[];
+        Trials = [];
+        Models = [];
         tn = 1;
         % Make Models with defferent horizons
-        cap= 1;
         for hrzn = Horizons
             M.Aintegrate = Aintegrate;  % Diagnonal of A
             M.Ainhibit = Ainhibit;      % Inhibition of A
@@ -124,7 +129,7 @@ switch(what)
             M.SigEps    = SigEps;         % Standard deviation of the gaussian noise
             M.Bound     = Bound;         % Boundary condition
             M.numOptions = 5;           % Number of response options
-            M.capacity   = cap;         % Capacity for preplanning (buffer size)
+            M.capacity   = Capacity;         % Capacity for preplanning (buffer size)
             switch DecayFunc
                 case 'exp'
                     if ~exist('DecayParam')
@@ -141,7 +146,7 @@ switch(what)
             end
             % Make experiment
             T.TN = tn;
-            T.bufferSize = cap;  % useful is we decide to maipulate buffersize (inherited from M)
+            T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
             T.numPress = SeqLength;
             T.stimTime = zeros(1 , SeqLength);
             T.forcedPressTime = nan(1 , SeqLength);
@@ -152,12 +157,12 @@ switch(what)
                 % generate random stimuli every rep
                 T.stimulus = randi(5 , 1, SeqLength );
                 [TR,SIM]=slm_simTrial(M,T,'DecayFunc' , DecayFunc,'DecayParam' , DecayParam);
-%                 slm_plotTrial('TrialHorseRace' , SIM , TR )
-                if i>1 & isequal(fields(TR) , fields(R))
+                if sum(isnan(TR.pressTime))==0
                     R=addstruct(R,TR);
-                elseif i == 1
-                    R=addstruct(R,TR);
+                    Trials = addstruct(Trials,T);
+                    Models = addstruct(Models , M);
                 end
+%                 slm_plotTrial('TrialHorseRace' , SIM , TR )
             end
             tn = tn +1;
         end

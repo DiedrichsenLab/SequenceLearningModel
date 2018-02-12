@@ -9,31 +9,72 @@
 %% simulation with the 'boxcar' function
 close all
 
- [IPIs, Exam] =    slm_diagModel('DecayFunc' , 'boxcar' , 'numSimulations' , 50,...
-     'Aintegrate' , [0.96:0.002:0.98] , 'theta_stim' , [.01:0.002:0.03] , 'DecayParam' , [4], 'SigEps' , 0.0135,'SeqLength' , 14 , 'Horizons' , [1:6 , 14]);
- sum(Exam.R.isError)/length(Exam.R.isError)
- slm_diagModelViz(IPIs , 'MT_RT_vs_Horizon')
-%% 
-% load('slm_IPIsExp.mat')
-load('slm_IPIsBoxcar.mat')
-% separate the full horizons only
-% A = getrow( IPIs , IPIs.Horizon == max(IPIs.Horizon));
-% A = getrow( IPIs , IPIs.Horizon == 14);
-slm_diagModelViz(IPIs , 'MT_RT_freez_Aintegrate' , 'Aintegrate_select' , 0.975)
-slm_diagModelViz(IPIs , 'MT_RT_freez_theta' , 'theta_select' , 0.01)
-%%
-slm_diagModelViz(IPIs , 'MT_RT_freez_AiTheta', 'Aintegrate_select' , 0.9950)
-%%
-A = getrow( IPIs , IPIs.Aintegrate == 0.98 & IPIs.theta_stim == 0.01);
-slm_diagModelViz(IPIs , 'MT_RT_vs_Horizon','Aintegrate_select' , 0.975)
-slm_diagModelViz(IPIs , 'MT_RT_vs_Horizon')
-%%
-% A = getrow( IPIs , IPIs.Horizon == 10);
-slm_diagModelViz(IPIs , 'IPIs_freez_Aintegrate')
+[IPIs, Exam] =    slm_diagModel('DecayFunc' , 'exp' , 'numSimulations' , 50,...
+     'Aintegrate' , [0.975:0.005:0.99] , 'theta_stim' , [0.008:0.0002:0.009] , 'DecayParam' , [1:4], 'SigEps' , 0.01,'SeqLength' , 14,...
+     'Capacity' , [3:5] , 'Horizons' , [1:5,7,9,11,14]);
+ 
 
-slm_diagModelViz(A, 'IPIs_freez_theta')
+ 
+A = getrow(IPIs , IPIs.singleH==14);
+figure('color' , 'white')
+subplot(211)
+lineplot(A.Capacity , A.MT)
+title('MT')
+xlabel('Capacity')
+subplot(212)
+lineplot(A.Capacity , A.RT)
+title('RT')
+xlabel('Capacity')
 
-%%
-A = getrow( IPIs , IPIs.Horizon == 14);
-slm_diagModelViz(A, 'MT_RT_freez_decay')
+A14 = getrow(IPIs , IPIs.singleH == 14 & IPIs.RT>=700 &IPIs.RT<=800 & IPIs.MT>=4500 & IPIs.MT<=5000);
+plot(A14.MT , A14.RT)
+
+
+A1 = getrow(IPIs , IPIs.singleH == 1 & IPIs.RT>=630 &IPIs.RT<=670 & IPIs.MT>=6300 & IPIs.MT<=6800);
+plot(A1.MT , A1.RT)
+
+% visually inspect
+A = A14;
+figure
+for i = 1:length(A.MT)
+    a = A.Aintegrate(i);
+    t = A.theta_stim(i);
+    s = A.SigEps(i);
+    c = A.Capacity(i);
+    d = A.DecayParam(i);
+    T = getrow(A1 , A1.Aintegrate == a & A1.theta_stim == t & A1.Capacity == c &...
+        A1.SigEps == s & A1.DecayParam == d);
+    if ~isempty(T.Aintegrate)
+        Target = getrow(IPIs , IPIs.Aintegrate == a & IPIs.theta_stim == t & ...
+            IPIs.Capacity == c & IPIs.SigEps == s & IPIs.DecayParam == d);
+    end
+    subplot(211)
+    lineplot(Target.singleH , Target.MT)
+    subplot(212)
+    lineplot(Target.singleH , Target.RT)
+    title(num2str(i))
+    pause()
+    drawnow
+end
+
+% best i = 37 ~ 41
+i = 41;
+a = A14.Aintegrate(i);
+t = A14.theta_stim(i);
+s = A14.SigEps(i);
+c = A14.Capacity(i);
+d = A14.DecayParam(i);
+Target = getrow(IPIs , IPIs.Aintegrate == a & IPIs.theta_stim == t & ...
+            IPIs.Capacity == c & IPIs.SigEps == s & IPIs.DecayParam == d);
+
+A = Target;
+figure('color' , 'white')
+subplot(211)
+lineplot(A.singleH , A.MT)
+title('MT')
+xlabel('Horizon')
+subplot(212)
+lineplot(A.singleH , A.RT)
+title('RT')
+xlabel('Horizon')
 

@@ -1,3 +1,4 @@
+
 function  [IPIs, Exam] =    slm_diagModel(varargin)
 % model examination with different parameters
 % testing out different dacaye time constatnts for the exponential
@@ -11,8 +12,8 @@ Ainhibit = 0.0;
 theta_stim = .01:.05:.5;
 SigEps = 0.01;
 Bound = 0.45;
-Horizons = [1:SeqLength];
-
+Horizons = [SeqLength];
+Capacity = 1;
 c = 1;
 while(c<=length(varargin))
     switch(varargin{c})
@@ -32,12 +33,12 @@ while(c<=length(varargin))
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
             
-        case {'SeqLength'} 
+        case {'SeqLength'}
             % defines the length of the sequence
             % default is 10
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
-        case {'numSimulations'} 
+        case {'numSimulations'}
             % defines the number of sequences to be simulated Default = 200
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
@@ -48,7 +49,7 @@ while(c<=length(varargin))
             c=c+2;
         case {'Ainhibit'}
             % off-Diagonal of A: determines the effect of the previous
-            % values of other horseraces on eachother's next values aka Lateral inhibition 
+            % values of other horseraces on eachother's next values aka Lateral inhibition
             % Lateral inhibition Default 0
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
@@ -70,6 +71,10 @@ while(c<=length(varargin))
             c=c+2;
         case {'Horizons'}
             % The horizon sizes you want to include in the simulation
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'Capacity'}
+            % The plannign buffer size
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
         otherwise
@@ -97,16 +102,26 @@ end
 c = 1;
 for dp = 1:length(DecayParam)
     for aint = 1:length(Aintegrate)
-        for ainh = 1:length(Ainhibit)
+        for se = 1:length(SigEps)
             for ts = 1:length(theta_stim)
-                dp
-                [Exam(c).R,Exam(c).SIM,Exam(c).T,Exam(c).M] = slm_testModel('simpleSeq','DecayParam',DecayParam(dp),...
-                    'numSimulations' , numSimulations, 'Aintegrate' , Aintegrate(aint),'Ainhibit' , ...
-                    Ainhibit(ainh),'theta_stim' , theta_stim(ts) , 'SeqLength' , SeqLength ,...
-                    'numSimulations' , numSimulations,'DecayFunc' , DecayFunc , 'SigEps' , SigEps,'Bound' , Bound , 'Horizons' , Horizons);
-                Exam(c).R.singleH = nanmean(Exam(c).R.Horizon,2);
-                Exam(c).R.singleH(isnan(Exam(c).R.singleH)) = size(Exam(c).R.pressTime , 2);
-                c = c+1;
+                for cap = 1:length(Capacity)
+                    [Exam(c).R,Exam(c).SIM,Exam(c).T,Exam(c).M] = slm_testModel('simpleSeq','DecayParam',DecayParam(dp),...
+                        'numSimulations' , numSimulations, 'Aintegrate' , Aintegrate(aint),'Ainhibit' , ...
+                        Ainhibit ,'theta_stim' , theta_stim(ts) , 'SeqLength' , SeqLength ,...
+                        'numSimulations' , numSimulations,'DecayFunc' , DecayFunc , 'SigEps' , SigEps(se),'Bound' , Bound ,...
+                        'Horizons' , Horizons, 'Capacity' , Capacity(cap));
+                    if ~isempty(Exam(c).R)
+                        Exam(c).R.Capacity = Capacity(cap)*ones(length(Exam(c).R.TN) , 1);
+                        Exam(c).R.SigEps = SigEps(se)*ones(length(Exam(c).R.TN) , 1);
+                        Exam(c).R.DecayParam = DecayParam(dp)*ones(length(Exam(c).R.TN) , 1);
+                        Exam(c).R.Aintegrate = Aintegrate(aint)*ones(length(Exam(c).R.TN) , 1);
+                        Exam(c).R.theta_stim = theta_stim(ts)*ones(length(Exam(c).R.TN) , 1);
+                        Exam(c).R.singleH = nanmean(Exam(c).R.Horizon,2);
+                        Exam(c).R.singleH(isnan(Exam(c).R.singleH)) = size(Exam(c).R.pressTime , 2);
+                        c = c+1;
+                        save('/Users/nedakordjazi/SequenceLearningModel/slm_data/Exam.mat' , 'Exam')
+                    end
+                end
             end
         end
     end
@@ -115,41 +130,24 @@ end
 %% still unpacking....
 IPIs = [];
 c = 1;
+count = 1;
 fig = figure;
-for dp = 1:length(DecayParam)
-    for aint = 1:length(Aintegrate)
-        for ainh = 1:length(Ainhibit)
-            for ts = 1:length(theta_stim)
-                A = Exam(c).R;
-                c = c+1;
-                H = unique(A.singleH);
-                H(isnan(H)) = size(A.pressTime , 2);
-                H = unique(H);
-                ipis = [];
-                for h = 1:length(H)
-                    B = getrow(A , A.singleH == H(h));
-                    ipis.Horizon = H(h);
-                    ipis.DecayParam = DecayParam(dp);
-                    ipis.Aintegrate = Aintegrate(aint);
-                    ipis.Ainhibit   = Ainhibit(ainh);
-                    ipis.theta_stim = theta_stim(ts);
-                    Bi = B;
-                    ipis.ipi{1} = reshape(B.pressTime , numel(B.pressTime),1);
-                    ipis.label{1} = ones(size(ipis.ipi{1}));
-                    ipis.label{1}(1:2*numSimulations) = 0; % mark the first two IPIS as beggining IPIs
-                    ipis.MT{1} = Bi.MT;
-                    ipis.RT{1} = Bi.pressTime(:, 1);
-                    
-                    [~ , P , E] = lineplot(ipis.label{1} , ipis.ipi{1});
-                     
-                    ipis.P_start = P(1);
-                    ipis.P_end = P(2);
-                    ipis.E_start = E(1);
-                    ipis.E_end = E(2);
-                    IPIs = addstruct(IPIs , ipis);
-                end
-            end
-        end
+for c = 1:length(Exam)
+    A = Exam(c).R;
+    for tn = 1:length(A.TN)
+        IPIs.singleH(count,1)    = unique(A.singleH(tn));
+        IPIs.Capacity(count,1)   = unique(A.Capacity(tn));
+        IPIs.SigEps(count,1)     = unique(A.SigEps(tn));
+        IPIs.DecayParam(count,1) = unique(A.DecayParam(tn));
+        IPIs.Aintegrate(count,1) = unique(A.Aintegrate(tn));
+        IPIs.theta_stim(count,1) = unique(A.theta_stim(tn));
+        IPIs.ipi(count,:) = A.pressTime(tn , :);
+        IPIs.MT(count,1) = A.MT(tn,1);
+        IPIs.RT(count,1) = A.pressTime(tn, 1);
+        count = count+1;
     end
+    
+    
 end
+
 close(fig);
