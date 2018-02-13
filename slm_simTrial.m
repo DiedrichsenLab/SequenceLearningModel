@@ -14,7 +14,6 @@ M.capacity = min(M.capacity , max(T.Horizon)); % this controls for situations wh
 c = 1;
 while(c<=length(varargin))
     switch(varargin{c})
-        
         case {'DecayParam'}  
             % for 'exp' this would be the time constant (defaul = 1)
             eval([varargin{c} '= varargin{c+1};']);
@@ -63,7 +62,8 @@ remPress = maxPresses;   % Remaining presses. This variable will be useful if/wh
 
 A  = eye(M.numOptions)*(M.Aintegrate-M.Ainhibit)+...
      ones(M.numOptions)*M.Ainhibit;      % A defined the matrix of autoregressive coefficients 
- 
+A(3,5) = 0.01;
+A(2,4) = 0.01; 
 prs = 0; % indexes the pressesd digits
 
 % find the press indecies that have to be planed in the first decision cycle

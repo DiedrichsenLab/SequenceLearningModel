@@ -9,11 +9,40 @@
 %% Recepie for model diagnosis
 close all
 
-[IPIs, Exam] =    slm_diagModel('DecayFunc' , 'exp' , 'numSimulations' , 50,...
-     'Aintegrate' , [0.975:0.005:0.99] , 'theta_stim' , [0.008:0.0002:0.009] , 'DecayParam' , [1:4], 'SigEps' , 0.01,'SeqLength' , 14,...
-     'Capacity' , [3:5] , 'Horizons' , [1:5,7,9,11,14]);
- 
+[IPIs, Exam] =    slm_diagModel( 'numSimulations' , 100,...
+     'SigEps' , 0.01 ,'DecayParam' , 2 ,...
+    'Aintegrate' , 0.98 , 'theta_stim' , .0084 , 'Capacity' , 3 , 'SeqLength' , 14,...
+      'Horizons' , [14]);
+A = getrow(IPIs , IPIs.singleH==14);
 
+ipiMat = zeros(5 , 5);
+for tn = 1:length(IPIs.MT)
+    stim = Exam.T.stimulus(tn,:);
+    for pr = 1:size(stim , 2)-1
+        ipiMat(stim(pr) , stim(pr+1)) = ipiMat(stim(pr) , stim(pr+1)) + IPIs.ipi(pr);
+    end
+end
+ipiMat= ipiMat/tn;
+imagesc(ipiMat)
+axis square
+
+
+    
+
+figure('color' , 'white')
+subplot(211)
+lineplot(A.Ainhibit , A.MT)
+title('MT')
+xlabel('Capacity')
+subplot(212)
+lineplot(A.Ainhibit , A.RT)
+title('RT')
+xlabel('Capacity') 
+
+  
+  
+  
+  
  
 A = getrow(IPIs , IPIs.singleH==14);
 figure('color' , 'white')
@@ -84,4 +113,11 @@ Sequences = [1 3 2 4 1 3 5 2 2 1 1 3 2 3;...
              5 3 1 3 2 5 5 3 4 1 3 4 5 3];
          
 [R,SIM,Trials,Models]=slm_testModel('SeqLearn','Sequences' , Sequences , 'SigEps' , 0.01 ,'DecayParam' , 2 , 'Aintegrate' , 0.98 , 'theta_stim' , .0084 , 'Capacity' , 3);
+
+% [R,SIM,Trials,Models]=slm_testModel('simpleSeq' , 'SigEps' , 0.01 ,'DecayParam' , 2 ,...
+%     'Aintegrate' , 0.98 , 'theta_stim' , .0084 , 'Capacity' , 3,'Ainhibit', 0.001);
+
+
+
+
 

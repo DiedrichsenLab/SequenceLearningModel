@@ -10,14 +10,13 @@ function [T_ammended,SIM_ammended]=slm_seqLearn(M,AllT,varargin)
 %%
 dT = 2;     % delta-t in ms
 maxTime = 50000; % Maximal time for trial simulation
-DecayParam = 1;
 c = 1;
+figure('color' , 'white');
 while(c<=length(varargin))
     switch(varargin{c})
         
         case {'DecayParam'}
             % for 'exp' this would be the time constant (defaul = 1)
-
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
         case {'SeqLearningType'}
@@ -48,19 +47,23 @@ while(c<=length(varargin))
             error(sprintf('Unknown option: %s',varargin{c}));
     end
 end
-if ~exist('DecayFunc')
-    DecayFunc = 'exp';
-end
-if ~exist('MapLearning')
-    MapLearning = 0;
-end
-if ~exist('AssLearnConst')
-    AssLearnConst = 2;
-end
-if ~exist('MapLearnConst')
-    MapLearnConst = .1;
-end
 
+% initilize the press counter to establish mapping learning
+OptionsPressed = zeros(1, M.numOptions);
+
+% ititialize the logistic growth function that impliments mapping learning.
+% this will produce a coefficient based on number of presses made per digit
+% this coefficient will increase Theta_stim accordingly
+% the 3000 assumes that after having pressed each digits 3000 time,
+% (approx.3 days, with blocks of 36 trials, 10 blocksper day, selength of 14),
+% mapping will reach full speed
+b = .009; % the growth constant. the bigger the b the faster the growth --> reached 1 faster
+ThetaGrowth = 1./(1+3000*exp(-b*[1:length(AllT.TN)]));
+ T_ammended = [];
+ SIM_ammended = [];
+ A  = eye(M.numOptions)*(M.Aintegrate-M.Ainhibit)+...
+        ones(M.numOptions)*M.Ainhibit;      % A defined the matrix of autoregressive coefficients
+firstTrans = zeros(M.numOptions , M.numOptions); %initialize the matrix of first order conditional probabilities
 for tn = 1:length(AllT.TN)
     T = getrow(AllT , tn);
     M.capacity = min(M.capacity , max(T.Horizon));
@@ -99,9 +102,8 @@ for tn = 1:length(AllT.TN)
     remPress = maxPresses;      % Remaining presses. This variable will be useful if/whenever multiple digits are being planned in every decsion step
     % Set up parameters
     
-    A  = eye(M.numOptions)*(M.Aintegrate-M.Ainhibit)+...
-        ones(M.numOptions)*M.Ainhibit;      % A defined the matrix of autoregressive coefficients
     
+
     prs = 0; % indexes the pressesd digits
     
     % find the press indecies that have to be planed in the first decision cycle
@@ -120,12 +122,10 @@ for tn = 1:length(AllT.TN)
         dec1PressCount = 1;
     end
     % initialize learning related parametrs
-    T_ammended = [];
-    SIM_ammended = [];
-    firstTrans = zeros(M.numOptions , M.numOptions); %initialize the matrix of first order conditional probabilities
-    BoundMat = M.Bound * ones(M.numOptions , M.numOptions);
-    OptionsPressed = zeros(1, M.numOptions);
+   
+    TempTrans = zeros(M.numOptions , M.numOptions); %initialize the matrix of first order conditional probabilities
     
+    % update A matrix after each trial to account for assiciative learning
     
     while nDecision<=length(dec) && i<maxTime/dT
         
@@ -137,18 +137,35 @@ for tn = 1:length(AllT.TN)
                 S(T.stimulus(j),i,j)=1;
             end;
         end
+        % restore the A atrix for every press
+        A  = eye(M.numOptions)*(M.Aintegrate-M.Ainhibit)+...
+        ones(M.numOptions)*M.Ainhibit;  
+        % update the A matrix for each particular transition
+        % the off diagonals are affected by the transition probability from
+        % the previous press to the current press
+        currentTransP = zeros(1,M.numOptions);
+        if remPress >= 2 & remPress<maxPresses
+            for opt = 1: M.numOptions
+                nextPress = T.stimulus(prs+1);
+                currentTransP(opt) = firstTrans(opt , nextPress);
+                A(nextPress , opt) = A(nextPress , opt) + (.9*currentTransP(opt));
+            end
+        end
+        
+        
         
         % Update the evidence state
         eps = randn([M.numOptions 1 maxPresses]) * M.SigEps;
         
-        
+       
+       
         if nDecision == 1 & length(dec)>2   % use the decay funstions corresponding to decision 1
             for j =1:maxPresses
-                X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult1(j) .* S(:,i,j) + dT*eps(:,1,j);
+                X(:,i+1,j)= A * X(:,i,j) + (1+ThetaGrowth(tn))*M.theta_stim .* mult1(j) .* S(:,i,j) + dT*eps(:,1,j);
             end
         else
             for j =1:maxPresses             % use the decay funstions corresponding to decision 2 onward
-                X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
+                X(:,i+1,j)= A * X(:,i,j) + (1+ThetaGrowth(tn))*M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
             end
         end
         
@@ -224,26 +241,30 @@ for tn = 1:length(AllT.TN)
         end
         i=i+1;
     end
-    firstTrans = zeros(M.numOptions , M.numOptions); %Re-initialize and update the matrix of first order probabilities
+    T.IPI = diff(T.pressTime);
+    TempTrans = zeros(M.numOptions , M.numOptions); %Re-initialize and update the matrix of first order probabilities
     for tn1 = 1:tn
         for prs = 1:AllT.numPress(tn1)-1
-            firstTrans(AllT.stimulus(tn1 , prs) ,AllT.stimulus(tn1 , prs+1)) = firstTrans(AllT.stimulus(tn1 , prs) ,AllT.stimulus(tn1 , prs+1))+1;
+            TempTrans(AllT.stimulus(tn1 , prs) ,AllT.stimulus(tn1 , prs+1)) = TempTrans(AllT.stimulus(tn1 , prs) ,AllT.stimulus(tn1 , prs+1))+1;
         end
     end
+    
     % deivde the values in the firstTrans matrix by the total number of double tansitions
     num2Trans = sum(AllT.numPress(1:tn)) - tn; % a sequence of length N has N-1 double transitions
-    firstTrans = firstTrans/num2Trans;
+    TempTrans = TempTrans/num2Trans;
+    % set the diagonal to zero. otherwise Aintegrate would become too big
+    firstTrans = TempTrans - diag(diag(TempTrans));
     
     % maplearning: find the number of times each finger has been pressed to modify the noise std
     for nop = 1:M.numOptions
-        OptionsPressed(nop) = OptionsPressed(nop) + sum(find(T.stimulus == nop));
+        OptionsPressed(nop) = OptionsPressed(nop) + sum(T.stimulus == nop);
     end
     T_ammended = addstruct(T_ammended , T);
     T_ammended.MT = T_ammended.pressTime(:,end) - T_ammended.pressTime(:,1);
     S = getrow(T_ammended , T_ammended.seqType > 0);
     R = getrow(T_ammended , T_ammended.seqType ==0);
     if isempty(R.MT)
-        R.MT = 0
+        R.MT = 0;
     elseif isempty(S.MT)
         S.MT = 0;
     end
@@ -255,9 +276,16 @@ for tn = 1:length(AllT.TN)
     title(['MT after ' , num2str(tn) , ' trials. Average Random_MT  = ' num2str(nanmean(R.MT)) , '    Average Trained_MT  = ' num2str(nanmean(S.MT))])
     drawnow()
     
-    
+    ipiMat = zeros(M.numOptions , M.numOptions);
+    for tn = 1:length(T_ammended.TN)
+        stim = T_ammended.stimulus(tn,:);
+        for pr = 1:size(stim , 2)-1
+            ipiMat(stim(pr) , stim(pr+1)) = ipiMat(stim(pr) , stim(pr+1)) + T_ammended.IPI(pr);
+        end
+    end
+    ipiMat= ipiMat/tn;
     subplot(132)
-    imagesc((1-AssLearnConst*firstTrans).*BoundMat)
+    imagesc(ipiMat)
     axis square
     title(['Boundry Matrix after ' , num2str(tn) , ' trials.'])
     colorbar

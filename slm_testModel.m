@@ -4,7 +4,7 @@ c = 1;
 %% Set default parameters
 DecayFunc = 'exp';
 SeqLength = 14;
-numSimulations = 200;
+numSimulations = 20;
 Aintegrate = 0.98;
 Ainhibit = 0.0;
 theta_stim = 0.01;
@@ -154,7 +154,7 @@ switch(what)
             for i=1:numSimulations
                 % generate random stimuli every rep
                 T.stimulus = randi(5 , 1, SeqLength );
-                [TR,SIM]=slm_simTrial(M,T,'DecayFunc' , DecayFunc,'DecayParam' , DecayParam);
+                [TR,SIM]=slm_simTrial(M,T,'DecayParam' , DecayParam);
                 if sum(isnan(TR.pressTime))==0
                     R=addstruct(R,TR);
                     Trials = addstruct(Trials,T);
@@ -232,7 +232,7 @@ switch(what)
         mixedTN = randperm(length(1:length(AllT.numPress)));
         AllT = getrow(AllT , mixedTN);
         AllT.TN = [1:length(AllT.numPress)]';
-        [T,SIM]=slm_seqLearn(M,AllT);
+        [T,SIM]=slm_seqLearn(M,AllT,'DecayParam' , 2);
         
         
         
