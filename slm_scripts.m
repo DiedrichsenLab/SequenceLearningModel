@@ -6,7 +6,7 @@
 [IPIs, Exam] =    slm_diagModel();
 
 % fliplr([0.2:.2:3])
-%% simulation with the 'boxcar' function
+%% Recepie for model diagnosis
 close all
 
 [IPIs, Exam] =    slm_diagModel('DecayFunc' , 'exp' , 'numSimulations' , 50,...
@@ -77,4 +77,11 @@ subplot(212)
 lineplot(A.singleH , A.RT)
 title('RT')
 xlabel('Horizon')
+
+%% recipie for learning
+
+Sequences = [1 3 2 4 1 3 5 2 2 1 1 3 2 3;...
+             5 3 1 3 2 5 5 3 4 1 3 4 5 3];
+         
+[R,SIM,Trials,Models]=slm_testModel('SeqLearn','Sequences' , Sequences , 'SigEps' , 0.01 ,'DecayParam' , 2 , 'Aintegrate' , 0.98 , 'theta_stim' , .0084 , 'Capacity' , 3);
 

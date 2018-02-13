@@ -10,18 +10,14 @@ function [T_ammended,SIM_ammended]=slm_seqLearn(M,AllT,varargin)
 %%
 dT = 2;     % delta-t in ms
 maxTime = 50000; % Maximal time for trial simulation
-M.capacity = min(M.capacity , max(T.Horizon));
+DecayParam = 1;
 c = 1;
 while(c<=length(varargin))
     switch(varargin{c})
-        case {'DecayFunc'}
-            eval([varargin{c} '= varargin{c+1};']);
-            c=c+2;
-            % define the parameters for the decay function
+        
         case {'DecayParam'}
             % for 'exp' this would be the time constant (defaul = 1)
-            % for 'linear' this would be a negative slope (default = -1/seqlength)
-            % for 'boxcar' this would be the number of 1s in a row (default = 5)
+
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
         case {'SeqLearningType'}
@@ -67,7 +63,7 @@ end
 
 for tn = 1:length(AllT.TN)
     T = getrow(AllT , tn);
-    
+    M.capacity = min(M.capacity , max(T.Horizon));
     maxPresses = max(T.numPress);    % Determine length of the trial
     
     % number of decision steps is defined by the M.capacity and T.Horizon, whichever results in more decision steps

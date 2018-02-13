@@ -3,7 +3,7 @@ function [R,SIM,Trials,Models]=slm_testModel(what,varargin)
 c = 1;
 %% Set default parameters
 DecayFunc = 'exp';
-SeqLength = 10;
+SeqLength = 14;
 numSimulations = 200;
 Aintegrate = 0.98;
 Ainhibit = 0.0;
@@ -13,29 +13,27 @@ SigEps = 0.01;
 Bound = 0.45;
 Horizons = [SeqLength];
 Capacity = 1;
+DecayParam = 1;
+NumTrials = 1000;
+RandPortion = .5;
+
 %% manage varargin
 while(c<=length(varargin))
     switch(varargin{c})
         
-        case {'DecayFunc'}
-            % defines the decay type
-            % can be 'exp', 'linear' or 'boxcar'
-            % default is exponential
-            eval([varargin{c} '= varargin{c+1};']);
-            c=c+2;
+      
         case {'DecayParam'}
             % defines the parameters for the decay function
             % for 'exp' this would be the time constant (defaul = 1)
-            % for 'linear' this would be a negative slope (default = -1/seqlength)
-            % for 'boxcar' this would be the number of 1s in a row (default = 5)
+          
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
-        case {'SeqLength'} 
+        case {'SeqLength'}
             % defines the length of the sequence
             % default is 10
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
-        case {'numSimulations'} 
+        case {'numSimulations'}
             % defines the number of sequences to be simulated Default = 200
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
@@ -46,7 +44,7 @@ while(c<=length(varargin))
             c=c+2;
         case {'Ainhibit'}
             % off-Diagonal of A: determines the effect of the previous
-            % values of other horseraces on eachother's next values aka Lateral inhibition 
+            % values of other horseraces on eachother's next values aka Lateral inhibition
             % Lateral inhibition Default 0
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
@@ -72,6 +70,19 @@ while(c<=length(varargin))
             c=c+2;
         case {'Capacity'}
             % The plannign buffer size
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'NumTrials'}
+            % the number of trials for the training block default  = 100
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'RandPortion'}
+            % assign a proportion to the random sequences in the training block
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'Sequences'}
+            % the sequences you want to train the model on
+            % this is a matrix of size N*SeqLength, where N is the number of sequences
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
         otherwise
@@ -130,20 +141,7 @@ switch(what)
             M.Bound     = Bound;         % Boundary condition
             M.numOptions = 5;           % Number of response options
             M.capacity   = Capacity;         % Capacity for preplanning (buffer size)
-            switch DecayFunc
-                case 'exp'
-                    if ~exist('DecayParam')
-                        DecayParam = cap;
-                    end
-                case 'linear'
-                    if ~exist('DecayParam')
-                        DecayParam = 1/(1-SeqLength);
-                    end
-                case 'boxcar'
-                    if ~exist('DecayParam')
-                        DecayParam = 5;
-                    end
-            end
+            
             % Make experiment
             T.TN = tn;
             T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
@@ -162,13 +160,86 @@ switch(what)
                     Trials = addstruct(Trials,T);
                     Models = addstruct(Models , M);
                 end
-%                 slm_plotTrial('TrialHorseRace' , SIM , TR )
+                %                 slm_plotTrial('TrialHorseRace' , SIM , TR )
             end
             tn = tn +1;
         end
-%         slm_plotTrial('BlockMT' , SIM , R )
-%         slm_plotTrial('IPIHorizon' , SIM , R )
-
-
+        %         slm_plotTrial('BlockMT' , SIM , R )
+        %         slm_plotTrial('IPIHorizon' , SIM , R )
+        
+        
+    case 'SeqLearn'
+        if ~exist('Sequences')
+            error('You have to provide training Sequences')
+        end
+       
+        
+        
+        M.Aintegrate = Aintegrate;  % Diagnonal of A
+        M.Ainhibit = Ainhibit;      % Inhibition of A
+        M.theta_stim = theta_stim;        % Rate constant for integration of sensory information
+        M.dT_motor = dT_motor;            % Motor non-decision time
+        M.dT_visual = 70;           % Visual non-decision time
+        M.SigEps    = SigEps;         % Standard deviation of the gaussian noise
+        M.Bound     = Bound;         % Boundary condition
+        M.numOptions = 5;           % Number of response options
+        M.capacity   = Capacity;         % Capacity for preplanning (buffer size)
+        AllT = [];
+        
+        
+        TperH = ceil(NumTrials/length(Horizons));
+        
+        RndPor = ceil(TperH*RandPortion);         % number of random sequences in the block
+        SeqPor = TperH - RndPor;                  % number of trained sequences in the block
+        trPerSeq = ceil(SeqPor/size(Sequences, 1));   % number of trails per trained sequence
+        
+        for hrzn = Horizons
+            for tn=1:RndPor
+                % Random Sequences
+                % Make experiment
+                T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
+                T.numPress = SeqLength;
+                T.seqType = 0;       % denoting it's random
+                T.stimTime = zeros(1 , SeqLength);
+                T.forcedPressTime = nan(1 , SeqLength);
+                % Horizon feature added. stimTime will be the actual time that the stimulus came on.
+                T.Horizon = hrzn*(ones(1,SeqLength));
+                T.Horizon(1:hrzn) = NaN;
+                T.stimulus = randi(5 , 1, SeqLength );
+                AllT  = addstruct(AllT , T);
+            end
+            for ns = 1:size(Sequences, 1)
+                for tn=1:trPerSeq
+                    % Random Sequences
+                    % Make experiment
+                    T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
+                    T.numPress = SeqLength;
+                    T.stimTime = zeros(1 , SeqLength);
+                    T.forcedPressTime = nan(1 , SeqLength);
+                    T.seqType = ns;       % denoting sequence number
+                    % Horizon feature added. stimTime will be the actual time that the stimulus came on.
+                    T.Horizon = hrzn*(ones(1,SeqLength));
+                    T.Horizon(1:hrzn) = NaN;
+                    T.stimulus = Sequences(ns , :);
+                    AllT  = addstruct(AllT , T);
+                end
+            end
+        end
+        
+        
+        
+        % Shuffle the trails to make them intermixed
+        mixedTN = randperm(length(1:length(AllT.numPress)));
+        AllT = getrow(AllT , mixedTN);
+        AllT.TN = [1:length(AllT.numPress)]';
+        [T,SIM]=slm_seqLearn(M,AllT);
+        
+        
+        
+       
+        %         slm_plotTrial('BlockMT' , SIM , R )
+        %         slm_plotTrial('IPIHorizon' , SIM , R )
+        
+        
         
 end
