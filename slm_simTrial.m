@@ -1,24 +1,22 @@
 function [T,SIM]=slm_simTrial(M,T,varargin);
-% function [T,SIM]=slm_simTrialCap(M,T);
+% function [T,SIM]=slm_simTrial(M,T,varargin);
 % incoporates horizon size (T.Horizon) as well as buffer size (M.capacity)
 % multiple planning possible
-% as long as M.capacity = 1,this funcion should work exacly same as [T,SIM]=slm_simTrial(M,T);
-% Simulates a trial using a parallel evidence-accumulation model 
-% for sequential response tasks 
-dT = 2;     % delta-t in ms
-maxTime = 50000; % Maximal time for trial simulation
-M.capacity = min(M.capacity , max(T.Horizon));
+% Simulates a trial using a parallel evidence-accumulation model for sequential response tasks 
+
+
+% the model is basically an ARX (auroregressive with exogenious input).
+% X(i) = A*X(i-1) + Theta*Stimulus(i) + Noise      X defined the tensor of current state of decision making horseraces
+%%
+dT = 2;            %delta-t in ms
+maxTime = 50000;            % Maximal time for trial simulation
+M.capacity = min(M.capacity , max(T.Horizon)); % this controls for situations where horizon size is smalled thatn capacity
 c = 1;
 while(c<=length(varargin))
     switch(varargin{c})
-        case {'DecayFunc'}
-            eval([varargin{c} '= varargin{c+1};']);
-            c=c+2;
-            % define the parameters for the decay function
+        
         case {'DecayParam'}  
             % for 'exp' this would be the time constant (defaul = 1)
-            % for 'linear' this would be a negative slope (default = -1/seqlength)
-            % for 'boxcar' this would be the number of 1s in a row (default = 5)
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
         otherwise
@@ -27,13 +25,15 @@ while(c<=length(varargin))
 end
 
 
-% Determine length of the trial
-maxPresses = max(T.numPress);
+
+maxPresses = max(T.numPress);    % Determine length of the trial
 
 % number of decision steps is defined by the M.capacity and T.Horizon, whichever results in more decision steps
 % calculate the number of decision steps as total number of presses - capacity
-% this is because the first "capacity" presses would be planned in one step
-dec=1: max(maxPresses - M.capacity+1,M.capacity);  % Number of decision
+% this is because the first "capacity" presses would be planned in one decision step
+dec=1: max(maxPresses - M.capacity+1,M.capacity);  % Number of decision steps
+
+
 % for the first decision step, "capacity" digits are planned and for the rest, the shift is 1 by 1.
 maxPlan = ones(1 , length(dec)); % Number of digits being planned in every decision step
 if length(dec)>2
@@ -41,13 +41,12 @@ if length(dec)>2
 end
 
 
-if isfield(T , 'Horizon')
-    % set the stimTime for presses that are not shown at time 0 to NaN.
-    % These will be filled with press times
-    T.stimTime(~isnan(T.Horizon)) = NaN;
-end
-T.pressTime = NaN*ones(size(T.Horizon)); % to be fiied with press times
-decSteps = max(dec);
+
+% set the stimTime for presses that are not shown at time 0 to NaN (depending on the horizon size)
+% These will be filled with press times (depending on the horizon size)
+T.stimTime(~isnan(T.Horizon)) = NaN;
+
+T.pressTime = NaN*ones(size(T.Horizon)); % to be filled with press times
 
 
 % initialize variables 
@@ -63,46 +62,27 @@ remPress = maxPresses;   % Remaining presses. This variable will be useful if/wh
 % Set up parameters 
 
 A  = eye(M.numOptions)*(M.Aintegrate-M.Ainhibit)+...
-     ones(M.numOptions)*M.Ainhibit; 
- switch DecayFunc
-     case 'exp'
-         if ~exist('DecayParam')
-             DecayParam = 1;
-         end
-         
-     case 'linear'
-         if ~exist('DecayParam')
-             DecayParam = 1/(1-max(dec));
-         end
-         linDecay=DecayParam*(dec-max(dec));  % How much stimulus linear decay
-         mult(nDecision:end) = linDecay(1:max(dec)-nDecision+1);  % How much stimulus linear decay
-     case 'boxcar'
-         if ~exist('DecayParam')
-             DecayParam = 5;
-         end
-         bc = min(max(dec) , nDecision+DecayParam);
-         mult(nDecision:bc) = 1;  % How much stimulus linear decay
- end
-% Start time-by-time simulation 
-prs = 0; 
-indx1= prs+1 : prs+1+(maxPlan(nDecision)-1);
-if length(dec)>2 
+     ones(M.numOptions)*M.Ainhibit;      % A defined the matrix of autoregressive coefficients 
+ 
+prs = 0; % indexes the pressesd digits
 
+% find the press indecies that have to be planed in the first decision cycle
+indx1= prs+1 : prs+1+(maxPlan(nDecision)-1);
+
+if length(dec)>2 
+    % the stimulus evidence intake from nDecision = 2 onward
     cap_mult = ones(1,M.capacity-1);
     mult = [cap_mult , zeros(1,length(dec))];
     mult = [mult(logical(mult)) , exp(-[dec(1:end)-nDecision]./DecayParam)];      % How much stimulus exponentia decay
     
+    % the stimulus evidence intake fo1 nDecision = 1 
+    % sets the decay for all the digits outside of "capacity" to zero
     cap_mult1 = exp(-[[1 :M.capacity]]./(30*DecayParam));
-%     cap_mult1 = ones(1,M.capacity);
     mult1 = [cap_mult1 , zeros(1,length(dec)-1)];
     dec1PressCount = 1;
 end
         
 while nDecision<=length(dec) && i<maxTime/dT
-    % if the capasity is greater thatn 1, means "capacity" digits will be
-    % planned in the same decision step on the first decision, then define
-    % the decay function for those first digits
-        
     
     % Update the stimulus: Fixed stimulus time
     indx = find(t(i)>(T.stimTime+M.dT_visual)); % Index of which stimuli are present T.
@@ -116,21 +96,21 @@ while nDecision<=length(dec) && i<maxTime/dT
     % Update the evidence state
     eps = randn([M.numOptions 1 maxPresses]) * M.SigEps;
     
-    if nDecision == 1 & length(dec)>2
+    
+    if nDecision == 1 & length(dec)>2   % use the decay funstions corresponding to decision 1 
         for j =1:maxPresses
             X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult1(j) .* S(:,i,j) + dT*eps(:,1,j);
         end
     else
-        for j =1:maxPresses
+        for j =1:maxPresses             % use the decay funstions corresponding to decision 2 onward
             X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
         end
     end
     
-    % find the press indecies that have to be planed in this decision cycle
-    % doing it this way will be useful if/whenever multiple digits are being planned in every decsion step
     
-    % Determine if we issue a decision
-    % motor command is not issued unless all the presses that have to planned in one step hit the boundry
+    
+    % if the system is in the first decision cycle, it wont start pressing
+    % until all the digits within the buffer size have been planned
     if nDecision == 1 & length(dec)>2 & M.capacity>1
         if dec1PressCount <= length(indx1)
             if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1(dec1PressCount)))>B(i+1))) == 1
@@ -139,6 +119,7 @@ while nDecision<=length(dec) && i<maxTime/dT
                 dec1PressCount = dec1PressCount + 1;
             end
         end
+        % after filling the buffer, start pressing
         if dec1PressCount == length(indx1)+1
             dtcount = 1;
             for prs = indx1
@@ -158,6 +139,8 @@ while nDecision<=length(dec) && i<maxTime/dT
             end
         end;
     else
+        % for nDecison 2 onward, move ahead one at a time and shift the
+        % decay funstion after each plan
         if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1))>B(i+1))) == length(indx1)
             dtcount = 1;
             for prs = indx1
@@ -188,6 +171,7 @@ while nDecision<=length(dec) && i<maxTime/dT
             remPress = max(0 , remPress - maxPlan(nDecision));
             nDecision = nDecision+1;       % Waiting for the next decision
             if nDecision<=length(dec)
+                % update the press indecies that have to be planed in next decision cycle
                 indx1= prs+1 : prs+1+(maxPlan(nDecision)-1);
                 dec1PressCount = 1;
             end
