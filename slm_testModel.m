@@ -1,7 +1,6 @@
 function [R,S,B,SIM,T,TR,M]=slm_testModel(what,varargin)
 %% example call:
-% [R,S,B,SIM,T,TR,M]=slm_testModel('singleResp','Aintegrate',.9,'theta_stim',0.02,'DecayParam',10,'SigEps',0.040,'Bound',.45);
-% [R,S,B,SIM,T,TR,M]=slm_testModel('singleResp','Aintegrate',.85,'theta_stim',0.02,'DecayParam',100,'SigEps',0.020,'Bound',.45);
+% [R,S,B,SIM,T,TR,M]=slm_testModel('singleResp');
 %
 % Wrapper function to test different aspects of the sml toolbox
 c = 1;
@@ -9,25 +8,23 @@ c = 1;
 %% Set default parameters
 % subj = 1;
 % block = 1;
-% trial = 8:10;
+% trial = 1;
 % plotSim = 1; %0|1: whether to plot each single trial simulation, or not
 
-subj = 1:20;
+subj = [1:20,1:20];
 block = [1,2];
 trial = 1:55;
 plotSim = 0; %0|1: whether to plot each single trial simulation, or not
 
 DecayFunc = 'exp';
 DecayParam = 2;
-SeqLength = 5;
-numSimulations = 200;
-Aintegrate = 0.98;
+Aintegrate = 0.985; % 0.98
 Ainhibit = 0.0;
-theta_stim = 0.01;
-dT_motor = 100;
+theta_stim = 0.0075; % 0.0084
+dT_motor = 90;
 dT_visual = 70;
-SigEps = 0.01;
-Bound = 0.50;
+SigEps = 0.02; % 0.01
+Bound = 2; %1;%0.45;
 numOptions = 5;
 cap = 1;
 
@@ -141,9 +138,7 @@ switch(what)
             R=addstruct(R,S);
         end
         if plotSim==0
-            R1=tapply(R,{'SN','prepTime'},{R.isError,'nanmean','name','ER','subset',R.timingError==0});
-            plt.line(R1.prepTime,(1-R1.ER)*100,'errorbars','shade');
-            xlabel('prep time'); ylabel('accuracy %');
+            slm_plotTrial('plotSim',SIM,TR,R,M);
         end
         
     case 'simpleSeq'

@@ -65,11 +65,13 @@ if isempty(tgt); error('Target file not found for this combination of path, subj
 D=dload(fullfile(path2tgt,tgt(1).name)); % load the tgt file
 if numel(trial)>numel(D.seqNum); trial=1:numel(D.seqNum); end
 T=getrow(D,trial); % select how many trials of this block
+lastToneTime=2400;
 
 % ensure "mandatory" fields are present (common fields across experiments)
 T.TN=(1:numel(trial))'; % keep track of how many trials
 T.stimulus=double(num2str(T.cueP))-double('0'); % visual cue (instruction to participant) 
-T.forcedPressTime=(ones(numel(trial),1)*3200); % forced-RT time in forced RT paradigm (with respect to beginning of trial: Inf means free RT)
+T.forcedPressTime=(ones(numel(trial),1)*lastToneTime); % forced-RT time in forced RT paradigm (with respect to beginning of trial: Inf means free RT)
+%T.stimTime=repmat(T.forcedPressTime-200,1,size(T.stimulus,2)); % when the stimulus appears (with respect to beginning of trial: 0 means right away)
 T.stimTime=repmat(T.forcedPressTime-T.prepTime,1,size(T.stimulus,2)); % when the stimulus appears (with respect to beginning of trial: 0 means right away)
 T.numPress=ones(numel(trial),1); % how many finger presses are required in this task
 
@@ -86,11 +88,12 @@ if isempty(tgt); error('Target file not found for this combination of path, subj
 D=dload(fullfile(path2tgt,tgt(1).name)); % load the tgt file
 if numel(trial)>numel(D.seqNum); trial=1:numel(D.seqNum); end
 T=getrow(D,trial); % select how many trials of this block
+T.lastToneTime=2400;
 
 % ensure "mandatory" fields are present (common fields across experiments)
 T.TN=(1:numel(trial))'; % keep track of how many trials
 T.stimulus=double(num2str(T.cueP))-double('0'); % visual cue (instruction to participant)
-T.forcedPressTime=(ones(numel(trial),1)*3200); % forced-RT time in forced RT paradigm (with respect to beginning of trial: Inf means free RT)
+T.forcedPressTime=(ones(numel(trial),1)*lastToneTime); % forced-RT time in forced RT paradigm (with respect to beginning of trial: Inf means free RT)
 T.stimTime=repmat(T.forcedPressTime-T.prepTime,1,size(T.stimulus,2)); % when the stimulus appears (with respect to beginning of trial: 0 means right away)
 T.numPress=ones(numel(trial),1)*numel(T.stimulus(1,:)); % how many finger presses are required in this task
 

@@ -7,7 +7,7 @@ function [T,SIM]=slm_simTrial(M,T,varargin)
 
 M.capacity = 1; % always set capacity to 1 since it's soft capacity
 dT = 2;     % delta-t in ms
-maxTime = 5000; % Maximal time for trial simulation
+maxTime = 4000; % Maximal time for trial simulation
 c = 1;
 while(c<=length(varargin))
     switch(varargin{c})
@@ -45,18 +45,36 @@ T.pressTime = nan(size(T.stimulus,1),size(T.stimulus,2)); % to be filled with pr
 % initialize variables
 X = zeros(M.numOptions,maxTime/dT,maxPresses); % Hidden state
 S = zeros(M.numOptions,maxTime/dT,maxPresses); % Stimulus present
-B = ones(1,maxTime/dT)*M.Bound;                % Decision Bound - constant value
-t = (1:maxTime/dT)*dT-dT;   % Time in ms
+t = (1:maxTime/dT)*dT-dT; % Time in ms
+%B = ones(1,maxTime/dT)*M.Bound; % Decision Bound - constant value
+
+% implement forced-RT collapsing decision boundary (logistic decay)
+if ~isnan(T.forcedPressTime(1,1))
+    a = 0.005;%0.05; % the decay constant: the bigger the faster the decay --> reaches zero faster
+    b = T.forcedPressTime + 100; % in ms, the inflexion point
+    B = (M.Bound ./ (1 + exp ( a * (t - b) ) ) ) - M.Bound / 2; % Decision Bound - logistic decay
+    B(B<=0)=0;
+else
+    B = ones(1,maxTime/dT)*M.Bound;                % Decision Bound - constant value
+end
+
 i = 1;                   % Index of simlation
 nDecision = 1;           % Current decision to make
 %numPresses = 0;         % Number of presses produced
 isPressing = 0;          % Is the motor system currently occupied?
 remPress = maxPresses;   % Remaining presses. This variable will be useful if/whenever multiple digits are being planned in every decsion step
-collapsedBound = 0;
+%collapsedBound = 0;
 
 % Set up parameters
-A  = eye(M.numOptions)*(M.Aintegrate-M.Ainhibit)+...
-    ones(M.numOptions)*M.Ainhibit;
+A  = eye(M.numOptions)*(M.Aintegrate)+...
+    (~eye(M.numOptions)*M.Ainhibit); % A defined the matrix of autoregressive coefficients
+
+% %%
+% T.stimTime=T.stimTime+250;
+% a = 0.09; % the growth constant: the bigger the faster the growth --> reaches Bound faster
+% b = 400; % in ms, how long it takes for the function to reach max
+% G = (M.Bound-0.001) ./ (1 + exp ( -a * (t - (T.stimTime(1)+b/2) ) ) ); % logistic growth
+%%
 
 %% Start time-by-time simulation
 while remPress && i<maxTime/dT
@@ -93,25 +111,27 @@ while remPress && i<maxTime/dT
     end
     mult(dec<nDecision)=0;                    % Made decisions will just decay
     for j =1:maxPresses
-        X(:,i+1,j) = A * X(:,i,j) + M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
+        X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*mult(j).*S(:,i,j)) + dT*eps(:,1,j);
     end
     
-    % implement forced-RT collapsing decision boundary (exponential decay)
-    if ~isnan(T.forcedPressTime(1,1)) && collapsedBound==0
-        if t(i+1)>=T.forcedPressTime(1,1)-T.respWindow(1,1)
-            B(i+1:i+1+T.respWindow*2)=-exp((1:numel(B(i+1:i+1+T.respWindow*2)))./250) + abs(max(-exp((1:numel(B(i+1:i+1+T.respWindow*2)))./250))) + B(1); 
-            B(B<0)=0; B(find(B==min(B)):end)=0;
-            collapsedBound=1;
-        end
-    end
+%     % implement forced-RT collapsing decision boundary (exponential decay)
+%     if ~isnan(T.forcedPressTime(1,1)) && collapsedBound==0
+%         if t(i+1)>=0%800%T.forcedPressTime-T.respWindow*2
+%             %cti=i+1:(i+1+T.respWindow*3)-1; % collapsing time interval
+%             cti=i+1:(i+1+(2500/dT)-1); % collapsing time interval
+%             b=150; %0.01; % decay constant
+%             B(cti) = M.Bound .* -expm1( ( -(max(cti) - cti) ./ b ) ); % Boundary update: exponential decay
+%             collapsedBound=1; B(cti(end):end)=0;
+%         end
+%     end
     
     % find the press indecies that have to be planed in this decision cycle
     % doing it this way will be useful if/whenever multiple digits are being planned in every decsion step
-    indx1= nDecision * maxPlan - (maxPlan-1):min(nDecision * maxPlan , maxPresses);
+    indx1 = nDecision * maxPlan - (maxPlan-1):min(nDecision * maxPlan , maxPresses);
     
     % determine if we issue a decision
     % motor command is not issued unless all the presses that have to planned in one step hit the boundary
-    if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1))>B(i+1))) == length(indx1) && t(i+1)>=2800
+    if ~isPressing && any(squeeze(X(:,i+1,indx1))>B(i+1)) && t(i+1)>=1750%(T.forcedPressTime-T.respWindow*3)
         count = 1;
         for prs = indx1
             [~,T.response(1,prs)]=max(X(:,i+1,prs));
@@ -144,10 +164,10 @@ while remPress && i<maxTime/dT
 end;
 
 %% because the muber of presses to be planned is high, sometimes the trial times out and the decisionis not reached, so we need to account for that
-if ~isfield(T , 'pressTime') || ~isfield(T , 'response') || (length(T.pressTime) < maxPresses && i >= maxTime/dT)
-    T.decisionTime(length(T.pressTime)+1 : maxPresses) = NaN;
-    T.response(length(T.pressTime)+1 : maxPresses) = NaN;
-    T.pressTime(length(T.pressTime)+1 : maxPresses) = NaN;
+if ~isfield(T , 'response') || (length(T.response) < maxPresses && i >= maxTime/dT)
+    T.decisionTime(1 : maxPresses) = NaN;
+    T.response(1 : maxPresses) = NaN;
+    T.MT = NaN;
     T.timingError=1;
     T.isError=1;
     %tmax = NaN;
@@ -166,7 +186,7 @@ else
     % add timing errors for single resp exp
     if T.numPress==1 % single resp exp
         T.MT = NaN;
-        if T.pressTime(1)<3200-T.respWindow || T.pressTime(1)>3200+T.respWindow
+        if T.pressTime(1)<(T.forcedPressTime-T.respWindow) || T.pressTime(1)>(T.forcedPressTime+T.respWindow)
             T.timingError=1;
             T.isError=1;
         else % simple seq exp
