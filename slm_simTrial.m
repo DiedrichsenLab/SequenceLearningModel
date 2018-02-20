@@ -67,7 +67,7 @@ remPress = maxPresses;   % Remaining presses. This variable will be useful if/wh
 A  = eye(M.numOptions)*(M.Aintegrate)+...
     (~eye(M.numOptions)*M.Ainhibit); % A defined the matrix of autoregressive coefficients
 
-% Use logistic growth
+% Use logistic growth 
 % T.stimTime=T.stimTime+250;
 a = .1; %0.09; % the growth constant: the bigger the faster the growth --> reaches Bound faster
 b = 400; %200; %400; % in ms, how long it takes for the function to reach max
@@ -129,7 +129,7 @@ while remPress && i<maxTime/dT
     
     % determine if we issue a decision
     % motor command is not issued unless all the presses that have to planned in one step hit the boundary
-    if ~isPressing && any(squeeze(X(:,i+1,indx1))>B(i+1)) && t(i+1)>=1750%(T.forcedPressTime-T.respWindow*3)
+    if ~isPressing && any(squeeze(X(:,i+1,indx1))>B(i+1))
         count = 1;
         for prs = indx1
             [~,T.response(1,prs)]=max(X(:,i+1,prs));

@@ -6,15 +6,15 @@ function [R,S,B,SIM,T,TR,M]=slm_testModel(what,varargin)
 c = 1;
 
 %% Set default parameters
-subj = 1;
-block = 1;
-trial = 1;
-plotSim = 1; %0|1: whether to plot each single trial simulation, or not
+% subj = 1;
+% block = 1;
+% trial = 1;
+% plotSim = 1; %0|1: whether to plot each single trial simulation, or not
 
-% subj = [1:20,1:20];
-% block = [1,2];
-% trial = 1:55;
-% plotSim = 0; %0|1: whether to plot each single trial simulation, or not
+subj = [1:20,1:20];
+block = [1,2];
+trial = 1:55;
+plotSim = 0; %0|1: whether to plot each single trial simulation, or not
 
 DecayFunc = 'exp';
 DecayParam = 2;
@@ -23,7 +23,7 @@ Ainhibit = 0.0;
 theta_stim = 0.0084; %0.0075; % 0.0084
 dT_motor = 90;
 dT_visual = 70;
-SigEps = 0; %0.035; % 0.01
+SigEps = 0.034; % 0.01
 Bound = 4; %1; %0.45;
 numOptions = 5;
 cap = 1;

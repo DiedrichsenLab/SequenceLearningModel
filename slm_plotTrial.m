@@ -154,6 +154,7 @@ switch what
             plt.line(R1.prepTime,(1-R1.ER)*100,'errorbars','shade');
             xlabel('prep time'); ylabel('accuracy %'); axis square; title(sprintf('Aint: %1.3f, Theta: %1.4f, Noise: %1.3f, Initial bound: %1.2f',M.Aintegrate,M.theta_stim,M.SigEps,M.Bound/2));
             figure;
-            plt.hist(R.pressTime(:,1)); axis square; title(sprintf('Aint: %1.4f, Theta: %1.4f, Noise: %1.4f, Initial bound: %1.4f',M.Aintegrate,M.theta_stim,M.SigEps,M.Bound/2));
+            plt.hist(R.pressTime(:,1)); 
+            xlabel('RT (ms)'); ylabel('Distribution (n trials)'); axis square; title(sprintf('Aint: %1.4f, Theta: %1.4f, Noise: %1.4f, Initial bound: %1.4f',M.Aintegrate,M.theta_stim,M.SigEps,M.Bound/2));
         end
 end
