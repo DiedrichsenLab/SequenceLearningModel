@@ -152,8 +152,8 @@ switch what
         else
             R1=tapply(R,{'SN','prepTime'},{R.isError,'nanmean','name','ER','subset',R.timingError==0});
             plt.line(R1.prepTime,(1-R1.ER)*100,'errorbars','shade');
-            xlabel('prep time'); ylabel('accuracy %'); axis square; title(sprintf('Aint: %1.3f, Theta: %1.4f, Noise: %1.3f, Initial bound: %1.2f',M.Aintegrate,M.theta_stim,M.SigEps,M.Bound));
+            xlabel('prep time'); ylabel('accuracy %'); axis square; title(sprintf('Aint: %1.3f, Theta: %1.4f, Noise: %1.3f, Initial bound: %1.2f',M.Aintegrate,M.theta_stim,M.SigEps,M.Bound/2));
             figure;
-            plt.hist(R.pressTime(:,1)); axis square; title(sprintf('Aint: %1.4f, Theta: %1.4f, Noise: %1.4f, Initial bound: %1.4f',M.Aintegrate,M.theta_stim,M.SigEps,M.Bound));
+            plt.hist(R.pressTime(:,1)); axis square; title(sprintf('Aint: %1.4f, Theta: %1.4f, Noise: %1.4f, Initial bound: %1.4f',M.Aintegrate,M.theta_stim,M.SigEps,M.Bound/2));
         end
 end

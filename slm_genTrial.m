@@ -71,7 +71,6 @@ lastToneTime=2400;
 T.TN=(1:numel(trial))'; % keep track of how many trials
 T.stimulus=double(num2str(T.cueP))-double('0'); % visual cue (instruction to participant) 
 T.forcedPressTime=(ones(numel(trial),1)*lastToneTime); % forced-RT time in forced RT paradigm (with respect to beginning of trial: Inf means free RT)
-%T.stimTime=repmat(T.forcedPressTime-200,1,size(T.stimulus,2)); % when the stimulus appears (with respect to beginning of trial: 0 means right away)
 T.stimTime=repmat(T.forcedPressTime-T.prepTime,1,size(T.stimulus,2)); % when the stimulus appears (with respect to beginning of trial: 0 means right away)
 T.numPress=ones(numel(trial),1); % how many finger presses are required in this task
 

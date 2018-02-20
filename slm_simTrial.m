@@ -40,13 +40,11 @@ else
     T.Horizon=nan(size(T.stimulus,1),size(T.stimulus,2)); % default to full horizon
 end
 T.pressTime = nan(size(T.stimulus,1),size(T.stimulus,2)); % to be filled with press times
-%decSteps = max(dec);
 
 % initialize variables
 X = zeros(M.numOptions,maxTime/dT,maxPresses); % Hidden state
 S = zeros(M.numOptions,maxTime/dT,maxPresses); % Stimulus present
 t = (1:maxTime/dT)*dT-dT; % Time in ms
-%B = ones(1,maxTime/dT)*M.Bound; % Decision Bound - constant value
 
 % implement forced-RT collapsing decision boundary (logistic decay)
 if ~isnan(T.forcedPressTime(1,1))
@@ -55,7 +53,7 @@ if ~isnan(T.forcedPressTime(1,1))
     B = (M.Bound ./ (1 + exp ( a * (t - b) ) ) ) - M.Bound / 2; % Decision Bound - logistic decay
     B(B<=0)=0;
 else
-    B = ones(1,maxTime/dT)*M.Bound;                % Decision Bound - constant value
+    B = ones(1,maxTime/dT)*M.Bound; % Decision Bound - constant value
 end
 
 i = 1;                   % Index of simlation
@@ -69,12 +67,11 @@ remPress = maxPresses;   % Remaining presses. This variable will be useful if/wh
 A  = eye(M.numOptions)*(M.Aintegrate)+...
     (~eye(M.numOptions)*M.Ainhibit); % A defined the matrix of autoregressive coefficients
 
-% %%
+% Use logistic growth
 % T.stimTime=T.stimTime+250;
-% a = 0.09; % the growth constant: the bigger the faster the growth --> reaches Bound faster
-% b = 400; % in ms, how long it takes for the function to reach max
-% G = (M.Bound-0.001) ./ (1 + exp ( -a * (t - (T.stimTime(1)+b/2) ) ) ); % logistic growth
-%%
+a = .1; %0.09; % the growth constant: the bigger the faster the growth --> reaches Bound faster
+b = 400; %200; %400; % in ms, how long it takes for the function to reach max
+G = (M.Bound/2) ./ (1 + exp ( -a * (t - (T.stimTime(1)+b/2) ) ) ); % logistic growth
 
 %% Start time-by-time simulation
 while remPress && i<maxTime/dT
@@ -111,19 +108,20 @@ while remPress && i<maxTime/dT
     end
     mult(dec<nDecision)=0;                    % Made decisions will just decay
     for j =1:maxPresses
-        X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*mult(j).*S(:,i,j)) + dT*eps(:,1,j);
+        %X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*mult(j).*S(:,i,j)) + dT*eps(:,1,j);
+        X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*mult(j).*S(:,i,j).*G(i)) + dT*eps(:,1,j);
     end
     
-%     % implement forced-RT collapsing decision boundary (exponential decay)
-%     if ~isnan(T.forcedPressTime(1,1)) && collapsedBound==0
-%         if t(i+1)>=0%800%T.forcedPressTime-T.respWindow*2
-%             %cti=i+1:(i+1+T.respWindow*3)-1; % collapsing time interval
-%             cti=i+1:(i+1+(2500/dT)-1); % collapsing time interval
-%             b=150; %0.01; % decay constant
-%             B(cti) = M.Bound .* -expm1( ( -(max(cti) - cti) ./ b ) ); % Boundary update: exponential decay
-%             collapsedBound=1; B(cti(end):end)=0;
-%         end
-%     end
+    %     % implement forced-RT collapsing decision boundary (exponential decay)
+    %     if ~isnan(T.forcedPressTime(1,1)) && collapsedBound==0
+    %         if t(i+1)>=0%800%T.forcedPressTime-T.respWindow*2
+    %             %cti=i+1:(i+1+T.respWindow*3)-1; % collapsing time interval
+    %             cti=i+1:(i+1+(2500/dT)-1); % collapsing time interval
+    %             b=150; %0.01; % decay constant
+    %             B(cti) = M.Bound .* -expm1( ( -(max(cti) - cti) ./ b ) ); % Boundary update: exponential decay
+    %             collapsedBound=1; B(cti(end):end)=0;
+    %         end
+    %     end
     
     % find the press indecies that have to be planed in this decision cycle
     % doing it this way will be useful if/whenever multiple digits are being planned in every decsion step
@@ -170,7 +168,6 @@ if ~isfield(T , 'response') || (length(T.response) < maxPresses && i >= maxTime/
     T.MT = NaN;
     T.timingError=1;
     T.isError=1;
-    %tmax = NaN;
     if (nargout>1)
         SIM.X = NaN;     % Hidden state
         SIM.S = NaN;     % Stimulus present
@@ -205,4 +202,3 @@ else
         SIM.bufferSize = M.capacity;
     end;
 end
-
