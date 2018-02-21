@@ -9,12 +9,50 @@
 %% Recepie for model diagnosis
 close all
 
-[IPIs1, Exam1] =    slm_diagModel( 'numSimulations' , 40,...
-     'SigEps' , 0.01 ,'DecayParam' , 2 ,...
-    'Aintegrate' , 0.98 , 'theta_stim' , .0084 , 'Capacity' , 3 , 'SeqLength' , 14,...
-      'Horizons' , [14],'Ainhibit' , [0. 0.001,0.004,0.008]);
-A = getrow(IPIs , IPIs.singleH==14);
+[IPIs, Exam] = slm_diagModel( 'numSimulations' , 100,...
+     'SigEps' , 0.01 ,'DecayParam' , 2 ,'Aintegrate' , 0.9785 , 'theta_stim' , .0084 , 'Capacity' , 4 ,...
+     'SeqLength' , 14,'Horizons' , [1:14],'Ainhibit' , [0.0],'DecayParam' , 2);
 
+ 
+[IPIs, Exam] =    slm_diagModel( 'numSimulations' , 50,...
+     'SigEps' , 0.01 ,'DecayParam' , 2 ,'Aintegrate' , 0.976 , 'theta_stim' , .01 , 'Capacity' , 3 ,...
+     'SeqLength' , 14,'Horizons' , [14],'Ainhibit' , [0.0],'DecayParam' , 2);
+ 
+ 
+ [R,SIM,Trials,Models]=slm_testModel('simpleSeq','SigEps' , 0.01 ,'DecayParam' , 2 , 'Aintegrate' , 0.976 , 'theta_stim' , .0084 ,...
+    'Horizons' , [1:14] , 'numSimulations' , 100 , 'Capacity' , 1,'VizProgress',0,'SeqLength' , 14);
+%% Capacity
+A = getrow(IPIs , IPIs.singleH==14);
+A = IPIs;
+figure('color' , 'white')
+subplot(211)
+lineplot(A.Capacity , A.MT , 'style_thickline')
+title('MT')
+grid on
+set(gca , 'FontSize' , 16)
+xlabel('Buffer Size')
+subplot(212)
+lineplot(A.Capacity , A.RT,'style_thickline')
+title('RT')
+xlabel('Buffer Size') 
+grid on
+set(gca , 'FontSize' , 16)
+%% Horizon
+A = IPIs;
+figure('color' , 'white')
+subplot(211)
+lineplot(A.singleH , A.MT , 'style_thickline')
+title('MT')
+grid on
+set(gca , 'FontSize' , 16)
+xlabel('Horizon')
+subplot(212)
+lineplot(A.singleH , A.RT,'style_thickline')
+title('RT')
+xlabel('Horizon') 
+grid on
+set(gca , 'FontSize' , 16)
+%%
 A = IPIs;
 IPIs = getrow(A , A.a == 1);
 
@@ -34,16 +72,8 @@ IPIs1.a = zeros(length(IPIs1.MT) , 1);
 
 IPIs = addstruct(IPIs , IPIs1);
 
-A = IPIs;
-figure('color' , 'white')
-subplot(211)
-lineplot(A.a , A.MT)
-title('MT')
-xlabel('Ainhibit')
-subplot(212)
-lineplot(A.a , A.RT)
-title('RT')
-xlabel('Ainhibit') 
+
+
 
 
 
@@ -133,12 +163,14 @@ Sequences = [3 4 2 2 4 4 2 4 5 2 4 1 2 4;
              5 1 2 4 5 1 2 4 1 2 3 2 4 1;
              1 3 1 2 4 2 3 1 2 4 4 5 1 2];
          
-[R,SIM,Trials,Models]=slm_testModel('SeqLearn','Sequences' , Sequences , 'SigEps' , 0.01 ,'DecayParam' , 2 , 'Aintegrate' , 0.98 , 'theta_stim' , .0084 , 'Capacity' , 1,'VizProgress',0);
+[R,SIM,Trials,Models]=slm_testModel('SeqLearn','Sequences' , Sequences , 'SigEps' , 0.01 ,'DecayParam' , 2 , 'Aintegrate' , 0.976 , 'theta_stim' , .0084 , 'Capacity' , 4,'VizProgress',0);
+[R,SIM,Trials,Models]=slm_testModel('simpleSeq','SigEps' , 0.01 ,'DecayParam' , 2 , 'Aintegrate' , 0.976 , 'theta_stim' , .0084 ,...
+    'Horizons' , [1:14] , 'numSimulations' , 100 , 'Capacity' , 1,'VizProgress',0,'SeqLength' , 14);
 
-% [R,SIM,Trials,Models]=slm_testModel('simpleSeq' , 'SigEps' , 0.01 ,'DecayParam' , 2 ,...
-%     'Aintegrate' , 0.98 , 'theta_stim' , .0084 , 'Capacity' , 3,'Ainhibit', 0.001);
+[R,SIM,Trials,Models]=slm_testModel('simpleSeq' , 'SigEps' , 0.01 ,'DecayParam' , 2 ,...
+    'Aintegrate' , 0.98 , 'theta_stim' , .0084 , 'Capacity' , 3,'Ainhibit', 0.001,'SeqLength',14);
 
 
-
+[IPIs, Exam] =    slm_diagModel( 'Ainhibit' , [0.0],'DecayParam' , 2);
 
 

@@ -17,16 +17,12 @@ Capacity = 1;
 c = 1;
 while(c<=length(varargin))
     switch(varargin{c})
-        
-       
-            
+  
         case {'DecayParam'}
             % defines the parameters for the decay function
             % for 'exp' this would be the time constant (defaul = 1)
-           
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
-            
         case {'SeqLength'}
             % defines the length of the sequence
             % default is 10

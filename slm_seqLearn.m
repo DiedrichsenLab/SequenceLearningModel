@@ -45,7 +45,7 @@ while(c<=length(varargin))
             % can set to 0 to onserve just the effect of just associations
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
-         case {'VizProgress'}
+        case {'VizProgress'}
             % Visualization Default 0
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
@@ -64,10 +64,15 @@ OptionsPressed = zeros(1, M.numOptions);
 % the 3000 assumes that after having pressed each digits 3000 time,
 % (approx.3 days, with blocks of 36 trials, 10 blocksper day, selength of 14),
 % mapping will reach full speed
-b = .009; % the growth constant. the bigger the b the faster the growth --> reached 1 faster
-% Growth = 1./(1+3000*exp(-b*[1:length(AllT.TN)]));  % logistic growth
-Growth  = 1-exp(-[[1:length(AllT.TN)]-1]./1000);    % exponential growth
-% ThetaGrowth = zeros(1,length(AllT.TN));
+%%  logistic growth
+% b = .009; % the growth constant. the bigger the b the faster the growth --> reached 1 faster
+% Growth = 1./(1+3000*exp(-b*[1:length(AllT.TN)]));
+%% exponential growth
+b1 = 15000; % the growth constant. the bigger the b the slower the growth --> reached 1 slower
+ThetaGrowth  = 1-exp(-[[1:length(AllT.TN)]-1]./b1);
+b2 =2000;
+ProbGrowth  = 1-exp(-[[1:length(AllT.TN)]-1]./b2);
+%%
 T_ammended = [];
 SIM_ammended = [];
 A  = eye(M.numOptions)*(M.Aintegrate)+(~eye(M.numOptions)).*M.Ainhibit;      % A defined the matrix of autoregressive coefficients
@@ -111,26 +116,19 @@ for tn = 1:length(AllT.TN)
     % Set up parameters
     
     
-
+    
     prs = 0; % indexes the pressesd digits
     
     % find the press indecies that have to be planed in the first decision cycle
     indx1= prs+1 : prs+1+(maxPlan(nDecision)-1);
     
-    if length(dec)>2
-        % the stimulus evidence intake from nDecision = 2 onward
-        cap_mult = ones(1,M.capacity-1);
-        mult = [cap_mult , zeros(1,length(dec))];
-        mult = [mult(logical(mult)) , exp(-[dec(1:end)-nDecision]./DecayParam)];      % How much stimulus exponentia decay
-        
-        % the stimulus evidence intake fo1 nDecision = 1
-        % sets the decay for all the digits outside of "capacity" to zero
-        cap_mult1 = exp(-[[1 :M.capacity]]./(30*DecayParam));
-        mult1 = [cap_mult1 , zeros(1,length(dec)-1)];
-        dec1PressCount = 1;
-    end
+    
+    cap_mult = ones(1,M.capacity-1);
+    mult = [cap_mult , zeros(1,length(dec))];
+    mult = [mult(logical(mult)) , exp(-[dec(1:end)-nDecision]./DecayParam)];      % How much stimulus exponentia decay
+    decPressCount = 1;
     % initialize learning related parametrs
-   
+    
     TempTrans = zeros(M.numOptions , M.numOptions); %initialize the matrix of first order conditional probabilities
     
     % update A matrix after each trial to account for assiciative learning
@@ -156,7 +154,7 @@ for tn = 1:length(AllT.TN)
                 for opt = 1: M.numOptions
                     nextPress = T.stimulus(prs+1);
                     currentTransP(opt) = firstTrans(nextPress,opt);
-                    A(nextPress , opt) = A(nextPress , opt) + (Growth(tn)*.1*currentTransP(opt));
+                    A(nextPress , opt) = A(nextPress , opt) + (ProbGrowth(tn)*.1*currentTransP(opt));
                 end
             end
         end
@@ -166,58 +164,24 @@ for tn = 1:length(AllT.TN)
         % Update the evidence state
         eps = randn([M.numOptions 1 maxPresses]) * M.SigEps;
         
-       
-       
-        if nDecision == 1 & length(dec)>2   % use the decay funstions corresponding to decision 1
-            for j =1:maxPresses
-                X(:,i+1,j)= A * X(:,i,j) + (1+Growth(tn))*M.theta_stim .* mult1(j) .* S(:,i,j) + dT*eps(:,1,j);
-            end
-        else
-            for j =1:maxPresses             % use the decay funstions corresponding to decision 2 onward
-                X(:,i+1,j)= A * X(:,i,j) + (1+Growth(tn))*M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
-            end
+        
+        eps = randn([M.numOptions 1 maxPresses]) * M.SigEps;
+        for j =1:maxPresses
+            X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
         end
-        
-        
-        
         % if the system is in the first decision cycle, it wont start pressing
         % until all the digits within the buffer size have been planned
-        if nDecision == 1 & length(dec)>2 & M.capacity>1
-            if dec1PressCount <= length(indx1)
-                if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1(dec1PressCount)))>B(i+1))) == 1
-                    T.decisionTime(1,indx1(dec1PressCount)) = t(i+1);                            % Decision made at this time
-                    [~,T.response(1,indx1(dec1PressCount))]=max(X(:,i+1,indx1(dec1PressCount)));
-                    dec1PressCount = dec1PressCount + 1;
-                end
+        if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1(decPressCount)))>B(i+1))) >= 1
+            if decPressCount <= length(indx1)
+                T.decisionTime(1,indx1(decPressCount)) = t(i+1);                            % Decision made at this time
+                [~,T.response(1,indx1(decPressCount))]=max(X(:,i+1,indx1(decPressCount)));
+                decPressCount = decPressCount + 1;
             end
             % after filling the buffer, start pressing
-            if dec1PressCount == length(indx1)+1
-                dtcount = 1;
+            if decPressCount == length(indx1)+1
+                dtcount = 1;  % motor deltT counter
                 for prs = indx1
-                    
-                    T.pressTime(prs) = T.decisionTime(length(indx1))+dtcount*M.dT_motor; % Press time delayed by motor delay
-                    % if there are any stumuli that have not appeared yet, set their stimTime to press time of Horizon presses before
-                    if sum(isnan(T.stimTime))
-                        idx2  = find(isnan(T.stimTime));
-                        for k = 1:length(idx2)
-                            if ~isnan(T.pressTime(idx2(k) - T.Horizon(idx2(k))))
-                                T.stimTime(idx2(k)) = T.pressTime(prs);
-                            end
-                        end
-                    end
-                    isPressing = 1;                % Motor system engaged
-                    dtcount = dtcount+1;
-                end
-            end;
-        else
-            % for nDecison 2 onward, move ahead one at a time and shift the
-            % decay funstion after each plan
-            if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1))>B(i+1))) == length(indx1)
-                dtcount = 1;
-                for prs = indx1
-                    [~,T.response(1,prs)]=max(X(:,i+1,prs));
-                    T.decisionTime(1,prs) = t(i+1);                            % Decision made at this time
-                    T.pressTime(prs) = T.decisionTime(prs)+dtcount*M.dT_motor; % Press time delayed by motor delay
+                    T.pressTime(prs) = T.decisionTime(indx1(end))+dtcount*M.dT_motor; % Press time delayed by motor delay
                     % if there are any stumuli that have not appeared yet, set their stimTime to press time of Horizon presses before
                     if sum(isnan(T.stimTime))
                         idx2  = find(isnan(T.stimTime));
@@ -244,7 +208,7 @@ for tn = 1:length(AllT.TN)
                 if nDecision<=length(dec)
                     % update the press indecies that have to be planed in next decision cycle
                     indx1= prs+1 : prs+1+(maxPlan(nDecision)-1);
-                    dec1PressCount = 1;
+                    decPressCount = 1;
                 end
             end
         end

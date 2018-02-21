@@ -188,7 +188,7 @@ switch(what)
         M.Bound     = Bound;         % Boundary condition
         M.numOptions = 5;           % Number of response options
         M.capacity   = Capacity;         % Capacity for preplanning (buffer size)
-        AllT = [];
+        Trials = [];
         
         
         TperH = ceil(NumTrials/length(Horizons));
@@ -210,7 +210,7 @@ switch(what)
                 T.Horizon = hrzn*(ones(1,SeqLength));
                 T.Horizon(1:hrzn) = NaN;
                 T.stimulus = randi(5 , 1, SeqLength );
-                AllT  = addstruct(AllT , T);
+                Trials  = addstruct(Trials , T);
             end
             for ns = 1:size(Sequences, 1)
                 for tn=1:trPerSeq
@@ -225,7 +225,7 @@ switch(what)
                     T.Horizon = hrzn*(ones(1,SeqLength));
                     T.Horizon(1:hrzn) = NaN;
                     T.stimulus = Sequences(ns , :);
-                    AllT  = addstruct(AllT , T);
+                    Trials  = addstruct(Trials , T);
                 end
             end
         end
@@ -233,25 +233,100 @@ switch(what)
         
         
         % Shuffle the trails to make them intermixed
-        mixedTN = randperm(length(1:length(AllT.numPress)));
-        AllT = getrow(AllT , mixedTN);
-        AllT.TN = [1:length(AllT.numPress)]';
-        [T,firstTrans]=slm_seqLearn(M,AllT,'DecayParam' , 2,'VizProgress' , VizProgress);
+        mixedTN = randperm(length(1:length(Trials.numPress)));
+        Trials = getrow(Trials , mixedTN);
+        Trials.TN = [1:length(Trials.numPress)]';
+        [R,SIM.firstTrans]=slm_seqLearn(M,Trials,'DecayParam' , 2,'VizProgress' , VizProgress);
+        Models = M;
+        %% visuzlization of learning
+        figure('color' , 'white')
+        subplot(211)
+        Seq = getrow(R , R.seqType > 0);
+        Rand = getrow(R , R.seqType == 0);
+        plot(Seq.MT, 'LineWidth' , 2);hold on
+        plot(Rand.MT , 'LineWidth' , 2)
+        legend({'Sequence' , 'Random'})
+        title('Movement time')
+        grid on
+        set(gca , 'FontSize' , 16)
+        xlabel('Number of Trials')
         
-        A = getrow(T , T.seqType > 0);
-        B = getrow(T , T.seqType == 0);
-        plot(A.MT);hold on
-        plot(B.MT)
-        a = A.IPI(:,[7 10 13]);
-        b = A.IPI(:,[ 9 11 12]);
-        plot(mean(a,2))
-        hold on
-        plot(mean(b,2))
+        subplot(212)
+        plot(Seq.pressTime(:,1));hold on
+        plot(Rand.pressTime(:,1))
+        legend({'Sequence' , 'Random'})
+        title('Reaction time')
+        set(gca , 'FontSize' , 16)
+        xlabel('Number of Trials')
+        grid on
+        %% IPIs and probability
         
-       
-        %         slm_plotTrial('BlockMT' , SIM , R )
-        %         slm_plotTrial('IPIHorizon' , SIM , R )
+        figure('color' , 'white')
+        R.IPI = diff(R.pressTime,[],2); 
+        ipiMat   = zeros(5 , 5);
+        IPIcount = zeros(5 , 5);
+        for tn = 1:length(R.MT)
+            stim = R.stimulus(tn,:);
+            for pr = 1:size(stim , 2)-1
+                ipiMat(stim(pr) , stim(pr+1)) = ipiMat(stim(pr) , stim(pr+1)) + R.IPI(tn , pr);
+                IPIcount(stim(pr) , stim(pr+1)) = IPIcount(stim(pr) , stim(pr+1)) + 1;
+            end
+        end
+        ipiMat= ipiMat./IPIcount;
+        subplot(131)
+        imagesc(ipiMat)
+        axis square
+        set(gca, 'XTick' , [1:5], 'YTick' , [1:5] , 'FontSize' , 16)
+        colorbar
+        title('Average Transition IPI')
         
+        subplot(132)
+        imagesc(SIM.firstTrans)
+        axis square
+        set(gca, 'XTick' , [1:5], 'YTick' , [1:5],'FontSize' , 16)
+        colorbar
+        title('First Order Transition Probability')
+        
+        
+        
+        Pall = reshape(SIM.firstTrans , 1 , numel(SIM.firstTrans));
+        ipi = reshape(ipiMat , 1 , numel(ipiMat));
+        subplot(133)
+        Pall = Pall>=median(Pall);
+        lineplot(P', ipi','style_thickline');
+        grid on
+        ylabel('ms')
+        title('IPIs as a function of Probability')
+        set(gca, 'XTickLabel' , {'Low Probability' , 'High Probability'} , 'FontSize' , 16)
+        %%
+        figure('color' , 'white')
+        ind = [1 floor(linspace(max(R.TN)/4 , max(R.TN) , 4))];
+        P = [];
+        dayind = [];
+        ipi = [];
+        for j = 1:length(ind) - 1
+            A = getrow(R , R.TN>=ind(j) & R.TN<=ind(j+1));
+            ipiMat   = zeros(5 , 5);
+            IPIcount = zeros(5 , 5);
+            for tn = 1:length(A.MT)
+                stim = A.stimulus(tn,:);
+                for pr = 1:size(stim , 2)-1
+                    ipiMat(stim(pr) , stim(pr+1)) = ipiMat(stim(pr) , stim(pr+1)) + A.IPI(tn , pr);
+                    IPIcount(stim(pr) , stim(pr+1)) = IPIcount(stim(pr) , stim(pr+1)) + 1;
+                end
+            end
+            ipiMat= ipiMat./IPIcount;
+            Ptemp = reshape(SIM.firstTrans , 1 , numel(SIM.firstTrans));
+            ipi = [ipi reshape(ipiMat , 1 , numel(ipiMat))];
+            P = [P Ptemp>=median(Ptemp)];
+            dayind = [dayind , j*ones(1,numel(Ptemp))];
+        end
+        lineplot([dayind' , P'] , ipi','style_thickline')
+        set(gca, 'XTickLabel' , {'Low' , 'High','Low' , 'High','Low' , 'High','Low' , 'High'} , 'FontSize' , 16)
+        xlabel('Probability')
+        grid on
+        title('IPIs in  stages(days) of training')
+        ylabel('ms')
         
         
 end
