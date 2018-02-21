@@ -58,17 +58,14 @@ end
 
 i = 1;                   % Index of simlation
 nDecision = 1;           % Current decision to make
-%numPresses = 0;         % Number of presses produced
 isPressing = 0;          % Is the motor system currently occupied?
 remPress = maxPresses;   % Remaining presses. This variable will be useful if/whenever multiple digits are being planned in every decsion step
-%collapsedBound = 0;
 
 % Set up parameters
 A  = eye(M.numOptions)*(M.Aintegrate)+...
     (~eye(M.numOptions)*M.Ainhibit); % A defined the matrix of autoregressive coefficients
 
-% Use logistic growth 
-% T.stimTime=T.stimTime+250;
+% Use logistic growth for stimulus horse race
 a = .1; %0.09; % the growth constant: the bigger the faster the growth --> reaches Bound faster
 b = 400; %200; %400; % in ms, how long it takes for the function to reach max
 G = (M.Bound/2) ./ (1 + exp ( -a * (t - (T.stimTime(1)+b/2) ) ) ); % logistic growth
@@ -76,8 +73,10 @@ G = (M.Bound/2) ./ (1 + exp ( -a * (t - (T.stimTime(1)+b/2) ) ) ); % logistic gr
 %% Start time-by-time simulation
 while remPress && i<maxTime/dT
     mult = zeros(1,length(dec));
+    
     % Update the stimulus: Fixed stimulus time
     indx = find(t(i)>(T.stimTime+M.dT_visual)); % Index of which stimuli are present T.
+    
     % stimuli of greater than Horizon size will be unavailable
     for j=indx
         if T.stimulus(j)>0 && T.stimulus(j)<=5 % in single resp task, some stimuli are distractors
@@ -108,20 +107,8 @@ while remPress && i<maxTime/dT
     end
     mult(dec<nDecision)=0;                    % Made decisions will just decay
     for j =1:maxPresses
-        %X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*mult(j).*S(:,i,j)) + dT*eps(:,1,j);
         X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*mult(j).*S(:,i,j).*G(i)) + dT*eps(:,1,j);
     end
-    
-    %     % implement forced-RT collapsing decision boundary (exponential decay)
-    %     if ~isnan(T.forcedPressTime(1,1)) && collapsedBound==0
-    %         if t(i+1)>=0%800%T.forcedPressTime-T.respWindow*2
-    %             %cti=i+1:(i+1+T.respWindow*3)-1; % collapsing time interval
-    %             cti=i+1:(i+1+(2500/dT)-1); % collapsing time interval
-    %             b=150; %0.01; % decay constant
-    %             B(cti) = M.Bound .* -expm1( ( -(max(cti) - cti) ./ b ) ); % Boundary update: exponential decay
-    %             collapsedBound=1; B(cti(end):end)=0;
-    %         end
-    %     end
     
     % find the press indecies that have to be planed in this decision cycle
     % doing it this way will be useful if/whenever multiple digits are being planned in every decsion step
