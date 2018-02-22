@@ -1,9 +1,9 @@
-function [T_ammended,firstTrans]=slm_seqLearn(M,AllT,varargin)
-% function [T,SIM]=slm_simTrial(M,T,varargin);
+function [T_seqLearn,SIM_seqLearn]=slm_seqLearn(M,AllT,varargin)
+% function [T_seqLearn,SIM_seqLearn]=slm_seqLearn(M,AllT,varargin)
 % incoporates horizon size (T.Horizon) as well as buffer size (M.capacity)
 % multiple planning possible
 % Simulates sequence learning using a parallel evidence-accumulation model for sequential response tasks
-% AllT contains all the trails to be trained on
+% AllT contains all the trials to be trained on
 
 % the model is basically an ARX (auroregressive with exogenious input).
 % X(i) = A*X(i-1) + Theta*Stimulus(i) + Noise      X defined the tensor of current state of decision making horseraces
@@ -11,13 +11,15 @@ function [T_ammended,firstTrans]=slm_seqLearn(M,AllT,varargin)
 dT = 2;     % delta-t in ms
 maxTime = 50000; % Maximal time for trial simulation
 c = 1;
-VizProgress = 0;
-if VizProgress
-    figure('color' , 'white');
-end
+
 while(c<=length(varargin))
     switch(varargin{c})
-        
+        case {'DecayFunc'}
+            % defines the decay type
+            % can be 'exp', 'linear' or 'boxcar'
+            % default is exponential
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         case {'DecayParam'}
             % for 'exp' this would be the time constant (defaul = 1)
             eval([varargin{c} '= varargin{c+1};']);
@@ -49,10 +51,14 @@ while(c<=length(varargin))
             % Visualization Default 0
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
-            
         otherwise
-            error(sprintf('Unknown option: %s',varargin{c}));
+            error('Unknown option: %s',varargin{c});
     end
+end
+
+%VizProgress = 0;
+if exist('VizProgress','var')
+    figure('color' , 'white');
 end
 
 % initilize the press counter to establish mapping learning
@@ -68,15 +74,15 @@ OptionsPressed = zeros(1, M.numOptions);
 % b = .009; % the growth constant. the bigger the b the faster the growth --> reached 1 faster
 % Growth = 1./(1+3000*exp(-b*[1:length(AllT.TN)]));
 %% exponential growth
-b1 = 15000; % the growth constant. the bigger the b the slower the growth --> reached 1 slower
-ThetaGrowth  = 1-exp(-[[1:length(AllT.TN)]-1]./b1);
+% b1 = 15000; % the growth constant. the bigger the b the slower the growth --> reached 1 slower
+% ThetaGrowth  = 1-exp(-((1:length(AllT.TN))-1)./b1);
 b2 =2000;
-ProbGrowth  = 1-exp(-[[1:length(AllT.TN)]-1]./b2);
+ProbGrowth  = 1-exp(-((1:length(AllT.TN))-1)./b2);
 %%
-T_ammended = [];
-SIM_ammended = [];
+T_seqLearn = [];
+% SIM_ammended = [];
 A  = eye(M.numOptions)*(M.Aintegrate)+(~eye(M.numOptions)).*M.Ainhibit;      % A defined the matrix of autoregressive coefficients
-firstTrans = zeros(M.numOptions , M.numOptions); %initialize the matrix of first order conditional probabilities
+SIM_seqLearn.firstTrans = zeros(M.numOptions , M.numOptions); %initialize the matrix of first order conditional probabilities
 for tn = 1:length(AllT.TN)
     T = getrow(AllT , tn);
     M.capacity = min(M.capacity , max(T.Horizon));
@@ -87,52 +93,58 @@ for tn = 1:length(AllT.TN)
     % this is because the first "capacity" presses would be planned in one decision step
     dec=1: max(maxPresses - M.capacity+1,M.capacity);  % Number of decision steps
     
-    
     % for the first decision step, "capacity" digits are planned and for the rest, the shift is 1 by 1.
     maxPlan = ones(1 , length(dec)); % Number of digits being planned in every decision step
     if length(dec)>2
         maxPlan(1) = M.capacity;
     end
     
-    
-    
     % set the stimTime for presses that are not shown at time 0 to NaN (depending on the horizon size)
     % These will be filled with press times (depending on the horizon size)
     T.stimTime(~isnan(T.Horizon)) = NaN;
-    
     T.pressTime = NaN*ones(size(T.Horizon)); % to be filled with press times
-    
     
     % initialize variables
     X = zeros(M.numOptions,maxTime/dT,maxPresses); % Hidden state
     S = zeros(M.numOptions,maxTime/dT,maxPresses); % Stimulus present
-    B = ones(1,maxTime/dT)*M.Bound;                % Decision Bound - constant value
-    t = [1:maxTime/dT]*dT-dT;   % Time in ms
+    t = (1:maxTime/dT)*dT-dT;   % Time in ms
+    
+    % implement forced-RT collapsing decision boundary (logistic decay)
+    if ~isnan(T.forcedPressTime(1,1))
+        a = 0.005;%0.05; % the decay constant: the bigger the faster the decay --> reaches zero faster
+        b = T.forcedPressTime + 100; % in ms, the inflexion point
+        B = (M.Bound ./ (1 + exp ( a * (t - b) ) ) ) - M.Bound / 2; % Decision Bound - logistic decay
+        B(B<=0)=0;
+    else
+        B = ones(1,maxTime/dT)*M.Bound; % Decision Bound - constant value
+    end
+    
     i = 1;                      % Index of simlation
     nDecision = 1;              % Current decision to male
-    numPresses = 0;             % Number of presses produced
+    % numPresses = 0;             % Number of presses produced
     isPressing = 0;             % Is the motor system currently occupied?
     remPress = maxPresses;      % Remaining presses. This variable will be useful if/whenever multiple digits are being planned in every decsion step
+    
     % Set up parameters
-    
-    
-    
     prs = 0; % indexes the pressesd digits
     
     % find the press indecies that have to be planed in the first decision cycle
     indx1= prs+1 : prs+1+(maxPlan(nDecision)-1);
     
-    
     cap_mult = ones(1,M.capacity-1);
     mult = [cap_mult , zeros(1,length(dec))];
-    mult = [mult(logical(mult)) , exp(-[dec(1:end)-nDecision]./DecayParam)];      % How much stimulus exponentia decay
+    mult = [mult(logical(mult)) , exp(-(dec(1:end)-nDecision)./DecayParam)];      % How much stimulus exponentia decay
     decPressCount = 1;
-    % initialize learning related parametrs
     
-    TempTrans = zeros(M.numOptions , M.numOptions); %initialize the matrix of first order conditional probabilities
+    % initialize learning related parametrs
+    %TempTrans = zeros(M.numOptions,M.numOptions); %initialize the matrix of first order conditional probabilities
+    
+    % Use logistic growth for stimulus horse race
+    a = .1; %0.09; % the growth constant: the bigger the faster the growth --> reaches Bound faster
+    b = 400; %200; %400; % in ms, how long it takes for the function to reach max
+    G = (M.Bound/2) ./ (1 + exp ( -a * (t - (T.stimTime(1)+b/2) ) ) ); % logistic growth
     
     % update A matrix after each trial to account for assiciative learning
-    
     while nDecision<=length(dec) && i<maxTime/dT
         
         % Update the stimulus: Fixed stimulus time
@@ -143,8 +155,9 @@ for tn = 1:length(AllT.TN)
                 S(T.stimulus(j),i,j)=1;
             end;
         end
+        
         %% restore the A matrix for every press
-        if T.seqType  >1
+        if T.seqNum > 1
             A  = eye(M.numOptions)*(M.Aintegrate)+(~eye(M.numOptions)).*M.Ainhibit;      % A defined the matrix of autoregressive coefficients
             % update the A matrix for each particular transition
             % the off diagonals are affected by the transition probability from
@@ -153,22 +166,24 @@ for tn = 1:length(AllT.TN)
             if prs<maxPresses
                 for opt = 1: M.numOptions
                     nextPress = T.stimulus(prs+1);
-                    currentTransP(opt) = firstTrans(nextPress,opt);
+                    currentTransP(opt) = SIM_seqLearn.firstTrans(nextPress,opt);
                     A(nextPress , opt) = A(nextPress , opt) + (ProbGrowth(tn)*.1*currentTransP(opt));
                 end
             end
         end
         %%
         
-        
         % Update the evidence state
         eps = randn([M.numOptions 1 maxPresses]) * M.SigEps;
         
-        
-        eps = randn([M.numOptions 1 maxPresses]) * M.SigEps;
         for j =1:maxPresses
-            X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
+            if ~isnan(T.forcedPressTime(1,1))
+                X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*mult(j).*S(:,i,j).*G(i)) + dT*eps(:,1,j);
+            else
+                X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
+            end
         end
+        
         % if the system is in the first decision cycle, it wont start pressing
         % until all the digits within the buffer size have been planned
         if ~isPressing && sum(sum(squeeze(X(:,i+1,indx1(decPressCount)))>B(i+1))) >= 1
@@ -217,10 +232,11 @@ for tn = 1:length(AllT.TN)
     end
     disp([num2str(tn) , ' Trials complete'])
     if ~isfield(T , 'pressTime') || ~isfield(T , 'response') || (length(T.pressTime) < maxPresses && i >= maxTime/dT)
-        T.decisionTime(length(T.pressTime)+1 : maxPresses) = NaN;
-        T.response(length(T.pressTime)+1 : maxPresses) = NaN;
-        T.pressTime(length(T.pressTime)+1 : maxPresses) = NaN;
-        tmax = NaN;
+        T.decisionTime(1 : maxPresses) = NaN;
+        T.response(1 : maxPresses) = NaN;
+        T.MT = NaN;
+        T.timingError=1;
+        T.isError=1;
         if (nargout>1)
             SIM.X = NaN;     % Hidden state
             SIM.S = NaN;     % Stimulus present
@@ -229,10 +245,21 @@ for tn = 1:length(AllT.TN)
             SIM.bufferSize = M.capacity;
         end;
     else
-        T.MT = max(T.pressTime,[],2);
         T.isError = zeros(size(T.TN));
-        for i = 1:length(T.isError)
-            T.isError(i) = ~isequal(T.stimulus(i,:) , T.response(i,:));
+        for i = 1:size(T.response,1)
+            T.isError(i) = ~isequal(T.stimulus(i,1:T.numPress) , T.response(i,1:T.numPress));
+        end
+        % add timing errors for single resp exp
+        if T.numPress==1 % single resp exp
+            T.MT = NaN;
+            if T.pressTime(1)<(T.forcedPressTime-T.respWindow) || T.pressTime(1)>(T.forcedPressTime+T.respWindow)
+                T.timingError=1;
+                T.isError=1;
+            else % simple seq exp
+                T.timingError=0;
+            end
+        else
+            T.MT = max(T.pressTime,[],2);
         end
         tmax = T.pressTime(maxPresses);
         i = find(t == tmax);
@@ -244,7 +271,6 @@ for tn = 1:length(AllT.TN)
             SIM.bufferSize = M.capacity;
         end;
     end
-    
     
     T.IPI = diff(T.pressTime);
     TempTrans = zeros(M.numOptions , M.numOptions); %Re-initialize and update the matrix of first order probabilities
@@ -259,22 +285,22 @@ for tn = 1:length(AllT.TN)
     end
     TempTrans(isnan(TempTrans)) = 0;
     % set the diagonal to zero. otherwise Aintegrate would become too big
-    firstTrans = TempTrans;% - diag(diag(TempTrans));
+    SIM_seqLearn.firstTrans = TempTrans;% - diag(diag(TempTrans));
     
     % maplearning: find the number of times each finger has been pressed to modify the noise std
     for nop = 1:M.numOptions
         OptionsPressed(nop) = OptionsPressed(nop) + sum(T.stimulus == nop);
     end
-    T_ammended = addstruct(T_ammended , T);
-    T_ammended.MT = T_ammended.pressTime(:,end) - T_ammended.pressTime(:,1);
-    S = getrow(T_ammended , T_ammended.seqType > 0);
-    R = getrow(T_ammended , T_ammended.seqType ==0);
+    T_seqLearn = addstruct(T_seqLearn , T);
+    T_seqLearn.MT = T_seqLearn.pressTime(:,end) - T_seqLearn.pressTime(:,1);
+    S = getrow(T_seqLearn , T_seqLearn.seqNum > 0);
+    R = getrow(T_seqLearn , T_seqLearn.seqNum ==0);
     if isempty(R.MT)
         R.MT = 0;
     elseif isempty(S.MT)
         S.MT = 0;
     end
-    if VizProgress
+    if exist('VizProgress','var')
         subplot(131)
         plot(S.MT , 'color' , 'b');
         hold on
@@ -284,10 +310,10 @@ for tn = 1:length(AllT.TN)
         drawnow()
         
         ipiMat = zeros(M.numOptions , M.numOptions);
-        for tn1 = 1:length(T_ammended.TN)
-            stim = T_ammended.stimulus(tn1,:);
+        for tn1 = 1:length(T_seqLearn.TN)
+            stim = T_seqLearn.stimulus(tn1,:);
             for pr = 1:size(stim , 2)-1
-                ipiMat(stim(pr) , stim(pr+1)) = ipiMat(stim(pr) , stim(pr+1)) + T_ammended.IPI(tn1 , pr);
+                ipiMat(stim(pr) , stim(pr+1)) = ipiMat(stim(pr) , stim(pr+1)) + T_seqLearn.IPI(tn1 , pr);
             end
         end
         ipiMat= ipiMat/tn1;
@@ -299,7 +325,7 @@ for tn = 1:length(AllT.TN)
         drawnow()
         
         subplot(133)
-        imagesc(firstTrans)
+        imagesc(SIM_seqLearn.firstTrans)
         axis square
         title(['Probability Matrix after ' , num2str(tn) , ' trials.'])
         colorbar
