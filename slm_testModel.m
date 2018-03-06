@@ -12,13 +12,9 @@ c = 1;
 %% Set default parameters
 subj = 1;
 block = 1;
-trial = 1:3;
+NumTrials = 1:3;
 plotSim = 1; %0|1: whether to plot each single trial simulation, or not
 
-% subj = 1:20; %[1:20,1:20];
-% block = [1,2];
-% trial = 1:55;
-% plotSim = 0; %0|1: whether to plot each single trial simulation, or not
 
 DecayFunc = 'exp';
 DecayParam = 1; %2;
@@ -31,7 +27,7 @@ SigEps = 0.034; % 0.01
 Bound = 4; %0.45;
 numOptions = 5;
 Capacity = 1;
-VizProgress = 1; % For the learning case --> Visualization Default 0
+plotSim = 1; % For the learning case --> Visualization Default 0
 
 %% manage varargin
 while(c<=length(varargin))
@@ -104,7 +100,7 @@ while(c<=length(varargin))
             % this is a matrix of size N*SeqLength, where N is the number of sequences
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
-        case {'VizProgress'}
+        case {'plotSim'}
             % For the learning case --> Visualization Default 0
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
@@ -151,126 +147,208 @@ switch(what)
         end
         
     case 'simpleSeq'
-        %% Make Model
-        M.Aintegrate = Aintegrate;  % Diagnonal of A
-        M.Ainhibit = Ainhibit;      % Inhibition of A
-        M.theta_stim = theta_stim;  % Rate constant for integration of sensory information
-        M.dT_motor = dT_motor;      % Motor non-decision time
-        M.dT_visual = dT_visual;    % Visual non-decision time
-        M.SigEps    = 0.01;         % Standard deviation of the gaussian noise
-        M.Bound     = .45;          % Boundary condition
-        M.numOptions = numOptions;  % Number of response options
-        M.capacity   = Capacity;    % Capacity for preplanning (buffer size)
-        % Trials = [];
-        % Models = [];
-        % tn = 1;
-        % numSimulations = 20;
-        % NumTrials = 1000;
-        % RandPortion = .5;
-        
-        %% Make experiment
-        R=[];
-        for s=subj
-            S=[];
-            for b=block
-                B=[];
-                [T]=slm_genTrial('SeqEye',trial,s,b);
-                for t=1:numel(trial)
-                    [TR,SIM]=slm_simTrial(M,getrow(T,t),'DecayFunc',DecayFunc,'DecayParam',DecayParam);
-                    if plotSim==1; slm_plotTrial('TrialHorseRace',SIM,TR); end
-                    B=addstruct(B,TR);
+        if genTrial
+            %% Make Model
+            M.Aintegrate = Aintegrate;  % Diagnonal of A
+            M.Ainhibit = Ainhibit;      % Inhibition of A
+            M.theta_stim = theta_stim;  % Rate constant for integration of sensory information
+            M.dT_motor = dT_motor;      % Motor non-decision time
+            M.dT_visual = dT_visual;    % Visual non-decision time
+            M.SigEps    = SigEps;         % Standard deviation of the gaussian noise
+            M.Bound     =  Bound;          % Boundary condition
+            M.numOptions = numOptions;  % Number of response options
+            M.capacity   = Capacity;    % Capacity for preplanning (buffer size)
+           
+            %% Make experiment
+            R=[];
+            for s=subj
+                S=[];
+                for b=block
+                    B=[];
+                    [T]=slm_genTrial('SeqEye',trial,s,b);
+                    for t=1:numel(trial)
+                        [TR,SIM]=slm_simTrial(M,getrow(T,t),'DecayFunc',DecayFunc,'DecayParam',DecayParam);
+                        if plotSim==1; slm_plotTrial('TrialHorseRace',SIM,TR); end
+                        B=addstruct(B,TR);
+                    end
+                    B.BN=ones(numel(B.TN),1)*b;
+                    S=addstruct(S,B);
                 end
-                B.BN=ones(numel(B.TN),1)*b;
-                S=addstruct(S,B);
+                S.SN=ones(numel(S.TN),1)*s;
+                R=addstruct(R,S);
             end
-            S.SN=ones(numel(S.TN),1)*s;
-            R=addstruct(R,S);
+            
+        else
+            R=[];
+            Trials = [];
+            Models = [];
+            tn = 1;
+            % Make Models with defferent horizons
+            for hrzn = Horizons
+                M.Aintegrate = Aintegrate;  % Diagnonal of A
+                M.Ainhibit = Ainhibit;      % Inhibition of A
+                M.theta_stim = theta_stim;        % Rate constant for integration of sensory information
+                M.dT_motor = dT_motor;            % Motor non-decision time
+                M.dT_visual = dT_visual;           % Visual non-decision time
+                M.SigEps    = SigEps;         % Standard deviation of the gaussian noise
+                M.Bound     = Bound;         % Boundary condition
+                M.numOptions = 5;           % Number of response options
+                M.capacity   = Capacity;         % Capacity for preplanning (buffer size)
+                
+                % Make experiment
+                T.TN = tn;
+                T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
+                T.numPress = SeqLength;
+                T.stimTime = zeros(1 , SeqLength);
+                T.forcedPressTime = nan(1 , SeqLength);
+                % Horizon feature added. stimTime will be the actual time that the stimulus came on.
+                T.Horizon = hrzn*(ones(1,SeqLength));
+                T.Horizon(1:hrzn) = NaN;
+                for i=1:numSimulations
+                    % generate random stimuli every rep
+                    T.stimulus = randi(5 , 1, SeqLength );
+                    [TR,SIM]=slm_simTrial(M,T,'DecayParam' , DecayParam);
+                    if sum(isnan(TR.pressTime))==0
+                        R=addstruct(R,TR);
+                        Trials = addstruct(Trials,T);
+                        Models = addstruct(Models , M);
+                    end
+                    %                 slm_plotTrial('TrialHorseRace' , SIM , TR )
+                end
+                tn = tn +1;
+            end
+            %         slm_plotTrial('BlockMT' , SIM , R )
+            %         slm_plotTrial('IPIHorizon' , SIM , R )
+            
         end
-        %             for i=1:numSimulations
-        %                 % generate random stimuli every rep
-        %                 T.stimulus = randi(5 , 1, SeqLength );
-        %                 [TR,SIM]=slm_simTrial(M,T,'DecayParam' , DecayParam);
-        %                 if sum(isnan(TR.pressTime))==0
-        %                     R=addstruct(R,TR);
-        %                     Trials = addstruct(Trials,T);
-        %                     Models = addstruct(Models , M);
-        %                 end
-        %                 % slm_plotTrial('TrialHorseRace' , SIM , TR )
-        %             end
-        %             tn = tn +1;
-        %         slm_plotTrial('BlockMT' , SIM , R )
-        %         slm_plotTrial('IPIHorizon' , SIM , R )
         
     case 'seqLearn'
-        %% Make Model
-        M.Aintegrate = Aintegrate;  % Diagnonal of A
-        M.Ainhibit = Ainhibit;      % Inhibition of A
-        M.theta_stim = theta_stim;  % Rate constant for integration of sensory information
-        M.dT_motor = dT_motor;      % Motor non-decision time
-        M.dT_visual = dT_visual;    % Visual non-decision time
-        M.SigEps    = 0.01;         % Standard deviation of the gaussian noise
-        M.Bound     = .45;          % Boundary condition
-        M.numOptions = numOptions;  % Number of response options
-        M.capacity   = Capacity;    % Capacity for preplanning (buffer size)
-        %         if ~exist('Sequences','var')
-        %             error('You have to provide training Sequences')
-        %         end
-        
-        %% Make experiment
-        R=[]; TR=[]; B=[];
-        for s=subj
-            S=[];
-            for b=block
-                [T]=slm_genTrial('SeqEye',trial,s,b);
-                [B,SIM]=slm_seqLearn(M,T,'DecayFunc',DecayFunc,'DecayParam',DecayParam,'VizProgress',VizProgress);
-                B.BN=ones(numel(B.TN),1)*b;
-                S=addstruct(S,B);
+        if genTrial
+            %% Make Model
+            M.Aintegrate = Aintegrate;  % Diagnonal of A
+            M.Ainhibit = Ainhibit;      % Inhibition of A
+            M.theta_stim = theta_stim;  % Rate constant for integration of sensory information
+            M.dT_motor = dT_motor;      % Motor non-decision time
+            M.dT_visual = dT_visual;    % Visual non-decision time
+            M.SigEps    = 0.01;         % Standard deviation of the gaussian noise
+            M.Bound     = .45;          % Boundary condition
+            M.numOptions = numOptions;  % Number of response options
+            M.capacity   = Capacity;    % Capacity for preplanning (buffer size)
+            %         if ~exist('Sequences','var')
+            %             error('You have to provide training Sequences')
+            %         end
+            
+            %% Make experiment
+            R=[]; TR=[]; B=[];
+            for s=subj
+                S=[];
+                for b=block
+                    [T]=slm_genTrial('SeqEye',trial,s,b);
+                    [B,SIM]=slm_seqLearn(M,T,'DecayFunc',DecayFunc,'DecayParam',DecayParam,'VizProgress',VizProgress);
+                    B.BN=ones(numel(B.TN),1)*b;
+                    S=addstruct(S,B);
+                end
             end
-            S.SN=ones(numel(S.TN),1)*s;
-            R=addstruct(R,S);
+            
+            TperH = ceil(NumTrials/length(Horizons));
+            
+            RndPor = ceil(TperH*RandPortion);         % number of random sequences in the block
+            SeqPor = TperH - RndPor;                  % number of trained sequences in the block
+            trPerSeq = ceil(SeqPor/size(Sequences, 1));   % number of trails per trained sequence
+            
+            for hrzn = Horizons
+                for tn=1:RndPor
+                    % Random Sequences
+                    % Make experiment
+                    T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
+                    T.numPress = SeqLength;
+                    T.seqType = 0;       % denoting it's random
+                    T.stimTime = zeros(1 , SeqLength);
+                    T.forcedPressTime = nan(1 , SeqLength);
+                    % Horizon feature added. stimTime will be the actual time that the stimulus came on.
+                    T.Horizon = hrzn*(ones(1,SeqLength));
+                    T.Horizon(1:hrzn) = NaN;
+                    T.stimulus = randi(5 , 1, SeqLength );
+                    Trials  = addstruct(Trials , T);
+                end
+                
+                for ns = 1:size(Sequences, 1)
+                    for tn=1:trPerSeq
+                        % Random Sequences
+                        % Make experiment
+                        T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
+                        T.numPress = SeqLength;
+                        T.stimTime = zeros(1 , SeqLength);
+                        T.forcedPressTime = nan(1 , SeqLength);
+                        T.seqType = ns;       % denoting sequence number
+                        % Horizon feature added. stimTime will be the actual time that the stimulus came on.
+                        T.Horizon = hrzn*(ones(1,SeqLength));
+                        T.Horizon(1:hrzn) = NaN;
+                        T.stimulus = Sequences(ns , :);
+                        Trials  = addstruct(Trials , T);
+                    end
+                end
+                S.SN=ones(numel(S.TN),1)*s;
+                R=addstruct(R,S);
+            end
+            
+        else
+            
+            if ~exist('Sequences')
+                error('You have to provide training Sequences')
+            end
+            
+            M.Aintegrate = Aintegrate;  % Diagnonal of A
+            M.Ainhibit = Ainhibit;      % Inhibition of A
+            M.theta_stim = theta_stim;        % Rate constant for integration of sensory information
+            M.dT_motor = dT_motor;            % Motor non-decision time
+            M.dT_visual = 70;           % Visual non-decision time
+            M.SigEps    = SigEps;         % Standard deviation of the gaussian noise
+            M.Bound     = Bound;         % Boundary condition
+            M.numOptions = 5;           % Number of response options
+            M.capacity   = Capacity;         % Capacity for preplanning (buffer size)
+            AllT = [];
+            
+            
+            TperH = ceil(NumTrials/length(Horizons));
+            
+            RndPor = ceil(TperH*RandPortion);         % number of random sequences in the block
+            SeqPor = TperH - RndPor;                  % number of trained sequences in the block
+            trPerSeq = ceil(SeqPor/size(Sequences, 1));   % number of trails per trained sequence
+            
+            for hrzn = Horizons
+                for tn=1:RndPor
+                    % Random Sequences
+                    % Make experiment
+                    T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
+                    T.numPress = SeqLength;
+                    T.seqType = 0;       % denoting it's random
+                    T.stimTime = zeros(1 , SeqLength);
+                    T.forcedPressTime = nan(1 , SeqLength);
+                    % Horizon feature added. stimTime will be the actual time that the stimulus came on.
+                    T.Horizon = hrzn*(ones(1,SeqLength));
+                    T.Horizon(1:hrzn) = NaN;
+                    T.stimulus = randi(5 , 1, SeqLength );
+                    AllT  = addstruct(AllT , T);
+                end
+                for ns = 1:size(Sequences, 1)
+                    for tn=1:trPerSeq
+                        % Random Sequences
+                        % Make experiment
+                        T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
+                        T.numPress = SeqLength;
+                        T.stimTime = zeros(1 , SeqLength);
+                        T.forcedPressTime = nan(1 , SeqLength);
+                        T.seqType = ns;       % denoting sequence number
+                        % Horizon feature added. stimTime will be the actual time that the stimulus came on.
+                        T.Horizon = hrzn*(ones(1,SeqLength));
+                        T.Horizon(1:hrzn) = NaN;
+                        T.stimulus = Sequences(ns , :);
+                        AllT  = addstruct(AllT , T);
+                    end
+                end
+            end
         end
-        %         TperH = ceil(NumTrials/length(Horizons));
-        %         RndPor = ceil(TperH*RandPortion);         % number of random sequences in the block
-        %         SeqPor = TperH - RndPor;                  % number of trained sequences in the block
-        %         trPerSeq = ceil(SeqPor/size(Sequences, 1));   % number of trials per trained sequence
-        %         for hrzn = Horizons
-        %             for tn=1:RndPor
-        %                 % Random Sequences
-        %                 % Make experiment
-        %                 T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
-        %                 T.numPress = SeqLength;
-        %                 T.seqNum = 0;       % denoting it's random
-        %                 T.stimTime = zeros(1 , SeqLength);
-        %                 T.forcedPressTime = nan(1 , SeqLength);
-        %                 % Horizon feature added. stimTime will be the actual time that the stimulus came on.
-        %                 T.Horizon = hrzn*(ones(1,SeqLength));
-        %                 T.Horizon(1:hrzn) = NaN;
-        %                 T.stimulus = randi(5 , 1, SeqLength );
-        %                 Trials  = addstruct(Trials , T);
-        %             end
-        %             for ns = 1:size(Sequences, 1)
-        %                 for tn=1:trPerSeq
-        %                     % Random Sequences
-        %                     % Make experiment
-        %                     T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
-        %                     T.numPress = SeqLength;
-        %                     T.stimTime = zeros(1 , SeqLength);
-        %                     T.forcedPressTime = nan(1 , SeqLength);
-        %                     T.seqNum = ns;       % denoting sequence number
-        %                     % Horizon feature added. stimTime will be the actual time that the stimulus came on.
-        %                     T.Horizon = hrzn*(ones(1,SeqLength));
-        %                     T.Horizon(1:hrzn) = NaN;
-        %                     T.stimulus = Sequences(ns , :);
-        %                     Trials  = addstruct(Trials , T);
-        %                 end
-        %             end
-        %         end
-        %         % Shuffle the trails to make them intermixed
-        %         mixedTN = randperm(length(1:length(Trials.numPress)));
-        %         Trials = getrow(Trials , mixedTN);
-        %         Trials.TN = (1:length(Trials.numPress))';
-        % [R,SIM.firstTrans]=slm_seqLearn(M,Trials,'DecayParam' , 2,'VizProgress' , VizProgress);
-        
         %% visuzlization of learning
         figure('color' , 'white')
         subplot(211)
