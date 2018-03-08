@@ -163,10 +163,10 @@ Sequences = [3 4 2 2 4 4 2 4 5 2 4 1 2 4;
              5 1 2 4 5 1 2 4 1 2 3 2 4 1;
              1 3 1 2 4 2 3 1 2 4 4 5 1 2];
          
-[R,SIM,Trials,Models]=slm_testModel('SeqLearn','Sequences' , Sequences , 'SigEps' , 0.01 ,'DecayParam' , 2 , 'Aintegrate' , 0.976 , 'theta_stim' , .0084 ,...
-    'Horizons' , [1:14] , 'Capacity' , 4,'VizProgress',0,'NumTrials' , 1);
+[R,SIM,Trials,Models]=slm_testModel('seqLearn','Sequences' , Sequences , 'SigEps' , 0.01 ,'DecayParam' , 2 , 'Aintegrate' , 0.976 , 'theta_stim' , .0084 ,...
+    'Horizons' , [1:14] , 'Capacity' , 4,'plotSim',0,'NumTrials' , 100);
 [R,SIM,Trials,Models]=slm_testModel('simpleSeq','SigEps' , 0.01 ,'DecayParam' , 2 , 'Aintegrate' , 0.976 , 'theta_stim' , .0084 ,...
-    'Horizons' , [1:14] , 'numSimulations' , 100 , 'Capacity' , 1,'VizProgress',0,'SeqLength' , 14);
+    'Horizons' , [1:14] , 'numSimulations' , 100 , 'Capacity' , 1,'plotSim',0,'SeqLength' , 14);
 
 [R,SIM,Trials,Models]=slm_testModel('simpleSeq' , 'SigEps' , 0.01 ,'DecayParam' , 2 ,...
     'Aintegrate' , 0.98 , 'theta_stim' , .0084 , 'Capacity' , 3,'Ainhibit', 0.001,'SeqLength',14);

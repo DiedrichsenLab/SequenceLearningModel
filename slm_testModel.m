@@ -1,5 +1,5 @@
-function [R,S,B,SIM,T,TR,M]=slm_testModel(what,varargin)
-% function [R,S,B,SIM,T,TR,M]=slm_testModel(what,varargin)
+function [R,SIM,Trials,Models]=slm_testModel(what,varargin)
+% function [R,SIM,Trials,Models]=slm_testModel(what,varargin)
 %
 % example call:
 % [R,S,B,SIM,T,TR,M]=slm_testModel('singleResp');
@@ -12,23 +12,24 @@ c = 1;
 %% Set default parameters
 subj = 1;
 block = 1;
-NumTrials = 1:3;
-plotSim = 1; %0|1: whether to plot each single trial simulation, or not
-
-
-DecayFunc = 'exp';
-DecayParam = 1; %2;
-Aintegrate = 0.985; % 0.98
-Ainhibit = 0.0;
-theta_stim = 0.0084; % 0.01;
-dT_motor = 90;
 dT_visual = 70;
-SigEps = 0.034; % 0.01
-Bound = 4; %0.45;
 numOptions = 5;
-Capacity = 1;
 plotSim = 1; % For the learning case --> Visualization Default 0
-
+genTrial = 0;
+NumTrials = 1000;
+RandPortion = .5;
+DecayFunc = 'exp';
+SeqLength = 14;
+numSimulations = 20;
+Aintegrate = 0.98;
+Ainhibit = 0.0;
+theta_stim = 0.01;
+dT_motor = 90;
+SigEps = 0.01;
+Bound = 0.45;
+Horizons = SeqLength;
+Capacity = 1;
+DecayParam = 1;
 %% manage varargin
 while(c<=length(varargin))
     switch(varargin{c})
@@ -110,9 +111,7 @@ while(c<=length(varargin))
 end
 
 %% the cases
-
 switch(what)
-    
     case 'singleResp' % SRTT
         %% Make Model
         M.Aintegrate    = Aintegrate;  % Diagnonal of A
@@ -127,55 +126,54 @@ switch(what)
         %% Make experiment
         R=[];
         for s=subj
-            S=[];
+            SIM=[];
             for b=block
                 B=[];
-                [T]=slm_genTrial('sr2_rt',trial,s,b);
+                [Trials]=slm_genTrial('sr2_rt',trial,s,b);
                 for t=1:numel(trial)
-                    [TR,SIM]=slm_simTrial(M,getrow(T,t),'DecayFunc',DecayFunc,'DecayParam',DecayParam);
-                    if plotSim==1; slm_plotTrial('TrialHorseRace',SIM,TR); end
+                    [TR,SIM]=slm_simTrial(M,getrow(Trials,t),'DecayFunc',DecayFunc,'DecayParam',DecayParam);
+                    if plotSim; slm_plotTrial('TrialHorseRace',SIM,TR); end
                     B=addstruct(B,TR);
                 end
                 B.BN=ones(numel(B.TN),1)*b;
-                S=addstruct(S,B);
+                SIM=addstruct(SIM,B);
             end
-            S.SN=ones(numel(S.TN),1)*s;
-            R=addstruct(R,S);
+            SIM.SN=ones(numel(SIM.TN),1)*s;
+            R=addstruct(R,SIM);
         end
-        if plotSim==0
-            slm_plotTrial('plotSim',SIM,TR,R,M);
+        if plotSim
+            slm_plotTrial('plotPrep',SIM,TR,R,M);
         end
         
     case 'simpleSeq'
+        %% Make Model
+        M.Aintegrate = Aintegrate;  % Diagnonal of A
+        M.Ainhibit = Ainhibit;      % Inhibition of A
+        M.theta_stim = theta_stim;  % Rate constant for integration of sensory information
+        M.dT_motor = dT_motor;      % Motor non-decision time
+        M.dT_visual = dT_visual;    % Visual non-decision time
+        M.SigEps    = SigEps;         % Standard deviation of the gaussian noise
+        M.Bound     =  Bound;          % Boundary condition
+        M.numOptions = numOptions;  % Number of response options
+        M.capacity   = Capacity;    % Capacity for preplanning (buffer size)
         if genTrial
-            %% Make Model
-            M.Aintegrate = Aintegrate;  % Diagnonal of A
-            M.Ainhibit = Ainhibit;      % Inhibition of A
-            M.theta_stim = theta_stim;  % Rate constant for integration of sensory information
-            M.dT_motor = dT_motor;      % Motor non-decision time
-            M.dT_visual = dT_visual;    % Visual non-decision time
-            M.SigEps    = SigEps;         % Standard deviation of the gaussian noise
-            M.Bound     =  Bound;          % Boundary condition
-            M.numOptions = numOptions;  % Number of response options
-            M.capacity   = Capacity;    % Capacity for preplanning (buffer size)
-           
             %% Make experiment
             R=[];
             for s=subj
-                S=[];
+                SIM=[];
                 for b=block
                     B=[];
-                    [T]=slm_genTrial('SeqEye',trial,s,b);
+                    [Trials]=slm_genTrial('SeqEye',trial,s,b);
                     for t=1:numel(trial)
-                        [TR,SIM]=slm_simTrial(M,getrow(T,t),'DecayFunc',DecayFunc,'DecayParam',DecayParam);
+                        [TR,SIM]=slm_simTrial(M,getrow(Trials,t),'DecayFunc',DecayFunc,'DecayParam',DecayParam);
                         if plotSim==1; slm_plotTrial('TrialHorseRace',SIM,TR); end
                         B=addstruct(B,TR);
                     end
                     B.BN=ones(numel(B.TN),1)*b;
-                    S=addstruct(S,B);
+                    SIM=addstruct(SIM,B);
                 end
-                S.SN=ones(numel(S.TN),1)*s;
-                R=addstruct(R,S);
+                SIM.SN=ones(numel(SIM.TN),1)*s;
+                R=addstruct(R,SIM);
             end
             
         else
@@ -185,16 +183,6 @@ switch(what)
             tn = 1;
             % Make Models with defferent horizons
             for hrzn = Horizons
-                M.Aintegrate = Aintegrate;  % Diagnonal of A
-                M.Ainhibit = Ainhibit;      % Inhibition of A
-                M.theta_stim = theta_stim;        % Rate constant for integration of sensory information
-                M.dT_motor = dT_motor;            % Motor non-decision time
-                M.dT_visual = dT_visual;           % Visual non-decision time
-                M.SigEps    = SigEps;         % Standard deviation of the gaussian noise
-                M.Bound     = Bound;         % Boundary condition
-                M.numOptions = 5;           % Number of response options
-                M.capacity   = Capacity;         % Capacity for preplanning (buffer size)
-                
                 % Make experiment
                 T.TN = tn;
                 T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
@@ -223,30 +211,27 @@ switch(what)
         end
         
     case 'seqLearn'
+        %% Make Model
+        M.Aintegrate = Aintegrate;  % Diagnonal of A
+        M.Ainhibit = Ainhibit;      % Inhibition of A
+        M.theta_stim = theta_stim;        % Rate constant for integration of sensory information
+        M.dT_motor = dT_motor;            % Motor non-decision time
+        M.dT_visual = 70;           % Visual non-decision time
+        M.SigEps    = SigEps;         % Standard deviation of the gaussian noise
+        M.Bound     = Bound;         % Boundary condition
+        M.numOptions = 5;           % Number of response options
+        M.capacity   = Capacity;         % Capacity for preplanning (buffer size)
+        Trials = [];
         if genTrial
-            %% Make Model
-            M.Aintegrate = Aintegrate;  % Diagnonal of A
-            M.Ainhibit = Ainhibit;      % Inhibition of A
-            M.theta_stim = theta_stim;  % Rate constant for integration of sensory information
-            M.dT_motor = dT_motor;      % Motor non-decision time
-            M.dT_visual = dT_visual;    % Visual non-decision time
-            M.SigEps    = 0.01;         % Standard deviation of the gaussian noise
-            M.Bound     = .45;          % Boundary condition
-            M.numOptions = numOptions;  % Number of response options
-            M.capacity   = Capacity;    % Capacity for preplanning (buffer size)
-            %         if ~exist('Sequences','var')
-            %             error('You have to provide training Sequences')
-            %         end
-            
             %% Make experiment
             R=[]; TR=[]; B=[];
             for s=subj
-                S=[];
+                SIM=[];
                 for b=block
-                    [T]=slm_genTrial('SeqEye',trial,s,b);
-                    [B,SIM]=slm_seqLearn(M,T,'DecayFunc',DecayFunc,'DecayParam',DecayParam,'VizProgress',VizProgress);
+                    [Trials]=slm_genTrial('SeqEye',trial,s,b);
+                    [B,SIM]=slm_seqLearn(M,Trials,'DecayFunc',DecayFunc,'DecayParam',DecayParam,'plotSim',plotSim);
                     B.BN=ones(numel(B.TN),1)*b;
-                    S=addstruct(S,B);
+                    SIM=addstruct(SIM,B);
                 end
             end
             
@@ -271,7 +256,6 @@ switch(what)
                     T.stimulus = randi(5 , 1, SeqLength );
                     Trials  = addstruct(Trials , T);
                 end
-                
                 for ns = 1:size(Sequences, 1)
                     for tn=1:trPerSeq
                         % Random Sequences
@@ -280,7 +264,8 @@ switch(what)
                         T.numPress = SeqLength;
                         T.stimTime = zeros(1 , SeqLength);
                         T.forcedPressTime = nan(1 , SeqLength);
-                        T.seqType = ns;       % denoting sequence number
+                        T.seqNum = ns;       % denoting sequence number
+                        T.seqType = T.seqNum>1;  % denoting sequence type --> random/trained
                         % Horizon feature added. stimTime will be the actual time that the stimulus came on.
                         T.Horizon = hrzn*(ones(1,SeqLength));
                         T.Horizon(1:hrzn) = NaN;
@@ -288,28 +273,14 @@ switch(what)
                         Trials  = addstruct(Trials , T);
                     end
                 end
-                S.SN=ones(numel(S.TN),1)*s;
-                R=addstruct(R,S);
+                SIM.SN=ones(numel(SIM.TN),1)*s;
+                R=addstruct(R,SIM);
             end
             
         else
-            
             if ~exist('Sequences')
                 error('You have to provide training Sequences')
             end
-            
-            M.Aintegrate = Aintegrate;  % Diagnonal of A
-            M.Ainhibit = Ainhibit;      % Inhibition of A
-            M.theta_stim = theta_stim;        % Rate constant for integration of sensory information
-            M.dT_motor = dT_motor;            % Motor non-decision time
-            M.dT_visual = 70;           % Visual non-decision time
-            M.SigEps    = SigEps;         % Standard deviation of the gaussian noise
-            M.Bound     = Bound;         % Boundary condition
-            M.numOptions = 5;           % Number of response options
-            M.capacity   = Capacity;         % Capacity for preplanning (buffer size)
-            AllT = [];
-            
-            
             TperH = ceil(NumTrials/length(Horizons));
             
             RndPor = ceil(TperH*RandPortion);         % number of random sequences in the block
@@ -329,7 +300,7 @@ switch(what)
                     T.Horizon = hrzn*(ones(1,SeqLength));
                     T.Horizon(1:hrzn) = NaN;
                     T.stimulus = randi(5 , 1, SeqLength );
-                    AllT  = addstruct(AllT , T);
+                    Trials  = addstruct(Trials , T);
                 end
                 for ns = 1:size(Sequences, 1)
                     for tn=1:trPerSeq
@@ -344,16 +315,21 @@ switch(what)
                         T.Horizon = hrzn*(ones(1,SeqLength));
                         T.Horizon(1:hrzn) = NaN;
                         T.stimulus = Sequences(ns , :);
-                        AllT  = addstruct(AllT , T);
+                        Trials  = addstruct(Trials , T);
                     end
                 end
             end
+            % Shuffle the trails to make them intermixed
+            mixedTN = randperm(length(1:length(Trials.numPress)));
+            Trials = getrow(Trials , mixedTN);
+            Trials.TN = [1:length(Trials.numPress)]';
         end
+        [R,SIM.firstTrans]=slm_seqLearn(M,Trials,'DecayParam' , 2,'plotSim' , plotSim);
         %% visuzlization of learning
         figure('color' , 'white')
         subplot(211)
-        Seq = getrow(R , R.seqNum > 0);
-        Rand = getrow(R , R.seqNum == 0);
+        Seq = getrow(R , R.seqType > 0);
+        Rand = getrow(R , R.seqType == 0);
         plot(Seq.MT, 'LineWidth' , 2);hold on
         plot(Rand.MT , 'LineWidth' , 2)
         legend({'Sequence' , 'Random'})

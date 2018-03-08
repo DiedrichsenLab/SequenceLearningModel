@@ -147,7 +147,7 @@ switch what
         set(gca , 'Box' , 'off' , 'FontSize', 20)
         grid on
         legend(leg)
-    case 'plotSim'
+    case 'plotPrep'
         figure;
         if all(R.isError==0) || all(R.isError==1)
             plt.line(R.prepTime,(1-R.isError)*100,'errorbars','shade');

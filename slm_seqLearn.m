@@ -1,5 +1,5 @@
-function [T_seqLearn,SIM_seqLearn]=slm_seqLearn(M,AllT,varargin)
-% function [T_seqLearn,SIM_seqLearn]=slm_seqLearn(M,AllT,varargin)
+function [T_ammended,firstTrans]=slm_seqLearn(M,AllT,varargin)
+% function [T_ammended,SIM_seqLearn]=slm_seqLearn(M,AllT,varargin)
 % incoporates horizon size (T.Horizon) as well as buffer size (M.capacity)
 % multiple planning possible
 % Simulates sequence learning using a parallel evidence-accumulation model for sequential response tasks
@@ -47,7 +47,7 @@ while(c<=length(varargin))
             % can set to 0 to onserve just the effect of just associations
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
-        case {'VizProgress'}
+        case {'plotSim'}
             % Visualization Default 0
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
@@ -56,8 +56,8 @@ while(c<=length(varargin))
     end
 end
 
-%VizProgress = 0;
-if exist('VizProgress','var')
+%plotSim = 0;
+if exist('plotSim','var')
     figure('color' , 'white');
 end
 
@@ -74,15 +74,15 @@ OptionsPressed = zeros(1, M.numOptions);
 % b = .009; % the growth constant. the bigger the b the faster the growth --> reached 1 faster
 % Growth = 1./(1+3000*exp(-b*[1:length(AllT.TN)]));
 %% exponential growth
-% b1 = 15000; % the growth constant. the bigger the b the slower the growth --> reached 1 slower
-% ThetaGrowth  = 1-exp(-((1:length(AllT.TN))-1)./b1);
+b1 = 15000; % the growth constant. the bigger the b the slower the growth --> reached 1 slower
+ThetaGrowth  = 1-exp(-((1:length(AllT.TN))-1)./b1);
 b2 =2000;
 ProbGrowth  = 1-exp(-((1:length(AllT.TN))-1)./b2);
 %%
-T_seqLearn = [];
+T_ammended = [];
 % SIM_ammended = [];
 A  = eye(M.numOptions)*(M.Aintegrate)+(~eye(M.numOptions)).*M.Ainhibit;      % A defined the matrix of autoregressive coefficients
-SIM_seqLearn.firstTrans = zeros(M.numOptions , M.numOptions); %initialize the matrix of first order conditional probabilities
+firstTrans = zeros(M.numOptions , M.numOptions); %initialize the matrix of first order conditional probabilities
 for tn = 1:length(AllT.TN)
     T = getrow(AllT , tn);
     M.capacity = min(M.capacity , max(T.Horizon));
@@ -157,7 +157,7 @@ for tn = 1:length(AllT.TN)
         end
         
         %% restore the A matrix for every press
-        if T.seqNum > 1
+        if T.seqType > 1
             A  = eye(M.numOptions)*(M.Aintegrate)+(~eye(M.numOptions)).*M.Ainhibit;      % A defined the matrix of autoregressive coefficients
             % update the A matrix for each particular transition
             % the off diagonals are affected by the transition probability from
@@ -166,7 +166,7 @@ for tn = 1:length(AllT.TN)
             if prs<maxPresses
                 for opt = 1: M.numOptions
                     nextPress = T.stimulus(prs+1);
-                    currentTransP(opt) = SIM_seqLearn.firstTrans(nextPress,opt);
+                    currentTransP(opt) = firstTrans(nextPress,opt);
                     A(nextPress , opt) = A(nextPress , opt) + (ProbGrowth(tn)*.1*currentTransP(opt));
                 end
             end
@@ -178,9 +178,9 @@ for tn = 1:length(AllT.TN)
         
         for j =1:maxPresses
             if ~isnan(T.forcedPressTime(1,1))
-                X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*mult(j).*S(:,i,j).*G(i)) + dT*eps(:,1,j);
+                X(:,i+1,j) = (A*X(:,i,j)) + ((1+ThetaGrowth(tn))*M.theta_stim.*mult(j).*S(:,i,j).*G(i)) + dT*eps(:,1,j);
             else
-                X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
+                X(:,i+1,j)= A * X(:,i,j) + (1+ThetaGrowth(tn))*M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
             end
         end
         
@@ -285,22 +285,22 @@ for tn = 1:length(AllT.TN)
     end
     TempTrans(isnan(TempTrans)) = 0;
     % set the diagonal to zero. otherwise Aintegrate would become too big
-    SIM_seqLearn.firstTrans = TempTrans;% - diag(diag(TempTrans));
+    firstTrans = TempTrans;% - diag(diag(TempTrans));
     
     % maplearning: find the number of times each finger has been pressed to modify the noise std
     for nop = 1:M.numOptions
         OptionsPressed(nop) = OptionsPressed(nop) + sum(T.stimulus == nop);
     end
-    T_seqLearn = addstruct(T_seqLearn , T);
-    T_seqLearn.MT = T_seqLearn.pressTime(:,end) - T_seqLearn.pressTime(:,1);
-    S = getrow(T_seqLearn , T_seqLearn.seqNum > 0);
-    R = getrow(T_seqLearn , T_seqLearn.seqNum ==0);
+    T_ammended = addstruct(T_ammended , T);
+    T_ammended.MT = T_ammended.pressTime(:,end) - T_ammended.pressTime(:,1);
+    S = getrow(T_ammended , T_ammended.seqType > 0);
+    R = getrow(T_ammended , T_ammended.seqType ==0);
     if isempty(R.MT)
         R.MT = 0;
     elseif isempty(S.MT)
         S.MT = 0;
     end
-    if exist('VizProgress','var')
+    if exist('plotSim','var')
         subplot(131)
         plot(S.MT , 'color' , 'b');
         hold on
@@ -310,10 +310,10 @@ for tn = 1:length(AllT.TN)
         drawnow()
         
         ipiMat = zeros(M.numOptions , M.numOptions);
-        for tn1 = 1:length(T_seqLearn.TN)
-            stim = T_seqLearn.stimulus(tn1,:);
+        for tn1 = 1:length(T_ammended.TN)
+            stim = T_ammended.stimulus(tn1,:);
             for pr = 1:size(stim , 2)-1
-                ipiMat(stim(pr) , stim(pr+1)) = ipiMat(stim(pr) , stim(pr+1)) + T_seqLearn.IPI(tn1 , pr);
+                ipiMat(stim(pr) , stim(pr+1)) = ipiMat(stim(pr) , stim(pr+1)) + T_ammended.IPI(tn1 , pr);
             end
         end
         ipiMat= ipiMat/tn1;
@@ -325,7 +325,7 @@ for tn = 1:length(AllT.TN)
         drawnow()
         
         subplot(133)
-        imagesc(SIM_seqLearn.firstTrans)
+        imagesc(firstTrans)
         axis square
         title(['Probability Matrix after ' , num2str(tn) , ' trials.'])
         colorbar
