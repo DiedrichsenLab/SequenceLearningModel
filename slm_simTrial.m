@@ -81,12 +81,14 @@ cap_mult = ones(1,M.capacity-1);
 mult = [cap_mult , zeros(1,length(dec))];
 mult = [mult(logical(mult)) , exp(-(dec(1:end)-nDecision)./DecayParam)];      % How much stimulus exponentia decay
 decPressCount = 1;
-
-% Use logistic growth for stimulus horse race
+plannedAhead = 1; % to modulate the dt_motor
+%% Forced Prep time_____________ Use logistic growth for stimulus horse race
 a = .1; %0.09; % the growth constant: the bigger the faster the growth --> reaches Bound faster
 b = 400; %200; %400; % in ms, how long it takes for the function to reach max
 G = (M.Bound/2) ./ (1 + exp ( -a * (t - (T.stimTime(1)+b/2) ) ) ); % logistic growth
-
+%% Linear growth for dt_motor to start faster and slow down to steady state
+dtgrowth = linspace(M.dT_motor ,M.dT_motor*.9, M.capacity);
+%%
 %  the decision noise
 while nDecision<=length(dec) && i<maxTime/dT
     % Update the stimulus: Fixed stimulus time
@@ -120,10 +122,11 @@ while nDecision<=length(dec) && i<maxTime/dT
             decPressCount = decPressCount + 1;
         end
         % after filling the buffer, start pressing
+        plannedAhead = length(indx1);
         if decPressCount == length(indx1)+1
             dtcount = 1;  % motor deltT counter
             for prs = indx1
-                T.pressTime(prs) = T.decisionTime(indx1(end))+dtcount*M.dT_motor; % Press time delayed by motor delay
+                T.pressTime(prs) = T.decisionTime(indx1(end))+dtcount*dtgrowth(plannedAhead); % Press time delayed by motor delay
                 % if there are any stumuli that have not appeared yet, set their stimTime to press time of Horizon presses before
                 if sum(isnan(T.stimTime))
                     idx2  = find(isnan(T.stimTime));
@@ -135,6 +138,9 @@ while nDecision<=length(dec) && i<maxTime/dT
                 end
                 isPressing = 1;                % Motor system engaged
                 dtcount = dtcount+1;
+                % with pressing more, the buffer gets emptied, so less planned ahead
+                % this modifies the dt to be shorter for more planned ahead
+                plannedAhead = plannedAhead-1;
             end
         end;
     end

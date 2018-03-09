@@ -9,9 +9,9 @@
 %% Recepie for model diagnosis
 close all
 
-[IPIs, Exam] = slm_diagModel( 'numSimulations' , 100,...
+[IPIs, Exam] = slm_diagModel( 'numSimulations' , 50,...
      'SigEps' , 0.01 ,'DecayParam' , 2 ,'Aintegrate' , 0.9785 , 'theta_stim' , .0084 , 'Capacity' , 4 ,...
-     'SeqLength' , 14,'Horizons' , [1:14],'Ainhibit' , [0.0],'DecayParam' , 2);
+     'SeqLength' , 14,'Horizons' , [14],'Ainhibit' , [0.0],'DecayParam' , 2);
 
  
 [IPIs, Exam] =    slm_diagModel( 'numSimulations' , 50,...
@@ -50,6 +50,17 @@ subplot(212)
 lineplot(A.singleH , A.RT,'style_thickline')
 title('RT')
 xlabel('Horizon') 
+grid on
+set(gca , 'FontSize' , 16)
+%% IPI
+
+IPIs.ipiNum = repmat([1:size(IPIs.pressTime , 2)-1] , size(IPIs.ipi , 1) , 1);
+A = getrow(IPIs , IPIs.singleH == 14);
+index = reshape(A.ipiNum , numel(A.ipiNum) , 1);
+data  = reshape(A.ipi , numel(A.ipi) , 1);
+lineplot(index , data , 'style_thickline');
+title('IPIs')
+xlabel('IPIs number') 
 grid on
 set(gca , 'FontSize' , 16)
 %%
