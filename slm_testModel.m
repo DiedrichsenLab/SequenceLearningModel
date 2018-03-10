@@ -143,8 +143,7 @@ switch(what)
         end
         if plotSim
             slm_plotTrial('plotPrep',SIM,TR,R,M);
-        end
-        
+        end        
     case 'simpleSeq'
         %% Make Model
         M.Aintegrate = Aintegrate;  % Diagnonal of A
@@ -208,8 +207,7 @@ switch(what)
             %         slm_plotTrial('BlockMT' , SIM , R )
             %         slm_plotTrial('IPIHorizon' , SIM , R )
             
-        end
-        
+        end        
     case 'seqLearn'
         %% Make Model
         M.Aintegrate = Aintegrate;  % Diagnonal of A
