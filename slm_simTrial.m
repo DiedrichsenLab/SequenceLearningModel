@@ -83,7 +83,7 @@ mult = [mult(logical(mult)) , exp(-(dec(1:end)-nDecision)./DecayParam)];      % 
 decPressCount = 1;
 % initialize T fields
 T.decisionTime = [];
-T.pressTime    = [];
+T.pressTime    = zeros(1,maxPresses);
 T.response     = [];
 %% Forced Prep time_____________ Use logistic growth for stimulus horse race
 a = .1; %0.09; % the growth constant: the bigger the faster the growth --> reaches Bound faster
@@ -134,7 +134,7 @@ while prs<=maxPresses && i<maxTime/dT
     end
     if length(T.decisionTime) >=prs && prsPermit
         prs
-        T.pressTime(prs) = T.decisionTime(prs)+dtgrowth(plannedAhead); % Press time delayed by motor delay
+        T.pressTime(prs) = max(T.pressTime(max(1 ,prs-1)) , T.decisionTime(prs))+dtgrowth(plannedAhead); % Press time delayed by motor delay
         % if there are any stumuli that have not appeared yet, set their stimTime to press time of Horizon presses before
         if sum(isnan(T.stimTime))
             idx2  = find(isnan(T.stimTime));
