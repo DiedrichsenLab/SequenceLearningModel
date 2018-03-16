@@ -82,7 +82,7 @@ mult = [cap_mult , zeros(1,length(dec))];
 mult = [mult(logical(mult)) , exp(-(dec(1:end)-nDecision)./DecayParam)];      % How much stimulus exponentia decay
 decPressCount = 1;
 % initialize T fields
-T.decisionTime = [];
+T.decisionTime = zeros(1,maxPresses);
 T.pressTime    = zeros(1,maxPresses);
 T.response     = [];
 %% Forced Prep time_____________ Use logistic growth for stimulus horse race
@@ -90,7 +90,11 @@ a = .1; %0.09; % the growth constant: the bigger the faster the growth --> reach
 b = 400; %200; %400; % in ms, how long it takes for the function to reach max
 G = (M.Bound/2) ./ (1 + exp ( -a * (t - (T.stimTime(1)+b/2) ) ) ); % logistic growth
 %% Linear growth for dt_motor to start faster and slow down to steady state
+% implimenting the idea of being faster the more you have panned ahead
+% starting from 1 planned ahead (horizon two, or steady astate)
 dtgrowth = linspace(M.dT_motor ,M.dT_motor*.9, M.capacity);
+prsPermit = zeros(1,maxPresses);   % the permission vector to make presses
+plannedAhead = zeros(1,maxPresses); % the number of digits planned ahead on each press
 %%
 %  the decision noise
 while prs<=maxPresses && i<maxTime/dT
@@ -120,35 +124,41 @@ while prs<=maxPresses && i<maxTime/dT
     % until all the digits within the buffer size have been planned
     if ~isPressing && sum(sum(squeeze(X(:,i+1,PlanIndx(decPressCount)))>B(i+1))) >= 1
         if decPressCount <= length(PlanIndx)
-            T.decisionTime(1,PlanIndx(decPressCount)) = t(i+1);                            % Decision made at this time
+            T.decisionTime(1,PlanIndx(decPressCount)) = t(i+1);   % Decision made at this time
             [~,T.response(1,PlanIndx(decPressCount))] = max(X(:,i+1,PlanIndx(decPressCount)));
             decPressCount = decPressCount + 1;
         end
-        if decPressCount == length(PlanIndx)+1 % only allowed to start pressing if the decision on all the digits in that step have been made
-            prsPermit = 1;
-            plannedAhead = length(PlanIndx);
-        else
-            prsPermit = 0;
-            plannedAhead = 0;
-        end
-    end
-    if length(T.decisionTime) >=prs && prsPermit
-        prs
-        T.pressTime(prs) = max(T.pressTime(max(1 ,prs-1)) , T.decisionTime(prs))+dtgrowth(plannedAhead); % Press time delayed by motor delay
-        % if there are any stumuli that have not appeared yet, set their stimTime to press time of Horizon presses before
-        if sum(isnan(T.stimTime))
-            idx2  = find(isnan(T.stimTime));
-            for k = 1:length(idx2)
-                if ~isnan(T.pressTime(idx2(k) - T.Horizon(idx2(k))))
-                    T.stimTime(idx2(k)) = T.pressTime(prs);
+        %         if decPressCount == length(PlanIndx)+1 % only allowed to start pressing if the decision on all the digits in that step have been made
+        %             prsPermit(PlanIndx) = 1;
+        
+        %         end
+        if decPressCount == length(PlanIndx)+1 && prs<=length(dec) 
+            plannedAhead(PlanIndx) = length(PlanIndx):-1:1;
+            prs
+            madeDecIndex= find(T.decisionTime);
+            T.pressTime(prs) = T.decisionTime(madeDecIndex(end)) + dtgrowth(plannedAhead(prs)); % Press time delayed by motor delay
+            % if there are any stumuli that have not appeared yet, set their stimTime to press time of Horizon presses before
+            if sum(isnan(T.stimTime))
+                idx2  = find(isnan(T.stimTime));
+                for k = 1:length(idx2)
+                    if ~isnan(T.pressTime(idx2(k) - T.Horizon(idx2(k))))
+                        T.stimTime(idx2(k)) = T.pressTime(prs);
+                    end
                 end
             end
+            % Motor system engaged
+            isPressing = 1;                
+            % with pressing more, the buffer gets emptied, so less planned ahead
+            % this modifies the dt to be shorter for more planned ahead
+            prs = prs+1;
         end
-        isPressing = 1;                % Motor system engaged
-        % with pressing more, the buffer gets emptied, so less planned ahead
-        % this modifies the dt to be shorter for more planned ahead
-        plannedAhead = plannedAhead-1;
-        prs = prs+1;
+    end
+    % complete the end presses
+    if prs>length(dec)
+        while prs<=maxPresses
+            T.pressTime(prs) = T.pressTime(prs-1) + dtgrowth(plannedAhead(prs)); % Press time delayed by motor delay
+            prs = prs+1;
+        end
     end
     
     % Update the motor system: Checking if current movement is done
@@ -159,11 +169,11 @@ while prs<=maxPresses && i<maxTime/dT
             mult(1:PlanIndx(end)) = 0;
             % update the remaining presses
             decPressCount = 1;
-            if nDecision<=length(dec)
+            if nDecision<length(dec)
+                decPressCount = 1;
+                nDecision = nDecision+1;   % Waiting for the next decision
                 % update the press indecies that have to be planed in next decision cycle
                 PlanIndx= PlanIndx(end)+1 : PlanIndx(end)+1+(maxPlan(nDecision)-1);
-                decPressCount = 1;
-                nDecision = nDecision+1;       % Waiting for the next decision
             end
         end
     end
