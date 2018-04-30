@@ -200,7 +200,7 @@ switch(what)
                         Trials = addstruct(Trials,T);
                         Models = addstruct(Models , M);
                     end
-                    %                 slm_plotTrial('TrialHorseRace' , SIM , TR )
+%                                      slm_plotTrial('TrialHorseRace' , SIM , TR )
                 end
                 tn = tn +1;
             end
