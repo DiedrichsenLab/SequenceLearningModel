@@ -194,7 +194,7 @@ Sequences = [3 4 2 2 4 4 2 4 5 2 4 1 2 4;
 
 model = @(param,T) slm_OptimSimTrial(param , T); % Model Function
 
-%% Set up the T structure
+% Set up the T structure
 ANA = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & Dall.Day == 1);
 SeqLength = unique(ANA.seqlength);
 T.TN = ANA.TN;
@@ -209,14 +209,14 @@ T.forcedPressTime = nan(length(ANA.TN) , SeqLength);
 
 % T = getrow(T  , [1:10]);
 % ANA = getrow(ANA  , [1:10]);
-%% Set up the cost function
+% Set up the cost function
 x_desired = [ANA.AllPressTimes(:,1) - 1500 , ANA.IPI];
 OLS = @(param) sum(sum((model(param,T) - x_desired).^2));
-%% initizlize and optimize
+% initizlize and optimize
 % param(1) = M.capacity;
 % param(2) = M.theta_stim;
 % param(3) = M.Aintegrate;
-% param(4) = M.Ainhibit;
+% param(4) = dt motor growth factor;
 % param(5) = M.SigEps;
 % param(6) = DecayParam;
 
@@ -224,5 +224,5 @@ param_init  = [4,0.0084,0.9785,0,0.01,3];
 
 opts = optimset('MaxIter', 500,'TolFun',1e-5);
 % [Param Fval] = fminsearch(OLS, param_init, opts);
-[Param Fval] = fminsearchbnd(OLS,param_init,[1 0.006 0.8 0.0 0.007 2],[5 0.02 0.98 0.0 0.01 5], opts);
+[Param Fval] = fminsearchbnd(OLS,param_init,[1 0.006 0.8 0.1 0.007 2],[5 0.02 0.98 10 0.01 5], opts);
 

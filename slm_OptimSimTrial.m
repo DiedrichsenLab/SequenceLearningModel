@@ -4,7 +4,7 @@ function R = slm_OptimSimTrial(param , T)
 % param(1) = M.capacity;
 % param(2) = M.theta_stim;
 % param(3) = M.Aintegrate;
-% param(4) = M.Ainhibit;
+% param(4) = dt motor growth factor;
 % param(5) = M.SigEps;
 % param(6) = DecayParam;
 
@@ -94,7 +94,7 @@ for trls = 1:length(T.TN)
     G = (M.Bound/2) ./ (1 + exp ( -a * (t - (T.stimTime(1)+b/2) ) ) ); % logistic growth
     %% Linear growth for dt_motor to start faster and slow down to steady state
     % implimenting the idea of making dT a function of the percentage of the Capacity that you have planned ahead
-    dtgrowth = linspace(M.dT_motor ,M.dT_motor*.9, param(1));
+    dtgrowth = linspace(M.dT_motor ,M.dT_motor*param(4), param(1));
     plannedAhead = zeros(1,maxPresses); % the number of digits planned ahead on each press
     %%
     
