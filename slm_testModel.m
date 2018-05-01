@@ -184,7 +184,6 @@ switch(what)
             for hrzn = Horizons
                 % Make experiment
                 T.TN = tn;
-                T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
                 T.numPress = SeqLength;
                 T.stimTime = zeros(1 , SeqLength);
                 T.forcedPressTime = nan(1 , SeqLength);
@@ -200,7 +199,7 @@ switch(what)
                         Trials = addstruct(Trials,T);
                         Models = addstruct(Models , M);
                     end
-%                                      slm_plotTrial('TrialHorseRace' , SIM , TR )
+                    %                 slm_plotTrial('TrialHorseRace' , SIM , TR )
                 end
                 tn = tn +1;
             end
@@ -243,7 +242,6 @@ switch(what)
                 for tn=1:RndPor
                     % Random Sequences
                     % Make experiment
-                    T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
                     T.numPress = SeqLength;
                     T.seqType = 0;       % denoting it's random
                     T.stimTime = zeros(1 , SeqLength);
@@ -258,7 +256,6 @@ switch(what)
                     for tn=1:trPerSeq
                         % Random Sequences
                         % Make experiment
-                        T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
                         T.numPress = SeqLength;
                         T.stimTime = zeros(1 , SeqLength);
                         T.forcedPressTime = nan(1 , SeqLength);
@@ -289,7 +286,6 @@ switch(what)
                 for tn=1:RndPor
                     % Random Sequences
                     % Make experiment
-                    T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
                     T.numPress = SeqLength;
                     T.seqType = 0;       % denoting it's random
                     T.stimTime = zeros(1 , SeqLength);
@@ -304,7 +300,6 @@ switch(what)
                     for tn=1:trPerSeq
                         % Random Sequences
                         % Make experiment
-                        T.bufferSize = Capacity;  % useful is we decide to maipulate buffersize (inherited from M)
                         T.numPress = SeqLength;
                         T.stimTime = zeros(1 , SeqLength);
                         T.forcedPressTime = nan(1 , SeqLength);

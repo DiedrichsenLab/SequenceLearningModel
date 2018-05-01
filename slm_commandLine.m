@@ -9,16 +9,16 @@
 %% Recepie for model diagnosis
 close all
 
-[IPIs, Exam] = slm_diagModel( 'numSimulations' , 100,'SigEps' , 0.01 ,'DecayParam' , 2 ,...
-    'Aintegrate' , 0.9785 , 'theta_stim' , .0084 , 'Capacity' , 4 ,...
-     'SeqLength' , 14,'Horizons' , [1:14],'Ainhibit' , [0.0],'DecayParam' , 2);
+[IPIs, Exam] = slm_diagModel( 'numSimulations' , 50,...
+     'SigEps' , 0.01 ,'DecayParam' , 2 ,'Aintegrate' , 0.9785 , 'theta_stim' , .0084 , 'Capacity' , 4 ,...
+     'SeqLength' , 14,'Horizons' , [1:2:14],'Ainhibit' , [0.0]);
 
 %% 
 [IPIs, Exam] =    slm_diagModel( 'numSimulations' , 50,...
      'SigEps' , 0.01 ,'DecayParam' , 2 ,'Aintegrate' , 0.976 , 'theta_stim' , .01 , 'Capacity' , 3 ,...
-     'SeqLength' , 14,'Horizons' , [14],'Ainhibit' , [0.0],'DecayParam' , 2);
+     'SeqLength' , 14,'Horizons' , [1:2:14 , 14],'Ainhibit' , [0.0],'DecayParam' , 2);
  
-%% 
+ 
  [R,SIM,Trials,Models]=slm_testModel('simpleSeq','SigEps' , 0.01 ,'DecayParam' , 2 , 'Aintegrate' , 0.976 , 'theta_stim' , .0084 ,...
     'Horizons' , [1:14] , 'numSimulations' , 100 , 'Capacity' , 1,'VizProgress',0,'SeqLength' , 14);
 %% Capacity
@@ -52,13 +52,17 @@ title('RT')
 xlabel('Horizon') 
 grid on
 set(gca , 'FontSize' , 16)
+
+
 %% IPI
 
+figure('color' , 'white')
 IPIs.ipiNum = repmat([1:size(IPIs.pressTime , 2)-1] , size(IPIs.ipi , 1) , 1);
-A = getrow(IPIs , IPIs.singleH == 14);
-index = reshape(A.ipiNum , numel(A.ipiNum) , 1);
+H = repmat(IPIs.singleH , 1 , size(IPIs.pressTime , 2)-1);
+A = IPIs;%getrow(IPIs,IPIs.singleH==H(h));
+index = fliplr([reshape(A.ipiNum , numel(A.ipiNum) , 1) reshape(H, numel(H) , 1)]);
 data  = reshape(A.ipi , numel(A.ipi) , 1);
-lineplot(index , data , 'style_thickline');
+lineplot(index , data , 'style_shade');
 title('IPIs')
 xlabel('IPIs number') 
 grid on
@@ -177,7 +181,7 @@ Sequences = [3 4 2 2 4 4 2 4 5 2 4 1 2 4;
 [R,SIM,Trials,Models]=slm_testModel('seqLearn','Sequences' , Sequences , 'SigEps' , 0.01 ,'DecayParam' , 2 , 'Aintegrate' , 0.976 , 'theta_stim' , .0084 ,...
     'Horizons' , [1:14] , 'Capacity' , 4,'plotSim',0,'NumTrials' , 100);
 [R,SIM,Trials,Models]=slm_testModel('simpleSeq','SigEps' , 0.01 ,'DecayParam' , 2 , 'Aintegrate' , 0.976 , 'theta_stim' , .0084 ,...
-    'Horizons' , [1:14] , 'numSimulations' , 50 , 'Capacity' , 1,'plotSim',0,'SeqLength' , 14);
+    'Horizons' , [1:14] , 'numSimulations' , 10 , 'Capacity' , 1,'plotSim',0,'SeqLength' , 14);
 
 [R,SIM,Trials,Models]=slm_testModel('simpleSeq' , 'SigEps' , 0.01 ,'DecayParam' , 2 ,...
     'Aintegrate' , 0.98 , 'theta_stim' , .0084 , 'Capacity' , 3,'Ainhibit', 0.001,'SeqLength',14);
@@ -185,4 +189,40 @@ Sequences = [3 4 2 2 4 4 2 4 5 2 4 1 2 4;
 
 [IPIs, Exam] =    slm_diagModel( 'Ainhibit' , [0.0],'DecayParam' , 2);
 
+
+%% optimization
+
+model = @(param,T) slm_OptimSimTrial(param , T); % Model Function
+
+%% Set up the T structure
+ANA = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & Dall.Day == 1);
+SeqLength = unique(ANA.seqlength);
+T.TN = ANA.TN;
+T.Horizon =ANA.Horizon .*(ones(length(ANA.TN),SeqLength));
+for tn = 1:length(ANA.TN)
+    T.Horizon(tn , 1:ANA.Horizon(tn)) = NaN;
+end
+T.numPress = ANA.seqlength;
+T.stimTime = zeros(length(ANA.TN) , SeqLength);
+T.stimulus = ANA.AllPress;
+T.forcedPressTime = nan(length(ANA.TN) , SeqLength);
+
+% T = getrow(T  , [1:10]);
+% ANA = getrow(ANA  , [1:10]);
+%% Set up the cost function
+x_desired = [ANA.AllPressTimes(:,1) - 1500 , ANA.IPI];
+OLS = @(param) sum(sum((model(param,T) - x_desired).^2));
+%% initizlize and optimize
+% param(1) = M.capacity;
+% param(2) = M.theta_stim;
+% param(3) = M.Aintegrate;
+% param(4) = M.Ainhibit;
+% param(5) = M.SigEps;
+% param(6) = DecayParam;
+
+param_init  = [4,0.0084,0.9785,0,0.01,3];
+
+opts = optimset('MaxIter', 500,'TolFun',1e-5);
+% [Param Fval] = fminsearch(OLS, param_init, opts);
+[Param Fval] = fminsearchbnd(OLS,param_init,[1 0.006 0.8 0.0 0.007 2],[5 0.02 0.98 0.0 0.01 5], opts);
 
