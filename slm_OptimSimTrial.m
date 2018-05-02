@@ -4,10 +4,9 @@ function R = slm_OptimSimTrial(param , T)
 % param(1) = M.capacity;
 % param(2) = M.theta_stim;
 % param(3) = M.Aintegrate;
-% param(4) = dt motor growth factor;
+% param(4) = M.dtGrowth;
 % param(5) = M.SigEps;
 % param(6) = DecayParam;
-
 % T is the experimen
 
 %% outpu    [Raction time - 13 IPIS]
@@ -16,6 +15,7 @@ M.Bound = 0.45;
 M.numOptions = 5;
 M.dT_visual = 70;
 M.dT_motor = 120;
+M.Ainhibit = 0;
 %%
 % function [T,SIM]=slm_simTrial(M,T,varargin);
 % incoporates horizon size (T.Horizon) as well as buffer size (M.capacity)
@@ -75,7 +75,7 @@ for trls = 1:length(T.TN)
     remPress = maxPresses;   % Remaining presses. This variable will be useful if/whenever multiple digits are being planned in every decsion step
     % Set up parameters
     
-    A  = eye(M.numOptions)*(param(3))+(~eye(M.numOptions)).*param(4);      % A defined the matrix of autoregressive coefficients
+    A  = eye(M.numOptions)*(param(3))+(~eye(M.numOptions)).*M.Ainhibit;      % A defined the matrix of autoregressive coefficients
     % A(3,1) = 0.05;
     prs = 0; % indexes the pressesd digits
     
@@ -86,7 +86,7 @@ for trls = 1:length(T.TN)
     % multiplier funstion for the stimulus evidence intake
     cap_mult = ones(1,ceil(param(1))-1);
     mult = [cap_mult , zeros(1,length(dec))];
-    mult = [mult(logical(mult)) , exp(-[dec(1:end)-nDecision]./ceil(param(6)))];      % How much stimulus exponentia decay
+    mult = [mult(logical(mult)) , exp(-[dec(1:end)-nDecision]./param(6))];      % How much stimulus exponentia decay
     decPressCount = 1;
     %% Forced Prep time_____________ Use logistic growth for stimulus horse race
     a = .1; %0.09; % the growth constant: the bigger the faster the growth --> reaches Bound faster

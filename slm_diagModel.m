@@ -67,6 +67,10 @@ while(c<=length(varargin))
             % The plannign buffer size
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'dtGrowth'}
+            % growth of dt as a funtion of IPI number 
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error(sprintf('Unknown option: %s',varargin{c}));
     end

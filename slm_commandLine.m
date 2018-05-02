@@ -12,6 +12,10 @@ close all
 [IPIs, Exam] = slm_diagModel( 'numSimulations' , 50,...
      'SigEps' , 0.01 ,'DecayParam' , 2 ,'Aintegrate' , 0.9785 , 'theta_stim' , .0084 , 'Capacity' , 4 ,...
      'SeqLength' , 14,'Horizons' , [1:2:14],'Ainhibit' , [0.0]);
+ 
+ 
+ %%
+ 
 
 %% 
 [IPIs, Exam] =    slm_diagModel( 'numSimulations' , 50,...
@@ -191,11 +195,38 @@ Sequences = [3 4 2 2 4 4 2 4 5 2 4 1 2 4;
 
 
 %% optimization
-
-model = @(param,T) slm_OptimSimTrial(param , T); % Model Function
+load('/Users/nkordjazi/Documents/SeqEye/SeqEye2/analyze/se2_alldata.mat')
 
 % Set up the T structure
-ANA = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & Dall.Day == 1);
+ANA0 = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & Dall.Day == 1);
+tol1 = 0.5;
+tol2 = 0.03;
+ A = [];
+for h =[1:8 , 13]
+    h
+    ANA = getrow(ANA0 , ANA0.Horizon == h);
+    serr = std(ANA.MT)/sqrt(length(ANA.MT));
+    stdbound = [serr-tol1*serr serr+tol1*serr];
+    meanbound = [mean(ANA.MT)-tol2*mean(ANA.MT) mean(ANA.MT)+tol2*mean(ANA.MT)];
+    MT_std = 0;
+    MT_mean = 0;
+    while ~(MT_std & MT_mean)
+        temp =  getrow(ANA , randperm(length(ANA.TN) , 5));
+        serr = std(temp.MT)/sqrt(length(temp.MT));
+        MT_std = serr>stdbound(1) & serr<stdbound(2);
+%         MT_std = 1;
+        MT_mean = mean(temp.MT)>meanbound(1) & mean(temp.MT)<meanbound(2);
+    end
+    A = addstruct(A ,temp);
+end
+subplot(211);[~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean')
+subplot(212);[~ , p0 , ~] = lineplot(ANA0.Horizon , ANA0.MT, 'plotfcn' , 'nanmean')
+hold on
+[~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean')
+%%
+ANA = A;
+model = @(param,T) slm_OptimSimTrial(param , T); % Model Function
+
 SeqLength = unique(ANA.seqlength);
 T.TN = ANA.TN;
 T.Horizon =ANA.Horizon .*(ones(length(ANA.TN),SeqLength));
@@ -211,18 +242,18 @@ T.forcedPressTime = nan(length(ANA.TN) , SeqLength);
 % ANA = getrow(ANA  , [1:10]);
 % Set up the cost function
 x_desired = [ANA.AllPressTimes(:,1) - 1500 , ANA.IPI];
-OLS = @(param) sum(sum((model(param,T) - x_desired).^2));
+OLS = @(param) nansum(nansum((model(param,T) - x_desired).^2));
 % initizlize and optimize
 % param(1) = M.capacity;
 % param(2) = M.theta_stim;
 % param(3) = M.Aintegrate;
-% param(4) = dt motor growth factor;
+% param(4) = M.dtGrowth;
 % param(5) = M.SigEps;
 % param(6) = DecayParam;
 
-param_init  = [4,0.0084,0.9785,0,0.01,3];
+param_init  = [4,0.0084,0.9785,0.9,0.01,4];
 
-opts = optimset('MaxIter', 500,'TolFun',1e-5);
+opts = optimset('MaxIter', 5,'TolFun',1e-5,'Display','iter');
 % [Param Fval] = fminsearch(OLS, param_init, opts);
 [Param Fval] = fminsearchbnd(OLS,param_init,[1 0.006 0.8 0.1 0.007 2],[5 0.02 0.98 10 0.01 5], opts);
 

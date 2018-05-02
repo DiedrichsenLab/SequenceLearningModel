@@ -82,7 +82,7 @@ b = 400; %200; %400; % in ms, how long it takes for the function to reach max
 G = (M.Bound/2) ./ (1 + exp ( -a * (t - (T.stimTime(1)+b/2) ) ) ); % logistic growth
 %% Linear growth for dt_motor to start faster and slow down to steady state
 % implimenting the idea of making dT a function of the percentage of the M.capacity that you have planned ahead
-dtgrowth = linspace(M.dT_motor ,M.dT_motor*.9, M.capacity);
+dtgrowth = linspace(M.dT_motor ,M.dT_motor* M.dtGrowth, M.capacity);
 plannedAhead = zeros(1,maxPresses); % the number of digits planned ahead on each press
 %%
 while nDecision<=length(dec) && i<maxTime/dT    

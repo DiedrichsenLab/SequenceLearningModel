@@ -30,6 +30,7 @@ Bound = 0.45;
 Horizons = SeqLength;
 Capacity = 1;
 DecayParam = 1;
+dtGrowth = 1;
 %% manage varargin
 while(c<=length(varargin))
     switch(varargin{c})
@@ -88,6 +89,10 @@ while(c<=length(varargin))
             % The plannign buffer size
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'dtGrowth'}
+            % growth of dt as a funtion of IPI number 
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         case {'NumTrials'}
             % the number of trials for the training block default  = 100
             eval([varargin{c} '= varargin{c+1};']);
@@ -105,6 +110,7 @@ while(c<=length(varargin))
             % For the learning case --> Visualization Default 0
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+            
         otherwise
             error('Unknown option: %s',varargin{c});
     end
@@ -155,6 +161,7 @@ switch(what)
         M.Bound     =  Bound;          % Boundary condition
         M.numOptions = numOptions;  % Number of response options
         M.capacity   = Capacity;    % Capacity for preplanning (buffer size)
+        M.dtGrowth   = dtGrowth;    % dt growth factor for IPIs
         if genTrial
             %% Make experiment
             R=[];
