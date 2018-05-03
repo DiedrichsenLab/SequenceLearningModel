@@ -1,11 +1,12 @@
 function [Param] = slm_optimize(param_init , varargin)
 % initizlize and optimize
-% Param(1) = M.capacity;
-% Param(2) = M.theta_stim;
-% Param(3) = M.Aintegrate;
-% Param(4) = M.dtGrowth;
-% Param(5) = M.SigEps;
-% Param(6) = M.Ainhibit;
+% M.capacity   = param(1);
+% M.theta_stim = param(2);
+% M.Aintegrate = param(3);
+% M.Ainhibit   = param(4);
+% M.dtGrowth   = param(5);
+% M.SigEps     = param(6);
+% DecayParam   = param(7);
 
 ANA = A;
 model = @(param,T) slm_OptimSimTrial(param , T); % Model Function
@@ -34,7 +35,14 @@ opts = optimset('MaxIter', 50,'TolFun',1e-5,'Display','iter');
 [Param Fval] = fminsearch(OLS, param_init, opts);
 % [Param Fval] = fminsearchbnd(OLS,param_init,[1 0.006 0.8 0.1 0.007 2],[5 0.02 0.98 10 0.01 5], opts);
 
+% M.capacity   = param(1);
+% M.theta_stim = param(2);
+% M.Aintegrate = param(3);
+% M.Ainhibit   = param(4);
+% M.dtGrowth   = param(5);
+% M.SigEps     = param(6);
+% DecayParam   = param(7);
 
 [IPIs, Exam] = slm_diagModel( 'numSimulations' , 10,...
-     'SigEps' , Param(5) ,'DecayParam' , ceil(Param(6)) ,'Aintegrate' , Param(3) , 'theta_stim' , Param(2) , 'Capacity' , ceil(Param(1)) ,...
-     'SeqLength' , 14,'Horizons' , [1:2:14],'Ainhibit' , 0 , 'dtGrowth' , Param(4));
+     'SigEps' , Param(6) ,'DecayParam' , ceil(Param(7)) ,'Aintegrate' , Param(3) , 'theta_stim' , Param(2) , 'Capacity' , ceil(Param(1)) ,...
+     'SeqLength' , 14,'Horizons' , [1:2:14],'Ainhibit' , Param(4) , 'dtGrowth' , Param(5));

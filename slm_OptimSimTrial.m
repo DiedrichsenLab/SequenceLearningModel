@@ -1,21 +1,30 @@
 function R = slm_OptimSimTrial(param , T)
 
 %% parameters in the model (M) to be optimized
-% param(1) = M.capacity;
-% param(2) = M.theta_stim;
-% param(3) = M.Aintegrate;
-% param(4) = M.dtGrowth;
-% param(5) = M.SigEps;
-% param(6) = DecayParam;
-% T is the experimen
+% M.capacity   = param(1);
+% M.theta_stim = param(2);
+% M.Aintegrate = param(3);
+% M.Ainhibit   = param(4);
+% M.dtGrowth   = param(5);
+% M.SigEps     = param(6);
+% DecayParam   = param(7);
 
 %% outpu    [Raction time - 13 IPIS]
+
 %% we are going to hardcode tha parametrs in the model that we want to keep constant
-M.Bound = 0.45;
+M.Bound      = 0.45;
 M.numOptions = 5;
-M.dT_visual = 70;
-M.dT_motor = 120;
-M.Ainhibit = 0;
+M.dT_visual  = 70;
+M.dT_motor   = 120;
+M.Ainhibit   = 0;
+
+M.capacity   = 3;%param(1);
+M.theta_stim = param(1);
+M.Aintegrate = param(2);
+M.Ainhibit   = param(3);
+M.dtGrowth   = param(4);
+M.SigEps     = param(5);
+DecayParam   = 4;%param(7);
 %%
 % function [T,SIM]=slm_simTrial(M,T,varargin);
 % incoporates horizon size (T.Horizon) as well as buffer size (M.capacity)
@@ -28,25 +37,29 @@ M.Ainhibit = 0;
 
 %%
 AllT = T;
+AllR = [];
 R = [];
 for trls = 1:length(T.TN)
     T = getrow(AllT , trls);
     dT = 2;            %delta-t in ms
     maxTime = 50000;            % Maximal time for trial simulation
-    param(1) = min(param(1) , max(T.Horizon)); % this controls for situations where horizon size is smalled thatn capacity
+    M.capacity = min(M.capacity , max(T.Horizon)); % this controls for situations where horizon size is smalled thatn capacity
+    c = 1;
+    
     
     maxPresses = max(T.numPress);    % Determine length of the trial
     
-    % number of decision steps is defined by the param(1) and T.Horizon, whichever results in more decision steps
+    % number of decision steps is defined by the M.capacity and T.Horizon, whichever results in more decision steps
     % calculate the number of decision steps as total number of presses - capacity
     % this is because the first "capacity" presses would be planned in one decision step
-    dec=1: max(maxPresses - param(1)+1,param(1));  % Number of decision steps
+    dec=1: max(maxPresses - M.capacity+1,M.capacity);  % Number of decision steps
+%     dec=1: maxPresses;
     
     
     % for the first decision step, "capacity" digits are planned and for the rest, the shift is 1 by 1.
     maxPlan = ones(1 , length(dec)); % Number of digits being planned in every decision step
-    if length(dec)>2
-        maxPlan(1) = param(1);
+    if length(dec)>2 & length(dec)<maxPresses
+        maxPlan(1) = M.capacity;
     end
     
     % set the stimTime for presses that are not shown at time 0 to NaN (depending on the horizon size)
@@ -75,7 +88,7 @@ for trls = 1:length(T.TN)
     remPress = maxPresses;   % Remaining presses. This variable will be useful if/whenever multiple digits are being planned in every decsion step
     % Set up parameters
     
-    A  = eye(M.numOptions)*(param(3))+(~eye(M.numOptions)).*M.Ainhibit;      % A defined the matrix of autoregressive coefficients
+    A  = eye(M.numOptions)*(M.Aintegrate)+(~eye(M.numOptions)).*M.Ainhibit;      % A defined the matrix of autoregressive coefficients
     % A(3,1) = 0.05;
     prs = 0; % indexes the pressesd digits
     
@@ -84,20 +97,19 @@ for trls = 1:length(T.TN)
     
     
     % multiplier funstion for the stimulus evidence intake
-    cap_mult = ones(1,ceil(param(1))-1);
+    cap_mult = ones(1,M.capacity-1);
     mult = [cap_mult , zeros(1,length(dec))];
-    mult = [mult(logical(mult)) , exp(-[dec(1:end)-nDecision]./param(6))];      % How much stimulus exponentia decay
+    mult = [mult(logical(mult)) , exp(-[dec(1:end)-nDecision]./DecayParam)];      % How much stimulus exponentia decay
     decPressCount = 1;
     %% Forced Prep time_____________ Use logistic growth for stimulus horse race
     a = .1; %0.09; % the growth constant: the bigger the faster the growth --> reaches Bound faster
     b = 400; %200; %400; % in ms, how long it takes for the function to reach max
     G = (M.Bound/2) ./ (1 + exp ( -a * (t - (T.stimTime(1)+b/2) ) ) ); % logistic growth
     %% Linear growth for dt_motor to start faster and slow down to steady state
-    % implimenting the idea of making dT a function of the percentage of the Capacity that you have planned ahead
-    dtgrowth = linspace(M.dT_motor ,M.dT_motor*param(4), param(1));
+    % implimenting the idea of making dT a function of the percentage of the M.capacity that you have planned ahead
+    dtgrowth = linspace(M.dT_motor ,M.dT_motor* M.dtGrowth, M.capacity);
     plannedAhead = zeros(1,maxPresses); % the number of digits planned ahead on each press
     %%
-    
     while nDecision<=length(dec) && i<maxTime/dT
         % Update the stimulus: Fixed stimulus time
         indx = find(t(i)>(T.stimTime+M.dT_visual)); % Index of which stimuli are present T.
@@ -114,12 +126,12 @@ for trls = 1:length(T.TN)
         
         
         % Update the evidence state
-        eps = randn([M.numOptions 1 maxPresses]) * param(5);
+        eps = randn([M.numOptions 1 maxPresses]) * M.SigEps;
         for j = 1:maxPresses
             if ~isnan(T.forcedPressTime(1,1))
-                X(:,i+1,j) = (A*X(:,i,j)) + (param(2).*mult(j).*S(:,i,j).*G(i)) + dT*eps(:,1,j);
+                X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*mult(j).*S(:,i,j).*G(i)) + dT*eps(:,1,j);
             else
-                X(:,i+1,j)= A * X(:,i,j) + param(2) .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
+                X(:,i+1,j)= A * X(:,i,j) + M.theta_stim .* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
             end
         end
         % if the system is in the first decision cycle, it wont start pressing
@@ -168,9 +180,10 @@ for trls = 1:length(T.TN)
             end
         end
         i=i+1;
-    end
-     R = [R;T.pressTime(1) diff(T.pressTime)];
-%        R = [R;T.pressTime(1)];
-end
+    end;
+    AllR = addstruct(AllR , T);
 
+end
+R = [AllR.pressTime(:,1) diff(AllR.pressTime , [], 2) AllR.pressTime(:,end) - AllR.pressTime(:,1)];  % RT & IPIs & MT
+% R = [AllR.pressTime(:,1) AllR.pressTime(:,end) - AllR.pressTime(:,1)];             % RT & MT
 

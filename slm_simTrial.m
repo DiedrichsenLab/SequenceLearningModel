@@ -29,11 +29,12 @@ maxPresses = max(T.numPress);    % Determine length of the trial
 % calculate the number of decision steps as total number of presses - capacity
 % this is because the first "capacity" presses would be planned in one decision step
 dec=1: max(maxPresses - M.capacity+1,M.capacity);  % Number of decision steps
+% dec=1: maxPresses;
 
 
 % for the first decision step, "capacity" digits are planned and for the rest, the shift is 1 by 1.
 maxPlan = ones(1 , length(dec)); % Number of digits being planned in every decision step
-if length(dec)>2
+if length(dec)>2 & length(dec)<maxPresses
     maxPlan(1) = M.capacity;
 end
 
