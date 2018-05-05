@@ -10,7 +10,7 @@ function [T,SIM]=slm_simTrial(M,T,varargin)
 %%
 dT = 2;            %delta-t in ms
 maxTime = 50000;            % Maximal time for trial simulation
-M.capacity = min(M.capacity , max(T.Horizon)); % this controls for situations where horizon size is smalled thatn capacity
+M.capacity = min(M.capacity , nanmean(T.Horizon)); % this controls for situations where horizon size is smalled thatn capacity
 c = 1;
 while(c<=length(varargin))
     switch(varargin{c})

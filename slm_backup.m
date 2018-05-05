@@ -1,4 +1,4 @@
-function R = slm_optimSimTrial(par , T , runNum ,cycNum , parName)
+%% function R = slm_OptimSimTrial(par , T , runNum ,cycNum) May-5-2018
 
 %% parameters in the model (M) to be optimized
 % M.capacity   = par(1);
@@ -22,7 +22,6 @@ if~isempty(runNum) % is runNum is empty it means we are just simulating with a s
         param.cycNum = []; % number of resampling cycles within a run
         param.itrNum = []; % optimization iteration number within a cycle
         param.par = [];      % paramets
-        param.parName = {};
         save(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
     end
     % ammend the ptimization matrix
@@ -35,30 +34,26 @@ if~isempty(runNum) % is runNum is empty it means we are just simulating with a s
         P.itrNum = 1;
     end
     P.par = par;
-    P.parName = parName;
     param = addstruct(param , P);
     save(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
 end
 %% we are going to hardcode tha parametrs in the model that we want to keep constant
 
-% M.Bound      = 0.45;
+M.Bound      = 0.45;
 M.numOptions = 5;
 M.dT_visual  = 70;
 M.Ainhibit   = 0;
-M.capacity   = 1;
+M.capacity   = 3;
 DecayParam   = 4;
-M.dT_motor   = 120;
-M.dtGrowth = 1;
+% M.dT_motor   = 120;
 
-M.theta_stim  = par(1);
-M.Aintegrate  = par(2);
-% M.Ainhibit  = par(3);
-% M.dtGrowth  = par(4);
-M.SigEps      = par(3);
-M.Bound(1)    = par(4);
-M.Bound(2:3)  = par(5);
-M.Bound(4:12) = par(6);
-M.Bound(13:14)= par(7);
+M.theta_stim = par(1);
+M.Aintegrate = par(2);
+M.Ainhibit   = par(3);
+M.dtGrowth   = par(4);
+M.SigEps     = par(5);
+M.Bound      = par(6);
+
 %%
 % function [T,SIM]=slm_simTrial(M,T,varargin);
 % incoporates horizon size (T.Horizon) as well as buffer size (M.capacity)
@@ -105,8 +100,14 @@ for trls = 1:length(T.TN)
     X = zeros(M.numOptions,maxTime/dT,maxPresses); % Hidden state
     S = zeros(M.numOptions,maxTime/dT,maxPresses); % Stimulus present
     % implement forced-RT collapsing decision boundary (logistic decay)
-
-    B = ones(size(T.stimulus,2),maxTime/dT).*repmat(M.Bound'  ,1, maxTime/dT); % Decision Bound - constant value
+    if ~isnan(T.forcedPressTime(1,1))
+        a = 0.005;%0.05; % the decay constant: the bigger the faster the decay --> reaches zero faster
+        b = T.forcedPressTime + 100; % in ms, the inflexion point
+        B = (M.Bound ./ (1 + exp ( a * (t - b) ) ) ) - M.Bound / 2; % Decision Bound - logistic decay
+        B(B<=0)=0;
+    else
+        B = ones(1,maxTime/dT)*M.Bound; % Decision Bound - constant value
+    end
     t = [1:maxTime/dT]*dT-dT;   % Time in ms
     i = 1;                   % Index of simlation
     nDecision = 1;           % Current decision to male
@@ -128,6 +129,10 @@ for trls = 1:length(T.TN)
     mult = [cap_mult , zeros(1,length(dec))];
     mult = [mult(logical(mult)) , exp(-[dec(1:end)-nDecision]./DecayParam)];      % How much stimulus exponentia decay
     decPressCount = 1;
+    %% Forced Prep time_____________ Use logistic growth for stimulus horse race
+    a = .1; %0.09; % the growth constant: the bigger the faster the growth --> reaches Bound faster
+    b = 400; %200; %400; % in ms, how long it takes for the function to reach max
+    G = (M.Bound/2) ./ (1 + exp ( -a * (t - (T.stimTime(1)+b/2) ) ) ); % logistic growth
     %% Linear growth for dt_motor to start faster and slow down to steady state
     % implimenting the idea of making dT a function of the percentage of the M.capacity that you have planned ahead
     dtgrowth = linspace(M.dT_motor ,M.dT_motor* M.dtGrowth, M.capacity);
@@ -159,7 +164,7 @@ for trls = 1:length(T.TN)
         end
         % if the system is in the first decision cycle, it wont start pressing
         % until all the digits within the buffer size have been planned
-        if ~isPressing && sum(sum(squeeze(X(:,i+1,PlanIndx(decPressCount)))>B(prs+1 , i+1))) >= 1
+        if ~isPressing && sum(sum(squeeze(X(:,i+1,PlanIndx(decPressCount)))>B(i+1))) >= 1
             plannedAhead(PlanIndx) = length(PlanIndx):-1:1;
             if decPressCount <= length(PlanIndx)
                 T.decisionTime(1,PlanIndx(decPressCount)) = t(i+1);                            % Decision made at this time
@@ -210,5 +215,5 @@ AllR.MT = AllR.pressTime(:,end) - AllR.pressTime(:,1);
 AllR.RT =  AllR.pressTime(:,1);
 AllR.singleH = nanmean(AllR.Horizon , 2);
 AllR.IPI = diff(AllR.pressTime , [], 2);
-R = [AllR.RT mean(AllR.IPI(:,1:2) , 2) , mean(AllR.IPI(:,4:9),2), mean(AllR.IPI(:,12:13),2)];
+R = [AllR.RT mean(AllR.IPI(:,1:2)) , mean(AllR.IPI(:,4:9)), mean(AllR.IPI(:,12:13))];
 
