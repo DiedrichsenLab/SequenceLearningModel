@@ -94,7 +94,7 @@ for i = 1:cycNum
     [~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean', 'errorfcn' , 'nanstd');
     %
     ANA = A;
-    model = @(param,T,runNum , i) slm_optimSimTrial(param , T , runNum , i , parName); % Model Function
+    model = @(param,T,runNum , i) slm_optimSimTrial(param , T , runNum , i , parName , 'optim'); % Model Function
     
     SeqLength = unique(ANA.seqlength);
     T.TN = ANA.TN;
@@ -115,4 +115,3 @@ for i = 1:cycNum
     [Param Fval] = fminsearchbnd(OLS,initParam,loBound,hiBound, opts);
     
 end
-% R = slm_optimSimulate(par , T);

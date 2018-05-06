@@ -1,4 +1,4 @@
-function R = slm_optimSimTrial(par , T , runNum ,cycNum , parName)
+function R = slm_optimSimTrial(par , T , runNum ,cycNum , parName , mode)
 
 %% parameters in the model (M) to be optimized
 % M.capacity   = par(1);
@@ -49,16 +49,18 @@ M.capacity   = 1;
 DecayParam   = 4;
 M.dT_motor   = 120;
 M.dtGrowth = 1;
+M.theta_stim  = .0084;
+M.Aintegrate  = 0.976;
+M.SigEps      = 0.01;
+M.Bound(1)    = .45;
+M.Bound(2:3)  = .45;
+M.Bound(4:12) = .45;
+M.Bound(13:14)= .45;
 
-M.theta_stim  = par(1);
-M.Aintegrate  = par(2);
-% M.Ainhibit  = par(3);
-% M.dtGrowth  = par(4);
-M.SigEps      = par(3);
-M.Bound(1)    = par(4);
-M.Bound(2:3)  = par(5);
-M.Bound(4:12) = par(6);
-M.Bound(13:14)= par(7);
+for pn = 1:length(parName)
+    eval(['M.' , parName{pn} , ' = par(pn);'] )
+end
+
 %%
 % function [T,SIM]=slm_simTrial(M,T,varargin);
 % incoporates horizon size (T.Horizon) as well as buffer size (M.capacity)
@@ -100,7 +102,9 @@ for trls = 1:length(T.TN)
     T.stimTime(~isnan(T.Horizon)) = NaN;
     
     T.pressTime = NaN*ones(size(T.Horizon)); % to be filled with press times
-    
+    T.pressTime = NaN*ones(size(T.Horizon)); % to be filled with press times
+    T.decisionTime = NaN*ones(size(T.Horizon));
+    T.response = NaN*ones(size(T.Horizon));
     % initialize variables
     X = zeros(M.numOptions,maxTime/dT,maxPresses); % Hidden state
     S = zeros(M.numOptions,maxTime/dT,maxPresses); % Stimulus present
@@ -216,5 +220,10 @@ AllR.MT = AllR.pressTime(:,end) - AllR.pressTime(:,1);
 AllR.RT =  AllR.pressTime(:,1);
 AllR.singleH = nanmean(AllR.Horizon , 2);
 AllR.IPI = diff(AllR.pressTime , [], 2);
-R = [AllR.RT mean(AllR.IPI(:,1:2) , 2) , mean(AllR.IPI(:,4:9),2), mean(AllR.IPI(:,12:13),2)];
+switch mode
+    case {'optim'}
+        R =  [AllR.RT mean(AllR.IPI(:,1:2) , 2) , mean(AllR.IPI(:,4:9),2), mean(AllR.IPI(:,12:13),2)];
+    case{'sim'}
+        R =  [AllR.RT AllR.IPI AllR.MT];
+end
 

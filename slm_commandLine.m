@@ -200,12 +200,23 @@ Sequences = [3 4 2 2 4 4 2 4 5 2 4 1 2 4;
 %     'SeqLength' , 14,'Horizons' , [1:2:14 , 14],'Ainhibit' , [0.0],'DecayParam' , 2);
 
 %% Optmization recipes
-parName = {'theta_stim'  'Aintegrate' 'SigEps' 'Bound1' 'Bound2:3' 'Bound4:12''Bound13:14'};
+parName = {'theta_stim'  'Aintegrate' 'SigEps' 'Bound(1)' 'Bound(2:3)' 'Bound(4:12)' , 'Bound(13:14)'};
 initParam = [.0084 0.976 0.01 .45 .45 .45 .45];
 loBound = [0.007 , 0.75 , 0.01 .1 .1 .1 .1];
 hiBound = [0.02 , 0.988 0.05 .6 .6 .6 .6];
 
             
-            
-[Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' , 4 , 'cycNum' , 10 ,'samNum'  , 100 ,...
-    'ItrNum' , 100 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , [7:13] , 'poolHorizons' , [7:13]);
+load('param5.mat')
+initParam = param.par(end , :);            
+[Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' , 5 , 'cycNum' , 1 ,'samNum'  , [] ,...
+    'ItrNum' , 300 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , [13] , 'poolHorizons' , [7:13]);
+
+
+load('param4.mat')
+initParam = param.par(end , :);
+[Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,4 , 'cycNum' , 1 ,'samNum'  , [] ,...
+    'ItrNum' , 300 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
+
+load('param4.mat')
+par = param.par(end , :);
+R = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , [] , 'Day' , 1 , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
