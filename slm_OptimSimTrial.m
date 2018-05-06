@@ -204,7 +204,13 @@ for trls = 1:length(T.TN)
         end
         i=i+1;
     end;
+        if size(T.pressTime , 2)~=size(T.stimulus , 2) || size(T.decisionTime , 2)~=size(T.stimulus , 2)
+            T.pressTime = nan(1 , size(T.stimulus , 2));
+            T.decisionTime = nan(1 , size(T.stimulus , 2));
+            T.response = nan(1 , size(T.stimulus , 2));
+        end
     AllR = addstruct(AllR , T);
+    
 end
 AllR.MT = AllR.pressTime(:,end) - AllR.pressTime(:,1);
 AllR.RT =  AllR.pressTime(:,1);

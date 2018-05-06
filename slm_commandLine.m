@@ -203,9 +203,9 @@ Sequences = [3 4 2 2 4 4 2 4 5 2 4 1 2 4;
 parName = {'theta_stim'  'Aintegrate' 'SigEps' 'Bound1' 'Bound2:3' 'Bound4:12''Bound13:14'};
 initParam = [.0084 0.976 0.01 .45 .45 .45 .45];
 loBound = [0.007 , 0.75 , 0.01 .1 .1 .1 .1];
-hiBound = [0.02 , 0.988 0.05 1 1 1 1];
+hiBound = [0.02 , 0.988 0.05 .6 .6 .6 .6];
 
             
             
-[Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' , 4 , 'cycNum' , 1 ,'samNum'  , 100 ,...
-    'ItrNum' , 5 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , [7:13] , 'poolHorizons' , [7:13]);
+[Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' , 4 , 'cycNum' , 10 ,'samNum'  , 100 ,...
+    'ItrNum' , 100 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , [7:13] , 'poolHorizons' , [7:13]);
