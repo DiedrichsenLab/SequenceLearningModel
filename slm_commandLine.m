@@ -205,7 +205,7 @@ initParam = [.0084 0.976 0.01 .45 .45 .45 .45];
 loBound = [0.007 , 0.75 , 0.01 .1 .1 .1 .1];
 hiBound = [0.02 , 0.988 0.05 .6 .6 .6 .6];
 
-            
+% Day 1         
 load('param5.mat')
 initParam = param.par(end , :);            
 [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' , 5 , 'cycNum' , 1 ,'samNum'  , [] ,...
@@ -216,6 +216,7 @@ load('param4.mat')
 initParam = param.par(end , :);
 [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,4 , 'cycNum' , 1 ,'samNum'  , [] ,...
     'ItrNum' , 300 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
+
 
 load('param4.mat')
 par = param.par(end , :);
