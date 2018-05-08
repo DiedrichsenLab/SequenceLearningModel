@@ -220,4 +220,8 @@ initParam = param.par(end , :);
 
 load('param4.mat')
 par = param.par(end , :);
-R = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , [] , 'Day' , 1 , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
+R1 = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , [] , 'Day' , 1 , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
+
+load('param5.mat')
+par = param.par(end , :);
+R = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , [] , 'Day' , 1 , 'Horizon' , [13] , 'poolHorizons' , [7:13]);
