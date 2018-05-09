@@ -18,16 +18,16 @@ for i = 1:length(D)
 end
 % save a new emty variable to ammend with optimization iterations
 if~isempty(runNum) % is runNum is empty it means we are just simulating with a set of parametrs
-    cd('/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel')
+    cd('/Users/nkordjazi/Documents/GitHub/SequenceLearningModel')
     if ~sum(strcmp(N , ['param' , num2str(runNum) , '.mat']))
         param.cycNum = []; % number of resampling cycles within a run
         param.itrNum = []; % optimization iteration number within a cycle
         param.par = [];      % paramets
         param.parName = {};
-        save(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
+        save(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
     end
     % ammend the ptimization matrix
-    load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'])
+    load(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'])
     
     P.cycNum = cycNum; % run number
     if ~isempty(param.itrNum)
@@ -38,25 +38,26 @@ if~isempty(runNum) % is runNum is empty it means we are just simulating with a s
     P.par = par;
     P.parName = parName;
     param = addstruct(param , P);
-    save(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
+    save(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
 end
 %% we are going to hardcode tha parametrs in the model that we want to keep constant
 
 % M.Bound      = 0.45;
 M.numOptions = 5;
-M.dT_visual  = 70;
+M.dT_visual  = 90;
 M.Ainhibit   = 0;
-M.capacity   = 1;
+M.capacity   = 3;
 DecayParam   = 4;
-M.dT_motor   = 120;
+M.dT_motor   = 150;
 M.dtGrowth = 1;
-M.theta_stim  = .0084;
-M.Aintegrate  = 0.976;
+M.theta_stim  = 0.0088;
+M.Aintegrate  = 0.9787;
 M.SigEps      = 0.01;
 M.Bound(1)    = .45;
 M.Bound(2:3)  = .45;
 M.Bound(4:12) = .45;
 M.Bound(13:14)= .45;
+
 
 for pn = 1:length(parName)
     eval(['M.' , parName{pn} , ' = par(pn);'] )
@@ -223,7 +224,7 @@ AllR.singleH = nanmean(AllR.Horizon , 2);
 AllR.IPI = diff(AllR.pressTime , [], 2);
 switch mode
     case {'optim'}
-        R =  [AllR.RT mean(AllR.IPI(:,1:2) , 2) , mean(AllR.IPI(:,4:9),2), mean(AllR.IPI(:,12:13),2)];
+        R =  [AllR.RT AllR.IPI];
     case{'sim'}
         R =  [AllR.RT AllR.IPI AllR.MT];
 end

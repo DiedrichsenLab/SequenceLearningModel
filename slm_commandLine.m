@@ -200,27 +200,52 @@ Sequences = [3 4 2 2 4 4 2 4 5 2 4 1 2 4;
 %     'SeqLength' , 14,'Horizons' , [1:2:14 , 14],'Ainhibit' , [0.0],'DecayParam' , 2);
 
 %% Optmization recipes
+% optimization step number 1
+% we want to keep the number of parameters under 6 to maintin good performnace in fminsearch. 
+% in the first round of optimization, set the boundry value to groups of
+% presses and mainly optimize for 'theta_stim'  'Aintegrate' 'SigEps' on
+% day 1  - window size = 1
+
 parName = {'theta_stim'  'Aintegrate' 'SigEps' 'Bound(1)' 'Bound(2:3)' 'Bound(4:12)' , 'Bound(13:14)'};
 initParam = [.0084 0.976 0.01 .45 .45 .45 .45];
 loBound = [0.007 , 0.75 , 0.01 .1 .1 .1 .1];
 hiBound = [0.02 , 0.988 0.05 .6 .6 .6 .6];
+ 
+[Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,1 , 'cycNum' , 1 ,'samNum'  , [] ,...
+    'ItrNum' , 300 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
 
-% Day 1         
+
+% optimization step number 2
+% now keep 'theta_stim'  'Aintegrate' 'SigEps' consant within the
+% slm_optimSimTrial as the last iteration of the previous optimization and
+% optimize for more fine grained boundry values
+% day 1  - window size = 1
+
+
+parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4)' 'Bound(5:9)' , 'Bound(10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};  
+initParam = [0.477 0.421 0.421 0.458 0.458 0.458 0.458  0.458 0.436 0.436]; 
+loBound = [.1 .1 .1 .1 .1 .1 .1 .1 .1 .1];
+hiBound = [.6 .6 .6 .6 .6 .6 .6 .6 .6 .6] ;
+H = {[1] [2] [3] [4] [5] [6] [7:13]};
+for h = 2:length(H)
+    [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,2+.1*h , 'cycNum' , 1 ,'samNum'  , [] ,...
+        'ItrNum' , 50 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , H{h} , 'poolHorizons' , [7:13]);
+end
+
+
+
+
 load('param5.mat')
 initParam = param.par(end , :);            
 [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' , 5 , 'cycNum' , 1 ,'samNum'  , [] ,...
     'ItrNum' , 300 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , [13] , 'poolHorizons' , [7:13]);
 
 
-load('param4.mat')
-initParam = param.par(end , :);
-[Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,4 , 'cycNum' , 1 ,'samNum'  , [] ,...
-    'ItrNum' , 300 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
 
 
 load('param4.mat')
-par = param.par(end , :);
-R1 = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , [] , 'Day' , 1 , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
+par1 = param.par(end , :);
+R1 = slm_optimSimulate(Dall , par1  , 'parName' , parName,'samNum'  , [] , 'Day' , 1 , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
 
 load('param5.mat')
 par = param.par(end , :);

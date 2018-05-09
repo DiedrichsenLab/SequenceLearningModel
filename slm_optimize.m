@@ -108,10 +108,11 @@ for i = 1:cycNum
     T.forcedPressTime = nan(length(ANA.TN) , SeqLength);
     
     % Set up the cost function
-    x_desired = [ANA.AllPressTimes(:,1) - 1500 mean(ANA.IPI(:,1:2) , 2) , mean(ANA.IPI(:,4:9),2), mean(ANA.IPI(:,12:13) , 2)];
+    x_desired = [ANA.AllPressTimes(:,1) - 1500 ANA.IPI];
     OLS = @(param) nansum(nansum((model(param,T,runNum , i) - x_desired).^2));
     
     opts = optimset('MaxIter', ItrNum ,'TolFun',1e-5,'Display','iter');
     [Param Fval] = fminsearchbnd(OLS,initParam,loBound,hiBound, opts);
     
 end
+

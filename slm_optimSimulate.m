@@ -78,19 +78,37 @@ T.forcedPressTime = nan(length(ANA.TN) , SeqLength);
 
 R = slm_optimSimTrial(par , T , [] ,[] , parName ,'sim');
 %% Horizon
-clear A
-A.singleH  = nanmean(T.Horizon, 2);
-A.MT = R(:,end);
-A.RT = R(:,1);
+Act.singleH = ANA.Horizon;
+Fit.singleH  = nanmean(T.Horizon, 2);
+Act.MT = ANA.MT;
+Fit.MT = R(:,end);
+Act.RT = ANA.AllPressTimes(:,1) - 1500;
+Fit.RT = R(:,1);
+
+Act.fitoract = ones(size(Act.MT));
+Fit.fitoract = zeros(size(Fit.MT));
+
+All  = addstruct(Fit , Act);
+
 figure('color' , 'white')
 subplot(211)
-lineplot(A.singleH , A.MT , 'style_thickline')
+colorz = {[0.840000000000000,0.360000000000000,0.501176470588235],[0.360000000000000,0.456470588235294,0.760000000000000]};
+lineplot(All.singleH , All.MT , 'plotfcn' , 'nanmean',...
+    'split', All.fitoract  , 'linecolor' , colorz,...
+    'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
+    'linewidth' , 3 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
+    'markersize' , 10, 'markercolor' , colorz , 'leg' , {'Fitted' , 'Actual'});
+
 title('MT')
 grid on
 set(gca , 'FontSize' , 16)
 xlabel('Horizon')
 subplot(212)
-lineplot(A.singleH , A.RT,'style_thickline')
+lineplot(All.singleH , All.RT , 'plotfcn' , 'nanmean',...
+    'split', All.fitoract  , 'linecolor' , colorz,...
+    'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
+    'linewidth' , 3 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
+    'markersize' , 10, 'markercolor' , colorz , 'leg' , {'Fitted' , 'Actual'});
 title('RT')
 xlabel('Horizon')
 grid on
@@ -98,13 +116,34 @@ set(gca , 'FontSize' , 16)
 
 
 %% IPI
-A.IPI = R(:,2:end-1);
-A.singleH  = repmat(nanmean(T.Horizon, 2) , 1 , size(T.stimulus,2)-1);
-A.ipiNum = repmat(1:size(T.stimulus,2)-1 , length(A.singleH) , 1);
+clear Fit Act
+Fit.IPI = R(:,2:end-1);
+Fit.IPI = reshape(Fit.IPI , numel(Fit.IPI) , 1);
+Act.IPI = ANA.IPI;
+Act.IPI = reshape(Act.IPI , numel(Act.IPI) , 1);
+
+Fit.singleH  = repmat(nanmean(T.Horizon, 2) , 1 , size(T.stimulus,2)-1);
+Fit.singleH  = reshape(Fit.singleH , numel(Fit.IPI) , 1);
+Act.singleH  = Fit.singleH;
+
+Fit.ipiNum = repmat(1:size(T.stimulus,2)-1 , length(T.stimulus) , 1);
+Fit.ipiNum = reshape(Fit.ipiNum , numel(Fit.ipiNum) , 1);
+Act.ipiNum = Fit.ipiNum;
+
+Act.fitoract = ones(size(Act.ipiNum));
+Fit.fitoract = zeros(size(Fit.ipiNum));
+
+
+All  = addstruct(Fit , Act);
+
 figure('color' , 'white')
-index = fliplr([reshape(A.ipiNum , numel(A.ipiNum) , 1) reshape(A.singleH, numel(A.singleH) , 1)]);
-data  = reshape(A.IPI , numel(A.IPI) , 1);
-lineplot(index , data , 'style_shade');
+
+lineplot(All.ipiNum , All.IPI , 'plotfcn' , 'nanmean',...
+    'split', All.fitoract  , 'linecolor' , colorz,...
+    'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
+    'linewidth' , 3 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
+    'markersize' , 10, 'markercolor' , colorz , 'leg' , {'Fitted' , 'Actual'});
+
 title('IPIs')
 xlabel('IPIs number')
 grid on
