@@ -212,9 +212,9 @@ loBound = [0.007 , 0.75 , 0.01 .1 .1 .1 .1];
 hiBound = [0.02 , 0.988 0.05 .6 .6 .6 .6];
  
 [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,1 , 'cycNum' , 1 ,'samNum'  , [] ,...
-    'ItrNum' , 300 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
+    'ItrNum' , 300 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , [5] , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
 
-
+%% 
 % optimization step number 2
 % now keep 'theta_stim'  'Aintegrate' 'SigEps' consant within the
 % slm_optimSimTrial as the last iteration of the previous optimization and
@@ -235,25 +235,30 @@ for h = 1:length(H)
         initParam = [0.45 0.45 0.45 0.45 0.45  0.48 0.45 0.45]; 
     end
     [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,2+.1*h , 'cycNum' , 1 ,'samNum'  , [] ,...
-        'ItrNum' , 80 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , H{h} , 'poolHorizons' , [7:13]);
+        'ItrNum' , 80 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , [5] , 'Horizon' , H{h} , 'poolHorizons' , [7:13]);
+    close all
 end
-
+%%
 M = [];
 par = [];
-for h = 1:length(H)
+parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4:10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};  
+H = {[1] [2] [3] [4] [5] [6] [7:13]};
+for h = 1:5%length(H)
     filename = ['param2.'  , num2str(h) , '.mat'];
     load(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
     par(h,:) = param.par(end , :);
-    R = slm_optimSimulate(Dall , [.7*par(h,1) , par(h,2:end)]  , 'parName' , parName,'samNum'  , [] , 'Day' , 1 , 'Horizon' , H{h} , 'poolHorizons' , [7:13]);
+    R = slm_optimSimulate(Dall , par(h,:)  , 'parName' , parName,'samNum'  , [] , 'Day' , 1 , 'Horizon' , H{h} , 'poolHorizons' , [7:13]);
     T.RT     = R(:,1);
     T.IPI    = R(:,2:14);
     T.MT     = R(:,15);
     T.window = h*ones(size(T.RT));
     M = addstruct(M , T);
     clear T
+    close all
 end
 
-% Horizon
+%% MT RT
+
 
 
 All  = M;
@@ -276,14 +281,14 @@ lineplot(All.window , All.RT , 'plotfcn' , 'nanmean',...
     'linecolor' , colorz,...
     'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
     'linewidth' , 3 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
-    'markersize' , 10, 'markercolor' , colorz , 'leg' , {'Fitted' , 'Actual'}, 'split' , All.p );
+    'markersize' , 10, 'markercolor' , colorz , 'leg' , {'Fitted' , 'Actual'});
 title('RT')
 xlabel('Horizon')
 grid on
 set(gca , 'FontSize' , 16)
 
 
-% IPI
+%% IPI
 clear Fit Act
 Fit = M;
 Fit.ipiNum = repmat([1:13] , length(Fit.window) , 1);
