@@ -224,7 +224,7 @@ AllR.singleH = nanmean(AllR.Horizon , 2);
 AllR.IPI = diff(AllR.pressTime , [], 2);
 switch mode
     case {'optim'}
-        R =  [AllR.RT AllR.IPI];
+        R =  [AllR.RT AllR.IPI(: , 1:3) mean(AllR.IPI(: ,4:10) , 2) AllR.IPI(: , 11:13)];
     case{'sim'}
         R =  [AllR.RT AllR.IPI AllR.MT];
 end

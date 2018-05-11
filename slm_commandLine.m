@@ -222,31 +222,90 @@ hiBound = [0.02 , 0.988 0.05 .6 .6 .6 .6];
 % day 1  - window size = 1
 
 
-parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4)' 'Bound(5:9)' , 'Bound(10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};  
-initParam = [0.477 0.421 0.421 0.458 0.458 0.458 0.458  0.458 0.436 0.436]; 
-loBound = [.1 .1 .1 .1 .1 .1 .1 .1 .1 .1];
-hiBound = [.6 .6 .6 .6 .6 .6 .6 .6 .6 .6] ;
+parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4:10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};  
+
+
+loBound = [.1 .1 .1 .1 .1 .1 .1 .1];
+hiBound = [.6 .6 .6 .6 .6 .6 .6 .6] ;
 H = {[1] [2] [3] [4] [5] [6] [7:13]};
-for h = 2:length(H)
+for h = 1:length(H)
+    if h == 1
+        initParam = [0.477 0.421 0.421 0.458 0.458  0.458 0.436 0.436]; 
+    else
+        initParam = [0.45 0.45 0.45 0.45 0.45  0.48 0.45 0.45]; 
+    end
     [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,2+.1*h , 'cycNum' , 1 ,'samNum'  , [] ,...
-        'ItrNum' , 50 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , H{h} , 'poolHorizons' , [7:13]);
+        'ItrNum' , 80 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , H{h} , 'poolHorizons' , [7:13]);
 end
 
+M = [];
+par = [];
+for h = 1:length(H)
+    filename = ['param2.'  , num2str(h) , '.mat'];
+    load(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
+    par(h,:) = param.par(end , :);
+    R = slm_optimSimulate(Dall , [.7*par(h,1) , par(h,2:end)]  , 'parName' , parName,'samNum'  , [] , 'Day' , 1 , 'Horizon' , H{h} , 'poolHorizons' , [7:13]);
+    T.RT     = R(:,1);
+    T.IPI    = R(:,2:14);
+    T.MT     = R(:,15);
+    T.window = h*ones(size(T.RT));
+    M = addstruct(M , T);
+    clear T
+end
+
+% Horizon
 
 
+All  = M;
 
-load('param5.mat')
-initParam = param.par(end , :);            
-[Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' , 5 , 'cycNum' , 1 ,'samNum'  , [] ,...
-    'ItrNum' , 300 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , 1 , 'Horizon' , [13] , 'poolHorizons' , [7:13]);
+figure('color' , 'white')
+subplot(211)
+colorz = {[0.840000000000000,0.360000000000000,0.501176470588235],[0.360000000000000,0.456470588235294,0.760000000000000]};
+lineplot(All.window , All.MT , 'plotfcn' , 'nanmean',...
+    'linecolor' , colorz,...
+    'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
+    'linewidth' , 3 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
+    'markersize' , 10, 'markercolor' , colorz , 'leg' , {'Fitted' , 'Actual'} );
+
+title('MT')
+grid on
+set(gca , 'FontSize' , 16)
+xlabel('Horizon')
+subplot(212)
+lineplot(All.window , All.RT , 'plotfcn' , 'nanmean',...
+    'linecolor' , colorz,...
+    'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
+    'linewidth' , 3 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
+    'markersize' , 10, 'markercolor' , colorz , 'leg' , {'Fitted' , 'Actual'}, 'split' , All.p );
+title('RT')
+xlabel('Horizon')
+grid on
+set(gca , 'FontSize' , 16)
 
 
+% IPI
+clear Fit Act
+Fit = M;
+Fit.ipiNum = repmat([1:13] , length(Fit.window) , 1);
+Fit.IPI = reshape(Fit.IPI , numel(Fit.IPI) , 1);
+
+Fit.window  = repmat(Fit.window , 1 , 13);
+Fit.window  = reshape(Fit.window , numel(Fit.IPI) , 1);
+Fit.ipiNum = reshape(Fit.ipiNum , numel(Fit.ipiNum) , 1);
+
+All  = Fit ;
+
+figure('color' , 'white')
+
+lineplot(All.ipiNum , All.IPI , 'plotfcn' , 'nanmean',...
+    'linecolor' , colorz,'split'  , All.window , ...
+    'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
+    'linewidth' , 3 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
+    'markersize' , 10, 'markercolor' , colorz , 'leg' , {'Fitted' , 'Actual'});
+
+title('IPIs')
+xlabel('IPIs number')
+grid on
+set(gca , 'FontSize' , 16)
 
 
-load('param4.mat')
-par1 = param.par(end , :);
-R1 = slm_optimSimulate(Dall , par1  , 'parName' , parName,'samNum'  , [] , 'Day' , 1 , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
-
-load('param5.mat')
-par = param.par(end , :);
-R = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , [] , 'Day' , 1 , 'Horizon' , [13] , 'poolHorizons' , [7:13]);
