@@ -1,4 +1,4 @@
-function [Param Fval] = slm_optimize(Dall , initParam , varargin)
+function [Param Fval] = slm_optimize(Dall , rawinitParam , varargin)
 cycNum = 50;
 samNum = 20;
 tol = [0.5 0.03];
@@ -48,6 +48,11 @@ while(c<=length(varargin))
             c=c+2;
         case {'poolHorizons'}
             % [] or the horizons you want to pool together
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'customizeInitParam'}
+            % 1 or 0 ---> for boundries where the initial parametrs
+            % are best to be set as the proportions of the IPIs
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
         otherwise
@@ -109,6 +114,18 @@ for i = 1:cycNum
     
     % Set up the cost function
     x_desired = [ANA.AllPressTimes(:,1) - 1500 ANA.IPI(: , 1:3) mean(ANA.IPI(: ,4:10) , 2) ANA.IPI(: , 11:13)];
+    
+    % curate the initial parameters if told to do so
+    if customizeInitParam
+        
+        org = nanmedian(x_desired); 
+        org = (org - min(org))/max(org);
+        rawinitParam(1:end-1) = mapminmax(org , .3,.6);
+        initParam = rawinitParam;
+    else
+        initParam = rawinitParam;
+    end
+    
     OLS = @(param) nansum(nansum((model(param,T,runNum , i) - x_desired).^2));
     
     opts = optimset('MaxIter', ItrNum ,'TolFun',1e-5,'Display','iter');

@@ -222,20 +222,21 @@ hiBound = [0.02 , 0.988 0.05 .6 .6 .6 .6];
 % day 1  - window size = 1
 
 
-parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4:10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};  
+parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4:10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)' 'dtGrowth'};  
 
 
-loBound = [.1 .1 .1 .1 .1 .1 .1 .1];
-hiBound = [.6 .6 .6 .6 .6 .6 .6 .6] ;
+loBound = [.1 .1 .1 .1 .1 .1 .1 .1 1];
+hiBound = [.6 .6 .6 .6 .6 .6 .6 .6 5] ;
 H = {[1] [2] [3] [4] [5] [6] [7:13]};
 for h = 5:length(H)
     if h == 1
-        initParam = [0.477 0.421 0.421 0.458 0.458  0.458 0.436 0.436]; 
+        initParam = [0.477 0.421 0.421 0.458 0.458  0.458 0.436 0.436 1]; 
     else
-        initParam = [0.45 0.45 0.45 0.45 0.45  0.48 0.45 0.45]; 
+        initParam = [0.45 0.45 0.45 0.45 0.45  0.45 0.45 0.45 3]; 
     end
-    [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,2+.1*h , 'cycNum' , 1 ,'samNum'  , [] ,...
-        'ItrNum' , 40 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , [5] , 'Horizon' , H{h} , 'poolHorizons' , [7:13]);
+    [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,3+.1*h , 'cycNum' , 1 ,'samNum'  , [] ,...
+        'ItrNum' , 40 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , [5] , 'Horizon' , H{h} , 'poolHorizons' , [7:13],...
+        'customizeInitParam' , 1);
     close all
 end
 %%
@@ -243,11 +244,11 @@ M = [];
 par = [];
 parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4:10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};  
 H = {[1] [2] [3] [4] [5] [6] [7:13]};
-for h = 1:4%length(H)
+for h = 1:length(H)
     filename = ['param2.'  , num2str(h) , '.mat'];
-    load(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
+    load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/optim2/' , filename]);
     par(h,:) = param.par(end , :);
-    R = slm_optimSimulate(Dall , par(h,:)  , 'parName' , parName,'samNum'  , [] , 'Day' , 5, 'Horizon' , H{h} , 'poolHorizons' , [7:13]);
+    R = slm_optimSimulate(Dall , par(h,:)  , 'parName' , parName,'samNum'  , [] , 'Day' , 1, 'Horizon' , H{h} , 'poolHorizons' , [7:13]);
     T.RT     = R(:,1);
     T.IPI    = R(:,2:14);
     T.MT     = R(:,15);

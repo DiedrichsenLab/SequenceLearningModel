@@ -18,16 +18,16 @@ for i = 1:length(D)
 end
 % save a new emty variable to ammend with optimization iterations
 if~isempty(runNum) % is runNum is empty it means we are just simulating with a set of parametrs
-    cd('/Users/nkordjazi/Documents/GitHub/SequenceLearningModel')
+    cd('/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel')
     if ~sum(strcmp(N , ['param' , num2str(runNum) , '.mat']))
         param.cycNum = []; % number of resampling cycles within a run
         param.itrNum = []; % optimization iteration number within a cycle
         param.par = [];      % paramets
         param.parName = {};
-        save(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
+        save(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
     end
     % ammend the ptimization matrix
-    load(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'])
+    load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'])
     
     P.cycNum = cycNum; % run number
     if ~isempty(param.itrNum)
@@ -38,7 +38,7 @@ if~isempty(runNum) % is runNum is empty it means we are just simulating with a s
     P.par = par;
     P.parName = parName;
     param = addstruct(param , P);
-    save(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
+    save(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
 end
 %% we are going to hardcode tha parametrs in the model that we want to keep constant
 
@@ -55,8 +55,8 @@ M.Aintegrate  = 0.9787;
 M.SigEps      = 0.01;
 M.Bound(1)    = .45;
 M.Bound(2:3)  = .45;
-M.Bound(4:12) = .45;
-M.Bound(13:14)= .45;
+M.Bound(4:10) = .45;
+M.Bound(11:14)= .45;
 
 
 for pn = 1:length(parName)
@@ -82,8 +82,9 @@ for trls = 1:length(T.TN)
     dT = 2;            %delta-t in ms
     maxTime = 50000;            % Maximal time for trial simulation
     M.capacity = min(M.capacity , nanmean(T.Horizon)); % this controls for situations where horizon size is smalled thatn capacity
-    
-    
+    dtgrowth = linspace(M.dT_motor ,M.dT_motor* M.dtGrowth, M.capacity);
+%     after setting the dtgrowth set the capacity to 1
+    M.capacity = 1;
     maxPresses = max(T.numPress);    % Determine length of the trial
     
     % number of decision steps is defined by the M.capacity and T.Horizon, whichever results in more decision steps
@@ -136,7 +137,7 @@ for trls = 1:length(T.TN)
     decPressCount = 1;
     %% Linear growth for dt_motor to start faster and slow down to steady state
     % implimenting the idea of making dT a function of the percentage of the M.capacity that you have planned ahead
-    dtgrowth = linspace(M.dT_motor ,M.dT_motor* M.dtGrowth, M.capacity);
+    
     plannedAhead = zeros(1,maxPresses); % the number of digits planned ahead on each press
     %%
     while nDecision<=length(dec) && i<maxTime/dT
