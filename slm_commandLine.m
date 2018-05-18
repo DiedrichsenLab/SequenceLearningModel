@@ -228,14 +228,14 @@ parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4:10)' 'Bound(11)' 'Bound(12)
 loBound = [.1 .1 .1 .1 .1 .1 .1 .1 1];
 hiBound = [.6 .6 .6 .6 .6 .6 .6 .6 5] ;
 H = {[1] [2] [3] [4] [5] [6] [7:13]};
-for h = 5:length(H)
+for h = 1:length(H)
     if h == 1
-        initParam = [0.477 0.421 0.421 0.458 0.458  0.458 0.436 0.436 1]; 
+        initParam = [0.45 0.45 0.45 0.45 0.45  0.45 0.45 0.45 1]; 
     else
         initParam = [0.45 0.45 0.45 0.45 0.45  0.45 0.45 0.45 3]; 
     end
-    [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,3+.1*h , 'cycNum' , 1 ,'samNum'  , [] ,...
-        'ItrNum' , 40 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , [5] , 'Horizon' , H{h} , 'poolHorizons' , [7:13],...
+    [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,3+.1*h , 'cycNum' , 5 ,'samNum'  , [] ,...
+        'ItrNum' , 20 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , [1] , 'Horizon' , H{h} , 'poolHorizons' , [7:13],...
         'customizeInitParam' , 1);
     close all
 end

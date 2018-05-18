@@ -67,6 +67,12 @@ if ~isempty(poolHorizons)
 end
 Horizon = unique(Dall.Horizon);
 for i = 1:cycNum
+    disp(['Initializing optimization cycle number ' , num2str(i) , '/', num2str(cycNum) , ' with ' , num2str(ItrNum) , ' iterations...'])
+    if i>1
+        customizeInitParam = 0; % dont customize after the first cycle
+        load(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'])
+        initParam = param.par(end , :);
+    end
     close(h1);
     % Set up the T structure
     ANA0 = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) & ismember(Dall.Horizon , Horizon));

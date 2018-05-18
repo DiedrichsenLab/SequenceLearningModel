@@ -18,16 +18,16 @@ for i = 1:length(D)
 end
 % save a new emty variable to ammend with optimization iterations
 if~isempty(runNum) % is runNum is empty it means we are just simulating with a set of parametrs
-    cd('/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel')
+    cd('/Users/nkordjazi/Documents/GitHub/SequenceLearningModel')
     if ~sum(strcmp(N , ['param' , num2str(runNum) , '.mat']))
         param.cycNum = []; % number of resampling cycles within a run
         param.itrNum = []; % optimization iteration number within a cycle
         param.par = [];      % paramets
         param.parName = {};
-        save(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
+        save(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
     end
     % ammend the ptimization matrix
-    load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'])
+    load(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'])
     
     P.cycNum = cycNum; % run number
     if ~isempty(param.itrNum)
@@ -38,7 +38,7 @@ if~isempty(runNum) % is runNum is empty it means we are just simulating with a s
     P.par = par;
     P.parName = parName;
     param = addstruct(param , P);
-    save(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
+    save(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
 end
 %% we are going to hardcode tha parametrs in the model that we want to keep constant
 
