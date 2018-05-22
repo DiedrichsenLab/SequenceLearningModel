@@ -201,7 +201,7 @@ Sequences = [3 4 2 2 4 4 2 4 5 2 4 1 2 4;
 
 %% Optmization recipes
 % optimization step number 1
-% we want to keep the number of parameters under 6 to maintin good performnace in fminsearch. 
+% we want to keep the number of parameters under 6 to maintin good performnace in fminsearch.
 % in the first round of optimization, set the boundry value to groups of
 % presses and mainly optimize for 'theta_stim'  'Aintegrate' 'SigEps' on
 % day 1  - window size = 1
@@ -210,11 +210,11 @@ parName = {'theta_stim'  'Aintegrate' 'SigEps' 'Bound(1)' 'Bound(2:3)' 'Bound(4:
 initParam = [.0084 0.976 0.01 .45 .45 .45 .45];
 loBound = [0.007 , 0.75 , 0.01 .1 .1 .1 .1];
 hiBound = [0.02 , 0.988 0.05 .6 .6 .6 .6];
- 
+
 [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,1 , 'cycNum' , 1 ,'samNum'  , [] ,...
     'ItrNum' , 300 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , [5] , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
 
-%% 
+%%
 % optimization step number 2
 % now keep 'theta_stim'  'Aintegrate' 'SigEps' consant within the
 % slm_optimSimTrial as the last iteration of the previous optimization and
@@ -222,33 +222,37 @@ hiBound = [0.02 , 0.988 0.05 .6 .6 .6 .6];
 % day 1  - window size = 1
 
 
-parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4:10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)' 'dtGrowth'};  
+parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4)' 'Bound(5)' 'Bound(6)'...
+    'Bound(7)' 'Bound(8)' 'Bound(9)' 'Bound(10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};
 
 
-loBound = [.1 .1 .1 .1 .1 .1 .1 .1 1];
-hiBound = [.6 .6 .6 .6 .6 .6 .6 .6 5] ;
-H = {[1] [2] [3] [4] [5] [6] [7:13]};
-for h = 1:length(H)
-    if h == 1
-        initParam = [0.45 0.45 0.45 0.45 0.45  0.45 0.45 0.45 1]; 
-    else
-        initParam = [0.45 0.45 0.45 0.45 0.45  0.45 0.45 0.45 3]; 
+loBound = .001*ones(size(parName));
+hiBound = 0.45 *ones(size(parName));
+H = {[1] [2] [3] [4] [5] [6:13]};
+for day = [1 5]
+    for h = 1:length(H)
+        initParam = randperm(450 , length(parName))/1000;%[0.45 0.45 0.45 0.45 0.45 0.45 0.45 0.45];
+        
+        [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,['5_',num2str(h),'_',num2str(day)] , 'cycNum' , 10 ,'samNum'  , [] ,...
+            'ItrNum' , 500 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , [day] , 'Horizon' , H{h} , 'poolHorizons' , [6:13],...
+            'customizeInitParam' , 0,'noise' , 0);
+        close all
     end
-    [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,3+.1*h , 'cycNum' , 5 ,'samNum'  , [] ,...
-        'ItrNum' , 20 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , [1] , 'Horizon' , H{h} , 'poolHorizons' , [7:13],...
-        'customizeInitParam' , 1);
-    close all
 end
 %%
 M = [];
 par = [];
-parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4:10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};  
-H = {[1] [2] [3] [4] [5] [6] [7:13]};
-for h = 1:length(H)
-    filename = ['param2.'  , num2str(h) , '.mat'];
-    load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/optim2/' , filename]);
+parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4)' 'Bound(5)' 'Bound(6)'...
+    'Bound(7)' 'Bound(8)' 'Bound(9)' 'Bound(10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};
+H = {[1] [2] [3] [4] [5] [6:13]};
+day = 1;
+for h = 1:5%length(H)
+%     filename = ['param2.', num2str(h) , '.mat'];
+    filename = ['param'  , '5_', num2str(h),'_',num2str(day), '.mat'];
+    load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
     par(h,:) = param.par(end , :);
-    R = slm_optimSimulate(Dall , par(h,:)  , 'parName' , parName,'samNum'  , [] , 'Day' , 1, 'Horizon' , H{h} , 'poolHorizons' , [7:13]);
+    [R , ~ , ~] = slm_optimSimulate(Dall , par(h,:)  , 'parName' , parName,'samNum'  , [] ,...
+        'Day' , day, 'Horizon' , H{h} , 'poolHorizons' , [6:13] , 'noise' ,0);
     T.RT     = R(:,1);
     T.IPI    = R(:,2:14);
     T.MT     = R(:,15);
@@ -313,5 +317,45 @@ title('IPIs')
 xlabel('IPIs number')
 grid on
 set(gca , 'FontSize' , 16)
+
+%% Manual fit
+initParam = [0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5]-.02;
+
+M = [];
+parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4:10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};
+H = {[1] [2] [3] [4] [5] [6:13]};
+day = 1;
+P = [];
+for h = 4%:length(H)
+    par(h,:) = initParam;
+    [R , IPI , MTRT] = slm_optimSimulate(Dall , par(h,:)  , 'parName' , parName,'samNum'  , [] , 'Day' , day, 'Horizon' , H{h} , 'poolHorizons' , [6:13]);
+    IPI = getrow(IPI , IPI.fitoract==1);
+    MTRT = getrow(MTRT , MTRT.fitoract==1);
+    A = tapply(IPI , {'ipiNum'} , {'IPI' , 'nanmean'});
+    B.MT = nanmean(MTRT.MT);
+    B.RT = nanmean(MTRT.RT);
+    T.RT     = R(:,1);
+    T.IPI    = R(:,2:14);
+    T.MT     = R(:,15);
+    T.window = h*ones(size(T.RT));
+    M = addstruct(M , T);
+    clear T
+    %     close all
+    A.IPI = [B.RT ; A.IPI]
+    W = (A.IPI - A.IPI(1))/A.IPI(1);
+    W = W'/sum(W); 
+    W = [W(1:4) , mean(W(5:11)) , W(12:14)]
+    temp = initParam(1)+initParam.*W;
+    initParam = sum(initParam)*(temp/sum(temp));
+    pp.par = initParam;
+    pp.win = h;
+    pp.day = day;
+    pp.parName{1} = parName;
+    P = addstruct(P , pp);
+%     save('Manualfit.mat' , 'P')
+end
+
+%% now fit the rest accordingly
+
 
 

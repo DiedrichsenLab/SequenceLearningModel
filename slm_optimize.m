@@ -55,25 +55,28 @@ while(c<=length(varargin))
             % are best to be set as the proportions of the IPIs
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'noise'}
+            % 1 or 0 -
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error('Unknown option: %s',varargin{c});
     end
 end
-h1 = figure('color' , 'white');
 %% optimization
 Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) & ismember(Dall.Horizon , Horizon));
 if ~isempty(poolHorizons)
     Dall.Horizon(ismember(Dall.Horizon , poolHorizons)) = poolHorizons(1);
 end
 Horizon = unique(Dall.Horizon);
+initParam = rawinitParam;
 for i = 1:cycNum
     disp(['Initializing optimization cycle number ' , num2str(i) , '/', num2str(cycNum) , ' with ' , num2str(ItrNum) , ' iterations...'])
     if i>1
         customizeInitParam = 0; % dont customize after the first cycle
-        load(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'])
+        load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/param' , runNum , '.mat'])
         initParam = param.par(end , :);
     end
-    close(h1);
     % Set up the T structure
     ANA0 = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) & ismember(Dall.Horizon , Horizon));
     A = [];
@@ -104,8 +107,9 @@ for i = 1:cycNum
     hold on
     [~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean', 'errorfcn' , 'nanstd');
     %
+    
     ANA = A;
-    model = @(param,T,runNum , i) slm_optimSimTrial(param , T , runNum , i , parName , 'optim'); % Model Function
+    model = @(param,T,runNum , i) slm_optimSimTrial(param , T , runNum , i , parName , 'optim' , noise); % Model Function
     
     SeqLength = unique(ANA.seqlength);
     T.TN = ANA.TN;
@@ -120,21 +124,21 @@ for i = 1:cycNum
     
     % Set up the cost function
     x_desired = [ANA.AllPressTimes(:,1) - 1500 ANA.IPI(: , 1:3) mean(ANA.IPI(: ,4:10) , 2) ANA.IPI(: , 11:13)];
-    
+    if ~noise
+        T = getrow(T , 1); % when the noise is off all the trials will turn out identical
+        x_desired = nanmedian(x_desired);
+    end
     % curate the initial parameters if told to do so
     if customizeInitParam
-        
         org = nanmedian(x_desired); 
         org = (org - min(org))/max(org);
-        rawinitParam(1:end-1) = mapminmax(org , .3,.6);
-        initParam = rawinitParam;
-    else
+        rawinitParam = mapminmax(org , .3,.6);
         initParam = rawinitParam;
     end
     
     OLS = @(param) nansum(nansum((model(param,T,runNum , i) - x_desired).^2));
     
-    opts = optimset('MaxIter', ItrNum ,'TolFun',1e-5,'Display','iter');
+    opts = optimset('MaxIter', ItrNum ,'TolFun',1000,'Display','iter');
     [Param Fval] = fminsearchbnd(OLS,initParam,loBound,hiBound, opts);
     
 end

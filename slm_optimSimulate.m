@@ -1,4 +1,4 @@
-function R = slm_optimSimulate(Dall , par  , varargin)
+function [R , IPI , MTRT] = slm_optimSimulate(Dall , par  , varargin)
 samNum = 20;
 tol = [0.5 0.03];
 c = 1;
@@ -26,6 +26,10 @@ while(c<=length(varargin))
             c=c+2;
         case {'poolHorizons'}
             % [] or the horizons you want to pool together
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'noise'}
+            % 1 or 0 -
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
         otherwise
@@ -72,11 +76,13 @@ T.numPress = ANA.seqlength;
 T.stimTime = zeros(length(ANA.TN) , SeqLength);
 T.stimulus = ANA.AllPress;
 T.forcedPressTime = nan(length(ANA.TN) , SeqLength);
+% if ~noise
+%     T = getrow(T , 1); % when the noise is off all the trials will turn out identical
+% end
 
 
 
-
-R = slm_optimSimTrial(par , T , [] ,[] , parName ,'sim');
+R = slm_optimSimTrial(par , T , [] ,[] , parName ,'sim' , noise);
 %% Horizon
 Act.singleH = ANA.Horizon;
 Fit.singleH  = nanmean(T.Horizon, 2);
@@ -114,7 +120,7 @@ xlabel('Horizon')
 grid on
 set(gca , 'FontSize' , 16)
 
-
+MTRT = All;
 %% IPI
 clear Fit Act
 Fit.IPI = R(:,2:end-1);
@@ -148,3 +154,4 @@ title('IPIs')
 xlabel('IPIs number')
 grid on
 set(gca , 'FontSize' , 16)
+IPI = All;

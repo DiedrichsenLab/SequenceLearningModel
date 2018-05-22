@@ -1,4 +1,4 @@
-function R = slm_optimSimTrial(par , T , runNum ,cycNum , parName , mode)
+function R = slm_optimSimTrial(par , T , runNum ,cycNum , parName , mode , noise)
 
 %% parameters in the model (M) to be optimized
 % M.capacity   = par(1);
@@ -16,18 +16,20 @@ N = {};
 for i = 1:length(D)
     N = [N {D(i).name}];
 end
+% mainDir = '/Users/nkordjazi/Documents/GitHub/';
+mainDir = '/Users/nedakordjazi/Documents/GitHub/';
 % save a new emty variable to ammend with optimization iterations
 if~isempty(runNum) % is runNum is empty it means we are just simulating with a set of parametrs
-    cd('/Users/nkordjazi/Documents/GitHub/SequenceLearningModel')
-    if ~sum(strcmp(N , ['param' , num2str(runNum) , '.mat']))
+    cd([mainDir , 'SequenceLearningModel'])
+    if ~sum(strcmp(N , ['param' , runNum , '.mat']))
         param.cycNum = []; % number of resampling cycles within a run
         param.itrNum = []; % optimization iteration number within a cycle
         param.par = [];      % paramets
         param.parName = {};
-        save(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
+        save([mainDir , 'SequenceLearningModel/param' , runNum , '.mat'] ,'param' );
     end
     % ammend the ptimization matrix
-    load(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'])
+    load([mainDir , 'SequenceLearningModel/param' , runNum , '.mat'])
     
     P.cycNum = cycNum; % run number
     if ~isempty(param.itrNum)
@@ -38,7 +40,7 @@ if~isempty(runNum) % is runNum is empty it means we are just simulating with a s
     P.par = par;
     P.parName = parName;
     param = addstruct(param , P);
-    save(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/param' , num2str(runNum) , '.mat'] ,'param' );
+    save([mainDir , 'SequenceLearningModel/param' , runNum , '.mat'] ,'param' );
 end
 %% we are going to hardcode tha parametrs in the model that we want to keep constant
 
@@ -50,13 +52,18 @@ M.capacity   = 3;
 DecayParam   = 4;
 M.dT_motor   = 150;
 M.dtGrowth = 1;
-M.theta_stim  = 0.0088;
+M.theta_stim  = 0.01;
 M.Aintegrate  = 0.9787;
-M.SigEps      = 0.01;
-M.Bound(1)    = .45;
-M.Bound(2:3)  = .45;
-M.Bound(4:10) = .45;
-M.Bound(11:14)= .45;
+if~noise
+    M.SigEps      = 0;%0.01;
+else
+    M.SigEps      = 0.01;
+end
+bAll = 0.45;
+M.Bound(1)    = bAll;
+M.Bound(2:3)  = bAll;
+M.Bound(4:10) = bAll;
+M.Bound(11:14)= bAll;
 
 
 for pn = 1:length(parName)
@@ -82,9 +89,9 @@ for trls = 1:length(T.TN)
     dT = 2;            %delta-t in ms
     maxTime = 50000;            % Maximal time for trial simulation
     M.capacity = min(M.capacity , nanmean(T.Horizon)); % this controls for situations where horizon size is smalled thatn capacity
-    dtgrowth = linspace(M.dT_motor ,M.dT_motor* M.dtGrowth, M.capacity);
+    
 %     after setting the dtgrowth set the capacity to 1
-    M.capacity = 1;
+    
     maxPresses = max(T.numPress);    % Determine length of the trial
     
     % number of decision steps is defined by the M.capacity and T.Horizon, whichever results in more decision steps
@@ -130,10 +137,25 @@ for trls = 1:length(T.TN)
     PlanIndx= prs+1 : prs+1+(maxPlan(nDecision)-1);
     
     
-    % multiplier funstion for the stimulus evidence intake
-    cap_mult = ones(1,M.capacity-1);
-    mult = [cap_mult , zeros(1,length(dec))];
-    mult = [mult(logical(mult)) , exp(-[dec(1:end)-nDecision]./DecayParam)];      % How much stimulus exponentia decay
+    %% multiplier funstion for the stimulus evidence intake
+    % exponential decay
+%     cap_mult = ones(1,M.capacity-1);
+%     mult = [cap_mult , zeros(1,length(dec))];
+%     mult = [mult(logical(mult)) , exp(-[dec(1:end)-nDecision]./DecayParam)];      % How much stimulus exponentia decay
+%     % logistic decay
+    %%  logistic growth
+    B0 = 3;
+    clear Growth
+    H = [1:5];
+    Xdomain = [-8:8];
+    for h = 1:length(H) % the growth constant. the bigger the b the faster the growth --> reached 1 faster
+        B1 = B0 - H(h)*.34;
+        Growth(h,:) = 1./(1+1*exp(B1*Xdomain));
+    end
+    mult = Growth(M.capacity , 1:maxPresses);
+    %%
+    
+    dtgrowth = linspace(M.dT_motor ,M.dT_motor* M.dtGrowth, M.capacity);
     decPressCount = 1;
     %% Linear growth for dt_motor to start faster and slow down to steady state
     % implimenting the idea of making dT a function of the percentage of the M.capacity that you have planned ahead
