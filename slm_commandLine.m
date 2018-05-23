@@ -15,7 +15,22 @@ close all
 
 
 %%
+%%  logistic growth
 
+figure
+B_coef = 2;
+B0 = 7;
+
+clear Growth
+H = [1:7];
+Xdomain = [-8:8];
+for h = 1:length(H) % the growth constant. the bigger the b the faster the growth --> reached 1 faster
+   B1 = B0 - H(h)*B_coef;
+   Growth(h,:) = 1./(1+1*exp(B1*Xdomain));
+   plot(Growth(h,:))
+   hold on
+end
+legend
 
 %%
 [IPIs, Exam] =    slm_diagModel( 'numSimulations' , 50,...
@@ -213,7 +228,36 @@ hiBound = [0.02 , 0.988 0.05 .6 .6 .6 .6];
 
 [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,1 , 'cycNum' , 1 ,'samNum'  , [] ,...
     'ItrNum' , 300 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , [5] , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
+%% optimize mult
 
+% optimization step number 2
+% now keep 'theta_stim'  'Aintegrate' 'SigEps' consant within the
+% slm_optimSimTrial as the last iteration of the previous optimization and
+% optimize for more fine grained boundry values
+% day 1  - window size = 1
+
+
+% parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4)' 'Bound(5)' 'Bound(6)'...
+%     'Bound(7)' 'Bound(8)' 'Bound(9)' 'Bound(10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};
+
+%  parName = {'B0'};% 'B_coef'};
+% loBound = [ 1];
+% hiBound = [6];
+
+parName = {'Capacity' , 'DecayParam' , 'TSDecayParam'};
+
+
+loBound = [1  1 3];
+hiBound = [7 100  10];
+
+H = {[1] [2] [3] [4] [5] [6:13]};
+for day = [1 5]
+    initParam = [3 10 3.5];%3.85478167568902,0.451509146252228];%[0.45 0.45 0.45 0.45 0.45 0.45 0.45 0.45];
+    [Param Fval] = slm_optimize(Dall , 'allwindows' ,  initParam , 'parName' , parName,'runNum' ,['5_',num2str(h),'_',num2str(day)] , 'cycNum' , 5 ,'samNum'  , [] ,...
+        'ItrNum' , 5000 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , [day] , 'Horizon' , [1:13] , 'poolHorizons' , [6:13],...
+        'customizeInitParam' , 0,'noise' , 0);
+    close all
+end
 %%
 % optimization step number 2
 % now keep 'theta_stim'  'Aintegrate' 'SigEps' consant within the
@@ -222,34 +266,38 @@ hiBound = [0.02 , 0.988 0.05 .6 .6 .6 .6];
 % day 1  - window size = 1
 
 
-parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4)' 'Bound(5)' 'Bound(6)'...
-    'Bound(7)' 'Bound(8)' 'Bound(9)' 'Bound(10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};
+% parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4)' 'Bound(5)' 'Bound(6)'...
+%     'Bound(7)' 'Bound(8)' 'Bound(9)' 'Bound(10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};
+
+ parName = {'B0' 'B_coef' 'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4:10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};
 
 
 loBound = .001*ones(size(parName));
 hiBound = 0.45 *ones(size(parName));
 H = {[1] [2] [3] [4] [5] [6:13]};
 for day = [1 5]
-    for h = 1:length(H)
+    for h = 2:length(H)
         initParam = randperm(450 , length(parName))/1000;%[0.45 0.45 0.45 0.45 0.45 0.45 0.45 0.45];
         
-        [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,['5_',num2str(h),'_',num2str(day)] , 'cycNum' , 10 ,'samNum'  , [] ,...
-            'ItrNum' , 500 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , [day] , 'Horizon' , H{h} , 'poolHorizons' , [6:13],...
+        [Param Fval] = slm_optimize(Dall , 'windowsSeparate' ,  initParam , 'parName' , parName,'runNum' ,['5_',num2str(h),'_',num2str(day)] , 'cycNum' , 5 ,'samNum'  , [] ,...
+            'ItrNum' , 5000 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , [day] , 'Horizon' , H{h} , 'poolHorizons' , [6:13],...
             'customizeInitParam' , 0,'noise' , 0);
         close all
     end
 end
+
+
 %%
 M = [];
 par = [];
-parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4)' 'Bound(5)' 'Bound(6)'...
-    'Bound(7)' 'Bound(8)' 'Bound(9)' 'Bound(10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};
+% parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4)' 'Bound(5)' 'Bound(6)'...
+%     'Bound(7)' 'Bound(8)' 'Bound(9)' 'Bound(10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};
 H = {[1] [2] [3] [4] [5] [6:13]};
 day = 1;
-for h = 1:5%length(H)
+for h = 6:-1:1%length(H)
 %     filename = ['param2.', num2str(h) , '.mat'];
     filename = ['param'  , '5_', num2str(h),'_',num2str(day), '.mat'];
-    load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
+    load(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
     par(h,:) = param.par(end , :);
     [R , ~ , ~] = slm_optimSimulate(Dall , par(h,:)  , 'parName' , parName,'samNum'  , [] ,...
         'Day' , day, 'Horizon' , H{h} , 'poolHorizons' , [6:13] , 'noise' ,0);

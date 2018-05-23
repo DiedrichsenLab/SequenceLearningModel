@@ -76,14 +76,18 @@ T.numPress = ANA.seqlength;
 T.stimTime = zeros(length(ANA.TN) , SeqLength);
 T.stimulus = ANA.AllPress;
 T.forcedPressTime = nan(length(ANA.TN) , SeqLength);
-% if ~noise
-%     T = getrow(T , 1); % when the noise is off all the trials will turn out identical
-% end
+if ~noise
+    T = getrow(T , 1:10); % when the noise is off all the trials will turn out identical
+end
 
 
 
 R = slm_optimSimTrial(par , T , [] ,[] , parName ,'sim' , noise);
 %% Horizon
+All = [];
+Act = [];
+Fit = [];
+
 Act.singleH = ANA.Horizon;
 Fit.singleH  = nanmean(T.Horizon, 2);
 Act.MT = ANA.MT;
@@ -122,6 +126,9 @@ set(gca , 'FontSize' , 16)
 
 MTRT = All;
 %% IPI
+All = [];
+Act = [];
+Fit = [];
 clear Fit Act
 Fit.IPI = R(:,2:end-1);
 Fit.IPI = reshape(Fit.IPI , numel(Fit.IPI) , 1);
@@ -130,11 +137,14 @@ Act.IPI = reshape(Act.IPI , numel(Act.IPI) , 1);
 
 Fit.singleH  = repmat(nanmean(T.Horizon, 2) , 1 , size(T.stimulus,2)-1);
 Fit.singleH  = reshape(Fit.singleH , numel(Fit.IPI) , 1);
-Act.singleH  = Fit.singleH;
+Act.singleH  = repmat(nanmean(ANA.Horizon, 2) , 1 , size(ANA.AllPress,2)-1);
+Act.singleH  = reshape(Act.singleH , numel(Act.IPI) , 1);
 
-Fit.ipiNum = repmat(1:size(T.stimulus,2)-1 , length(T.stimulus) , 1);
+
+Fit.ipiNum = repmat(1:size(T.stimulus,2)-1 , size(T.stimulus,1) , 1);
 Fit.ipiNum = reshape(Fit.ipiNum , numel(Fit.ipiNum) , 1);
-Act.ipiNum = Fit.ipiNum;
+Act.ipiNum = repmat(1:size(T.stimulus,2)-1 , length(ANA.AllPress) , 1);
+Act.ipiNum = reshape(Act.ipiNum , numel(Act.ipiNum) , 1);
 
 Act.fitoract = ones(size(Act.ipiNum));
 Fit.fitoract = zeros(size(Fit.ipiNum));

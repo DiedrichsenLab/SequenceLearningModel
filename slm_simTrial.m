@@ -75,7 +75,7 @@ PlanIndx= prs+1 : prs+1+(maxPlan(nDecision)-1);
 % multiplier funstion for the stimulus evidence intake 
 cap_mult = ones(1,M.capacity-1);
 mult = [cap_mult , zeros(1,length(dec))];
-mult = [mult(logical(mult)) , exp(-[dec(1:end)-nDecision]./DecayParam)];      % How much stimulus exponentia decay
+mult = [mult(logical(mult)) , exp(-[dec(1:end)-nDec ision]./DecayParam)];      % How much stimulus exponentia decay
 decPressCount = 1;
 %% Forced Prep time_____________ Use logistic growth for stimulus horse race
 a = .1; %0.09; % the growth constant: the bigger the faster the growth --> reaches Bound faster
