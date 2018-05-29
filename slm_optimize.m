@@ -63,8 +63,8 @@ while(c<=length(varargin))
             error('Unknown option: %s',varargin{c});
     end
 end
-mainDir = '/Users/nkordjazi/Documents/GitHub/';
-% mainDir = '/Users/nedakordjazi/Documents/GitHub/';
+% mainDir = '/Users/nkordjazi/Documents/GitHub/';
+mainDir = '/Users/nedakordjazi/Documents/GitHub/';
 %% optimization
 Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) & ismember(Dall.Horizon , Horizon));
 if ~isempty(poolHorizons)
@@ -83,7 +83,7 @@ switch what
                 initParam = param.par(end , :);
             end
             % Set up the T structure
-            ANA0 = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) & ismember(Dall.Horizon , Horizon));
+            ANA0 = getrow( ismember(Dall.Horizon , Horizon));
             A = [];
             for h = Horizon
                 ANA = getrow(ANA0 , ANA0.Horizon == h);
@@ -105,13 +105,13 @@ switch what
                 end
                 A = addstruct(A ,temp);
             end
-            h1 = figure('color' , 'white');
-            subplot(211);[~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean' , 'errorfcn' , 'nanstd');
-            title('subset')
-            subplot(212);[~ , p0 , ~] = lineplot(ANA0.Horizon , ANA0.MT, 'plotfcn' , 'nanmean', 'errorfcn' , 'nanstd');
-            hold on
-            [~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean', 'errorfcn' , 'nanstd');
-            %
+%             h1 = figure('color' , 'white');
+%             subplot(211);[~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean' , 'errorfcn' , 'nanstd');
+%             title('subset')
+%             subplot(212);[~ , p0 , ~] = lineplot(ANA0.Horizon , ANA0.MT, 'plotfcn' , 'nanmean', 'errorfcn' , 'nanstd');
+%             hold on
+%             [~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean', 'errorfcn' , 'nanstd');
+%             %
             
             ANA = A;
             model = @(param,T,runNum , i) slm_optimSimTrial(param , T , runNum , i , parName , 'optim' , noise); % Model Function
@@ -156,40 +156,37 @@ switch what
                 initParam = param.par(end , :);
             end
             % Set up the T structure
-            ANA0 = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) & ismember(Dall.Horizon , Horizon));
+            ANA0 = getrow(Dall , ismember(Dall.Horizon , Horizon));
             A = [];
-            h = Horizon;
             ANA = ANA0;
             serr = std(ANA.MT);%/sqrt(length(ANA.MT));
             stdbound = [serr-tol(1)*serr serr+tol(1)*serr];
             meanbound = [mean(ANA.MT)-tol(2)*mean(ANA.MT) mean(ANA.MT)+tol(2)*mean(ANA.MT)];
             MT_std = 0;
             MT_mean = 0;
-            while ~(MT_std & MT_mean)
-                if ~isempty(samNum)
-                    temp =  getrow(ANA , randperm(length(ANA.TN) , samNum));
-                else
-                    temp  = ANA;
-                end
-                serr = std(temp.MT);%/sqrt(length(temp.MT));
-                MT_std = serr>stdbound(1) & serr<stdbound(2);
-                %         MT_std = 1;
-                MT_mean = mean(temp.MT)>meanbound(1) & mean(temp.MT)<meanbound(2);
+            if ~noise
+                samNum = 1;
             end
-            A = addstruct(A ,temp);
+            M = ANA;
+            A = [];
+            for h = 1:length(Horizon)
+                N = getrow(M , M.Horizon == Horizon(h)); % when the noise is off all the trials will turn out identical
+                N = getrow(N , 1:samNum);
+                A = addstruct(A , N);
+            end
             
-            h1 = figure('color' , 'white');
-            subplot(211);[~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean' , 'errorfcn' , 'nanstd');
-            title('subset')
-            subplot(212);[~ , p0 , ~] = lineplot(ANA0.Horizon , ANA0.MT, 'plotfcn' , 'nanmean', 'errorfcn' , 'nanstd');
-            hold on
-            [~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean', 'errorfcn' , 'nanstd');
-            %
             
+%             h1 = figure('color' , 'white');
+%             subplot(211);[~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean' , 'errorfcn' , 'nanstd');
+%             title('subset')
+%             subplot(212);[~ , p0 , ~] = lineplot(ANA0.Horizon , ANA0.MT, 'plotfcn' , 'nanmean', 'errorfcn' , 'nanstd');
+%             hold on
+%             [~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean', 'errorfcn' , 'nanstd');
             ANA = A;
             ANA.RT = ANA.AllPressTimes(:,1)-1500;
             model = @(param,T,runNum , i) slm_optimSimTrial(param , T , runNum , i , parName , 'optim' , noise); % Model Function
-            
+            M = tapply(ANA , {'Horizon'} , {'MT' , 'nanmedian'},{'RT' , 'nanmedian'});
+            x_desired = [M.RT]';
             SeqLength = unique(ANA.seqlength);
             T.TN = ANA.TN;
             T.Horizon = ANA.Horizon;
@@ -199,19 +196,7 @@ switch what
             T.forcedPressTime = nan(length(ANA.TN) , SeqLength);
             
             % Set up the cost function
-            x_desired = [ANA.RT  ANA.MT];% mean(ANA.IPI(: ,4:10) , 2) ANA.IPI(: , 11:13)];
-            
-            if ~noise
-                M = T;
-                T = [];
-                for h = 1:length(Horizon)
-                    N = getrow(M , M.Horizon == Horizon(h)); % when the noise is off all the trials will turn out identical
-                    N = getrow(N , 1);
-                    T = addstruct(T , N);
-                end
-                M = tapply(ANA , {'Horizon'} , {'MT' , 'nanmedian'},{'RT' , 'nanmedian'})
-                x_desired = [M.MT;M.RT]';
-            end
+            x_desired = [ANA.RT]';% mean(ANA.IPI(: ,4:10) , 2) ANA.IPI(: , 11:13)];
             
             T.Horizon =repmat(T.Horizon , 1, SeqLength) .*(ones(length(T.TN),SeqLength));
             for tn = 1:length(T.TN)

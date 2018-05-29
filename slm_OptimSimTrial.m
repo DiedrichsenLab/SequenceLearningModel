@@ -16,8 +16,8 @@ N = {};
 for i = 1:length(D)
     N = [N {D(i).name}];
 end
-mainDir = '/Users/nkordjazi/Documents/GitHub/';
-% mainDir = '/Users/nedakordjazi/Documents/GitHub/';
+% mainDir = '/Users/nkordjazi/Documents/GitHub/';
+mainDir = '/Users/nedakordjazi/Documents/GitHub/';
 % save a new emty variable to ammend with optimization iterations
 if~isempty(runNum) % is runNum is empty it means we are just simulating with a set of parametrs
     cd([mainDir , 'SequenceLearningModel'])
@@ -48,34 +48,36 @@ end
 M.numOptions = 5;
 M.dT_visual  = 90;
 M.Ainhibit   = 0;
-M.Capacity   = 7;
-M.DecayParam   = 10;
+M.Capacity   =5;% 7;
+M.DecayParam   = 7;
 M.dT_motor   = 150;
 M.dtGrowth = 1;
-M.TSmax = 0.035;
-M.TSDecayParam  = 5;
-M.theta_stim  = M.TSmax*exp(-([M.Capacity:-1:1]-1)./M.TSDecayParam);%linspace(0.01,0.04,M.Capacity);
-M.Aintegrate  = 0.9787;
+M.TSDecayParam  = 7.75;%5;
+M.TSmin = 0.03775;
+M.Aintegrate  = 0.94173;
 if~noise
     M.SigEps      = 0;%0.01;
 else
-    M.SigEps      = 0.01;
+    M.SigEps      = 0.02;
 end
-bAll = 0.45;
-M.Bound(1)    = bAll;
-M.Bound(2:3)  = bAll;
-M.Bound(4:10) = bAll;
-M.Bound(11:14)= bAll;
+bAll = 0.6;
+M.Bound = bAll.*ones(M.Capacity,size(T.stimulus , 2));
+M.Bound(:,1) = [.60042 ;.601295 ;.606129; .6037 ;.602804];
 M.B0 = 4;%3.85478167568902;
 M.B_coef = 0.351509146252228;
-
 origCap = M.Capacity; % to preserve the original M.Capacity in designs that the capacity/horizon keeps changing
-
-
 % for pn = 1:length(parName)
 %     eval(['M.' , parName{pn} , ' = par(pn);'] )
 % end
+%% modulating theta_stim with capacity
 
+% ========= creating an exponential decay
+% M.theta_stim  = M.TSmin*exp(-([M.Capacity:-1:1]-1)./M.TSDecayParam);%linspace(0.01,0.04,M.Capacity);
+
+% ========= modulating with actual MTs
+load([mainDir ,'SequenceLearningModel/MTRTday5.mat'])
+% M.theta_stim = M.TSmin + (K.MT_norm).* M.TSmin;
+M.theta_stim = [0.034989 0.04042 0.047 0.054 0.0622];
 %%
 % function [T,SIM]=slm_simTrial(M,T,varargin);
 % incoporates horizon size (T.Horizon) as well as buffer size (M.Capacity)
@@ -102,9 +104,9 @@ for trls = 1:length(T.TN)
     T = getrow(AllT , trls);
     dT = 2;            %delta-t in ms
     maxTime = 50000;            % Maximal time for trial simulation
-    M.Capacity = min(M.Capacity , nanmean(T.Horizon)); % this controls for situations where horizon size is smalled thatn capacity
+    M.Capacity = floor(min(M.Capacity , nanmean(T.Horizon))); % this controls for situations where horizon size is smalled thatn capacity
     
-%     after setting the dtgrowth set the capacity to 1
+    %     after setting the dtgrowth set the capacity to 1
     
     maxPresses = max(T.numPress);    % Determine length of the trial
     
@@ -112,7 +114,7 @@ for trls = 1:length(T.TN)
     % calculate the number of decision steps as total number of presses - capacity
     % this is because the first "capacity" presses would be planned in one decision step
     dec=1: max(maxPresses - M.Capacity+1,M.Capacity);  % Number of decision steps
-%     dec=1: maxPresses;
+%       dec=1: maxPresses;
     
     
     % for the first decision step, "capacity" digits are planned and for the rest, the shift is 1 by 1.
@@ -133,8 +135,8 @@ for trls = 1:length(T.TN)
     X = zeros(M.numOptions,maxTime/dT,maxPresses); % Hidden state
     S = zeros(M.numOptions,maxTime/dT,maxPresses); % Stimulus present
     % implement forced-RT collapsing decision boundary (logistic decay)
-
-    B = ones(size(T.stimulus,2),maxTime/dT).*repmat(M.Bound'  ,1, maxTime/dT); % Decision Bound - constant value
+    
+    B = ones(size(T.stimulus,2),maxTime/dT).*repmat(M.Bound(M.Capacity , :)'  ,1, maxTime/dT); % Decision Bound - constant value
     t = [1:maxTime/dT]*dT-dT;   % Time in ms
     i = 1;                   % Index of simlation
     nDecision = 1;           % Current decision to male
@@ -152,17 +154,22 @@ for trls = 1:length(T.TN)
     
     
     %% multiplier funstion for the stimulus evidence intake
-    % exponential decay
-%     cap_mult = ones(1,M.Capacity-1);
-%     mult = [cap_mult , zeros(1,length(dec))];
-%     mult = [mult(logical(mult)) , exp(-[dec-nDecision]./M.DecayParam)];      % How much stimulus exponentia decay
-%     
-    
+    % ============== exponential decay   1
+    %     cap_mult = ones(1,M.Capacity-1);
+    %     mult = [cap_mult , zeros(1,length(dec))];
+    %     mult = [mult(logical(mult)) , exp(-[dec-nDecision]./M.DecayParam)];      % How much stimulus exponentia decay
+    %
+    % ============== exponential decay   2
     mult = exp(-([1:maxPresses]-1)./M.DecayParam);
     mult(M.Capacity+1:end) = 0;
+    T.mult = mult;
     
-    % logistic decay
-%     mult = Decay(M.Capacity , 1:maxPresses);
+    % ============== logistic decay
+    %     mult = Decay(M.Capacity , 1:maxPresses);
+    
+    % ============== all ones --> when modulating theta_stim
+    %     mult = ones(1,maxPresses);
+    
     %%
     
     dtgrowth = linspace(M.dT_motor ,M.dT_motor* M.dtGrowth, M.Capacity);
@@ -172,6 +179,7 @@ for trls = 1:length(T.TN)
     
     plannedAhead = zeros(1,maxPresses); % the number of digits planned ahead on each press
     %%
+    eps = randn([M.numOptions maxTime/dT maxPresses]) * M.SigEps;
     while nDecision<=length(dec) && i<maxTime/dT
         % Update the stimulus: Fixed stimulus time
         indx = find(t(i)>(T.stimTime+M.dT_visual)); % Index of which stimuli are present T.
@@ -188,17 +196,17 @@ for trls = 1:length(T.TN)
         
         
         % Update the evidence state
-        eps = randn([M.numOptions 1 maxPresses]) * M.SigEps;
+        
         for j = 1:maxPresses
             if ~isnan(T.forcedPressTime(1,1))
-                X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim(M.Capacity).*mult(j).*S(:,i,j).*G(i)) + dT*eps(:,1,j);
+                X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim(M.Capacity).*mult(j).*S(:,i,j).*G(i)) + eps(:,i+1,j);
             else
-                X(:,i+1,j)= A * X(:,i,j) + M.theta_stim(M.Capacity).* mult(j) .* S(:,i,j) + dT*eps(:,1,j);
+                X(:,i+1,j)= A * X(:,i,j) + M.theta_stim(M.Capacity).* mult(j) .* S(:,i,j) + eps(:,i+1,j);
             end
         end
         % if the system is in the first decision cycle, it wont start pressing
         % until all the digits within the buffer size have been planned
-        if ~isPressing && sum(sum(squeeze(X(:,i+1,PlanIndx(decPressCount)))>B(prs+1 , i+1))) >= 1
+        if ~isPressing && sum(squeeze(X(:,i+1,PlanIndx(decPressCount)))>B(prs+1 , i+1)) >= 1
             plannedAhead(PlanIndx) = length(PlanIndx):-1:1;
             if decPressCount <= length(PlanIndx)
                 T.decisionTime(1,PlanIndx(decPressCount)) = t(i+1);                            % Decision made at this time
@@ -242,12 +250,17 @@ for trls = 1:length(T.TN)
             end
         end
         i=i+1;
-    end;
-        if size(T.pressTime , 2)~=size(T.stimulus , 2) || size(T.decisionTime , 2)~=size(T.stimulus , 2)
-            T.pressTime = nan(1 , size(T.stimulus , 2));
-            T.decisionTime = nan(1 , size(T.stimulus , 2));
-            T.response = nan(1 , size(T.stimulus , 2));
+        if i == 250000
+            keyboard
         end
+    end;
+    T.X{1} = X(:,1:i,:);
+    
+    if size(T.pressTime , 2)~=size(T.stimulus , 2) || size(T.decisionTime , 2)~=size(T.stimulus , 2)
+        T.pressTime = nan(1 , size(T.stimulus , 2));
+        T.decisionTime = nan(1 , size(T.stimulus , 2));
+        T.response = nan(1 , size(T.stimulus , 2));
+    end
     AllR = addstruct(AllR , T);
     
 end
@@ -255,16 +268,18 @@ AllR.MT = AllR.pressTime(:,end) - AllR.pressTime(:,1);
 AllR.RT =  AllR.pressTime(:,1);
 AllR.singleH = nanmean(AllR.Horizon , 2);
 AllR.IPI = diff(AllR.pressTime , [], 2);
+
 switch mode
     case {'optim'}
         if length(unique(AllR.singleH))==1
-            R =  [AllR.RT AllR.IPI(: , 1:13)];% mean(AllR.IPI(: ,4:10) , 2) AllR.IPI(: , 11:13)];
+%             R =  [AllR.RT AllR.IPI(: , 1:13)];% mean(AllR.IPI(: ,4:10) , 2) AllR.IPI(: , 11:13)];
+            R =  [AllR.RT]';
+            R(isnan(R))=10e+10;
         else
-             R =  [AllR.RT; AllR.MT];% mean(AllR.IPI(: ,4:10) , 2) AllR.IPI(: , 11:13)];
-             R(isnan(R))=10e+5;
-
+            R =  [AllR.RT]';% mean(AllR.IPI(: ,4:10) , 2) AllR.IPI(: , 11:13)];
+            R(isnan(R))=10e+10;
         end
     case{'sim'}
-        R =  [AllR.RT AllR.IPI AllR.MT];
+        R =  AllR;
 end
 
