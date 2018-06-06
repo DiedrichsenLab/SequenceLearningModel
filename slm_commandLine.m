@@ -271,7 +271,7 @@ for i = 1%:length(se)
     day = [4 5];
     close all
     [R] = slm_optimSimulate(Dall , 'allwindows' , par  , 'parName' , parName,'samNum'  , 100 ,...
-        'Day' , day, 'Horizon' , [2:5] , 'poolHorizons' , [5:13] , 'noise' ,0 , 'subjNum' , [1:15]);
+        'Day' , day, 'Horizon' , [2:4] , 'poolHorizons' , [5:13] , 'noise' ,0 , 'subjNum' , [1:15]);
     R.SigEps = se(i)*ones(size(R.MT));
     allFit = addstruct(allFit , R);
 end

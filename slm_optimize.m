@@ -63,6 +63,10 @@ while(c<=length(varargin))
             % subjects to include in modeling
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'desiredField'}
+            % the name of the field in the data to minimize the error on e.g. MT TR IPI...
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error('Unknown option: %s',varargin{c});
     end
@@ -110,13 +114,6 @@ switch what
                 end
                 A = addstruct(A ,temp);
             end
-%             h1 = figure('color' , 'white');
-%             subplot(211);[~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean' , 'errorfcn' , 'nanstd');
-%             title('subset')
-%             subplot(212);[~ , p0 , ~] = lineplot(ANA0.Horizon , ANA0.MT, 'plotfcn' , 'nanmean', 'errorfcn' , 'nanstd');
-%             hold on
-%             [~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean', 'errorfcn' , 'nanstd');
-%             %
             
             ANA = A;
             model = @(param,T,runNum , i) slm_optimSimTrial(param , T , runNum , i , parName , 'optim' , noise); % Model Function
@@ -179,19 +176,14 @@ switch what
                 N = getrow(N , 1:samNum);
                 A = addstruct(A , N);
             end
-            
-            
-%             h1 = figure('color' , 'white');
-%             subplot(211);[~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean' , 'errorfcn' , 'nanstd');
-%             title('subset')
-%             subplot(212);[~ , p0 , ~] = lineplot(ANA0.Horizon , ANA0.MT, 'plotfcn' , 'nanmean', 'errorfcn' , 'nanstd');
-%             hold on
-%             [~,p,~] = lineplot(A.Horizon , A.MT , 'plotfcn' , 'nanmean', 'errorfcn' , 'nanstd');
+
             ANA = A;
             ANA.RT = ANA.AllPressTimes(:,1)-1500;
-            model = @(param,T,runNum , i) slm_optimSimTrial(param , T , runNum , i , parName , 'optim' , noise); % Model Function
-            M = tapply(ANA , {'Horizon'} , {'MT' , 'nanmedian'},{'RT' , 'nanmedian'});
-            x_desired = [M.RT]';
+            model = @(param,T, M ,runNum , i) slm_optimSimTrial(param , T ,M, runNum , i , parName , 'optim' , noise); % Model Function
+            
+            
+            
+            % set up the inputs to the model funtion T , M
             SeqLength = unique(ANA.seqlength);
             T.TN = ANA.TN;
             T.Horizon = ANA.Horizon;
@@ -199,14 +191,35 @@ switch what
             T.stimTime = zeros(length(ANA.TN) , SeqLength);
             T.stimulus = ANA.AllPress;
             T.forcedPressTime = nan(length(ANA.TN) , SeqLength);
-            
-            % Set up the cost function
-            x_desired = [ANA.RT]';% mean(ANA.IPI(: ,4:10) , 2) ANA.IPI(: , 11:13)];
-            
             T.Horizon =repmat(T.Horizon , 1, SeqLength) .*(ones(length(T.TN),SeqLength));
             for tn = 1:length(T.TN)
                 T.Horizon(tn , 1:T.Horizon(tn)) = NaN;
             end
+            
+            % set the default M values
+            M.numOptions = 5;
+            M.dT_visual  = 90;
+            M.Ainhibit   = 0;
+            M.Capacity   =5;
+            
+            M.dT_motor   = 150;
+            M.dtGrowth = 1;
+            M.TSDecayParam  = 7.75;
+            M.Aintegrate  = 0.9417;
+            if~noise
+                M.SigEps      = 0;
+            else
+                M.SigEps      = 0.02;
+            end
+            bAll = 0.6;
+            M.Bound = bAll.*ones(M.Capacity,size(T.stimulus , 2));
+            M.PlanningCurve = 'exp';
+            M.DecayParam   = 7; % the decay constant for the 'exp' option of PlanningCurve
+            M.B0 = 7;           % parameter 1 for the 'logistic' option of PlanningCurve
+            M.B_coef = 2;       % parameter 2 for the 'logistic' option of PlanningCurve
+            M.Box = 1;          % box size for the 'boxcar' option of PlanningCurve
+            M.rampDecay = 14;   % number of steps between 1 and 0 for the 'ramp' option of PlanningCurve
+            M.theta_stim = [0.035]; 
             
             
             % curate the initial parameters if told to do so
@@ -216,8 +229,15 @@ switch what
                 rawinitParam = mapminmax(org , .3,.6);
                 initParam = rawinitParam;
             end
+            % set up the cost function and the desired output
+            G = tapply(ANA , {'Horizon'} , {'MT' , 'nanmedian'},{'RT' , 'nanmedian'});
+            x_desired = [];
+            for xd = 1:length(desiredField)
+                eval(['x_desired = [x_desired ; G.' , desiredField{xd} , '];'] )
+            end
+            x_desired = x_desired';
             
-            OLS = @(param) nansum(nansum((model(param,T,runNum , i) - x_desired).^2));
+            OLS = @(param) nansum(nansum((model(param,T, M ,runNum , i) - x_desired).^2));
             
             opts = optimset('MaxIter', ItrNum ,'TolFun',1e+03,'Display','iter' , 'TolX' , 1e-8);
             [Param Fval] = fminsearchbnd(OLS,initParam,loBound,hiBound, opts);

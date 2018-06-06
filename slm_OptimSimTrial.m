@@ -1,4 +1,4 @@
-function R = slm_optimSimTrial(par , T , runNum ,cycNum , parName , mode , noise)
+function R = slm_optimSimTrial(par , T , M ,runNum ,cycNum , parName , mode , noise)
 %% Intro
 % function R = slm_optimSimTrial(par , T , runNum ,cycNum , parName , mode , noise)
 % incoporates horizon size (T.Horizon) as well as buffer size (M.Capacity)
@@ -42,30 +42,12 @@ if~isempty(runNum) % is runNum is empty it means we are just simulating with a s
     param = addstruct(param , P);
     save([mainDir , 'SequenceLearningModel/param' , runNum , '.mat'] ,'param' );
 end
-%% hardcode tha parametrs in the model that need to be kept constant
 
-M.numOptions = 5;
-M.dT_visual  = 90;
-M.Ainhibit   = 0;
-M.Capacity   =5;% 7;
-M.DecayParam   = 7;
-M.dT_motor   = 150;
-M.dtGrowth = 1;
-M.TSDecayParam  = 7.75;
-M.TSmin = 0.03775;
-M.Aintegrate  = 0.941727795;
-if~noise
-    M.SigEps      = 0;
-else
-    M.SigEps      = 0.02;
-end
-bAll = 0.6;
-M.Bound = bAll.*ones(M.Capacity,size(T.stimulus , 2));
-M.Bound(:,1) = [.60041;.60143  ;.606171; .605914 ;.603727];
-M.B0 = 4;
-M.B_coef = 0.351509146252228;
 origCap = M.Capacity; % to preserve the original M.Capacity in designs that the capacity/horizon keeps changing
-
+%% substitute the pre-set parameters with optimization parameters
+for pn = 1:length(parName)
+    eval(['M.' , parName{pn} , ' = par(pn);'] )
+end
 %% modulating theta_stim with capacity
 
 % ========= creating an exponential decay
@@ -76,22 +58,18 @@ origCap = M.Capacity; % to preserve the original M.Capacity in designs that the 
 % M.theta_stim = M.TSmin + (K.MT_norm).* M.TSmin;
 % M.theta_stim = [0.034989 0.04042 0.047 0.054 0.0622]; N = 13
 % M.theta_stim = [0.0349899858731604,0.0404294904253830,0.0474978731759359,0.0544961706444883,0.0622975992041242]; % N = 15
-M.theta_stim =   [0.0349877979,   0.0404294904253830,   0.047005,          0.0542 ,0.0622975992041242]; % N = 15
 
 
-%% substitute the pre-set parameters with optimization parameters
-% for pn = 1:length(parName)
-%     eval(['M.' , parName{pn} , ' = par(pn);'] )
-% end
+
 %% 
 AllT = T;
 AllR = [];
 R = [];
 clear Growth
-H = [1:6];
+H = [2:.5:4.5];
 Xdomain = [-8:8];
 for h = 1:length(H) % the decay constant. the bigger the b the faster the decay --> reached 0 faster
-    B1 = M.B0 - (max(H)-h+1)*M.B_coef;
+    B1 = M.B0 - (max(H)-H(h)+1)*M.B_coef;
     Decay(h,:) = 1./(1+1*exp(B1*Xdomain));
 end
 for trls = 1:length(T.TN)
@@ -148,7 +126,7 @@ for trls = 1:length(T.TN)
     PlanIndx= prs+1 : prs+1+(maxPlan(nDecision)-1);
     
     
-    %% multiplier funstion for the stimulus evidence intake
+    %% planning curve funsction for the stimulus evidence intake
     % ============== exponential decay   1
     %     cap_mult = ones(1,M.Capacity-1);
     %     mult = [cap_mult , zeros(1,length(dec))];
@@ -158,7 +136,6 @@ for trls = 1:length(T.TN)
     mult = exp(-([1:maxPresses]-1)./M.DecayParam);
     mult(M.Capacity+1:end) = 0;
     T.mult = mult;
-    
     % ============== logistic decay
     %     mult = Decay(M.Capacity , 1:maxPresses);
     
