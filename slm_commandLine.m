@@ -263,15 +263,15 @@ parName = {'SigEps'};
 se = [0 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09];
 
 allFit = [];
-filename = ['param'  , '7_', num2str(h),'_',num2str(day), '.mat'];
-load(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
+filename = ['param'  , '8_', num2str(h),'_',num2str(day), '.mat'];
+load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
 par = param.par(end , :);
-for i = 1%:length(se)
+for i = 1:length(se)
 %     par = se(i);
     day = [4 5];
     close all
-    [R] = slm_optimSimulate(Dall , 'allwindows' , par  , 'parName' , parName,'samNum'  , [] ,...
-        'Day' , day, 'Horizon' , [1:13] , 'poolHorizons' , [5:13] , 'noise' ,0 , 'subjNum' , [1:15]);
+    [R] = slm_optimSimulate(Dall , 'allwindows' , par  , 'parName' , parName,'samNum'  , 100 ,...
+        'Day' , day, 'Horizon' , [1:13] , 'poolHorizons' , [5:13] , 'noise' ,1 , 'subjNum' , [1:15]);
     R.SigEps = se(i)*ones(size(R.MT));
     allFit = addstruct(allFit , R);
 end

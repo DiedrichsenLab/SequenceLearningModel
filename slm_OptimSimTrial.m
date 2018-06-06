@@ -53,7 +53,6 @@ M.dT_motor   = 150;
 M.dtGrowth = 1;
 M.TSDecayParam  = 7.75;
 M.TSmin = 0.03775;
-%               0.941727795107543;
 M.Aintegrate  = 0.941727795;
 if~noise
     M.SigEps      = 0;
@@ -62,9 +61,8 @@ else
 end
 bAll = 0.6;
 M.Bound = bAll.*ones(M.Capacity,size(T.stimulus , 2));
-M.Bound(:,1) = [.60042;.601295 ;.606129; .6037 ;.602804];
-M.Bound(:,1) = [.60041;.60143 ;.606129; .6037 ;.602804];
-M.B0 = 4;%3.85478167568902;
+M.Bound(:,1) = [.60041;.60143  ;.606171; .605914 ;.603727];
+M.B0 = 4;
 M.B_coef = 0.351509146252228;
 origCap = M.Capacity; % to preserve the original M.Capacity in designs that the capacity/horizon keeps changing
 
@@ -82,9 +80,9 @@ M.theta_stim =   [0.0349877979,   0.0404294904253830,   0.047005,          0.054
 
 
 %% substitute the pre-set parameters with optimization parameters
-% for pn = 1:length(parName)
-%     eval(['M.' , parName{pn} , ' = par(pn);'] )
-% end
+for pn = 1:length(parName)
+    eval(['M.' , parName{pn} , ' = par(pn);'] )
+end
 %% 
 AllT = T;
 AllR = [];

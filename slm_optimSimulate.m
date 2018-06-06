@@ -224,7 +224,7 @@ switch what
             R.isError(tn,1) = ~isequal(R.stimulus(tn, :) , R.response(tn  ,:));
         end
         %% Horizon
-        plt = 1;
+        plt = 0;
         if plt
             C = R;
             R = getrow(R , ~R.isError);
@@ -250,11 +250,12 @@ switch what
                 'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
                 'linewidth' , 3 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
                 'markersize' , 10, 'markercolor' , colorz , 'leg' , {'Fitted' , 'Actual'});
-            
             title('MT')
             grid on
-            set(gca , 'FontSize' , 16)
+            set(gca , 'FontSize' , 16, 'YLim' , [3000 7000])
             xlabel('Horizon')
+            
+            
             subplot(212)
             lineplot(All.singleH , All.RT , 'plotfcn' , 'nanmedian',...
                 'split', All.fitoract  , 'linecolor' , colorz,...
@@ -264,7 +265,7 @@ switch what
             title('RT')
             xlabel('Horizon')
             grid on
-            set(gca , 'FontSize' , 16)
+            set(gca , 'FontSize' , 16 , 'YLim' , [400 750])
             
             MTRT = All;
             %% IPI
