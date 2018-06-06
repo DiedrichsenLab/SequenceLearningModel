@@ -237,7 +237,7 @@ hiBound = [0.02 , 0.988 0.05 .6 .6 .6 .6];
 % day 1  - window size = 1
 
 
-parName = {'theta_stim(1)' 'theta_stim(2)' 'theta_stim(3)' 'theta_stim(4)' 'theta_stim(5)' 'Aintegrate'};
+parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' , 'Bound(4)' 'Bound(5)'};
 
 %  parName = {'B0'};% 'B_coef'};
 % loBound = [ 1];
@@ -246,13 +246,13 @@ parName = {'theta_stim(1)' 'theta_stim(2)' 'theta_stim(3)' 'theta_stim(4)' 'thet
 
 
 
-loBound = [0.0349 0.0404 0.046 0.053 0.0621 0.94172];
-hiBound = [0.03499 0.04043 0.0475 0.0545 0.0623 0.94173];
+loBound = [.4 ;.4 ;.4; .4 ;.4];
+hiBound = [.7 ;.7 ;.7; .7 ;.7];
 h=0;
 day = [4 5];
 H = {[1] [2] [3] [4] [5:13]};
-initParam = [0.034989 0.04042 0.047 0.054 0.0622 0.94173];%[0.034989 0.04042 0.047 0.054 0.0622];%3.85478167568902,0.451509146252228];%[0.45 0.45 0.45 0.45 0.45 0.45 0.45 0.45];
-[Param Fval] = slm_optimize(Dall , 'allwindows' ,  initParam , 'parName' , parName,'runNum' ,['7_',num2str(h),'_',num2str(day)] , 'cycNum' , 10 ,'samNum'  , [] ,...
+initParam = [.6 ;.601295 ;.606129; .6037 ;.602804];;%[0.034989 0.04042 0.047 0.054 0.0622];%3.85478167568902,0.451509146252228];%[0.45 0.45 0.45 0.45 0.45 0.45 0.45 0.45];
+[Param Fval] = slm_optimize(Dall , 'allwindows' ,  initParam , 'parName' , parName,'runNum' ,['8_',num2str(h),'_',num2str(day)] , 'cycNum' , 10 ,'samNum'  , [] ,...
     'ItrNum' , 200 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , day , 'Horizon' , [1:13] , 'poolHorizons' , [5:13],...
     'customizeInitParam' , 0,'noise' , 0 ,  'subjNum' , [1:15]);
 close all

@@ -62,7 +62,8 @@ else
 end
 bAll = 0.6;
 M.Bound = bAll.*ones(M.Capacity,size(T.stimulus , 2));
-M.Bound(:,1) = [.60042 ;.601295 ;.606129; .6037 ;.602804];
+M.Bound(:,1) = [.60042;.601295 ;.606129; .6037 ;.602804];
+M.Bound(:,1) = [.60041;.60143 ;.606129; .6037 ;.602804];
 M.B0 = 4;%3.85478167568902;
 M.B_coef = 0.351509146252228;
 origCap = M.Capacity; % to preserve the original M.Capacity in designs that the capacity/horizon keeps changing
@@ -269,10 +270,10 @@ switch mode
     case {'optim'}
         if length(unique(AllR.singleH))==1
 %             R =  [AllR.RT AllR.IPI(: , 1:13)];% mean(AllR.IPI(: ,4:10) , 2) AllR.IPI(: , 11:13)];
-            R =  [AllR.MT]';
+            R =  [AllR.RT]';
             R(isnan(R))=10e+10;
         else
-            R =  [AllR.MT]';% mean(AllR.IPI(: ,4:10) , 2) AllR.IPI(: , 11:13)];
+            R =  [AllR.RT]';% mean(AllR.IPI(: ,4:10) , 2) AllR.IPI(: , 11:13)];
             R(isnan(R))=10e+10;
         end
     case{'sim'}
