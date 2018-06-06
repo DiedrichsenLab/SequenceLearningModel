@@ -80,9 +80,9 @@ M.theta_stim =   [0.0349877979,   0.0404294904253830,   0.047005,          0.054
 
 
 %% substitute the pre-set parameters with optimization parameters
-for pn = 1:length(parName)
-    eval(['M.' , parName{pn} , ' = par(pn);'] )
-end
+% for pn = 1:length(parName)
+%     eval(['M.' , parName{pn} , ' = par(pn);'] )
+% end
 %% 
 AllT = T;
 AllR = [];
@@ -250,11 +250,19 @@ for trls = 1:length(T.TN)
         end
     end;
     T.X{1} = X(:,1:i,:);
-    
+    T.B{1} = M.Bound;
     if size(T.pressTime , 2)~=size(T.stimulus , 2) || size(T.decisionTime , 2)~=size(T.stimulus , 2)
         T.pressTime = nan(1 , size(T.stimulus , 2));
         T.decisionTime = nan(1 , size(T.stimulus , 2));
         T.response = nan(1 , size(T.stimulus , 2));
+        
+    end
+    pltTrial = 0;
+    if pltTrial
+        SIM.t = t(1,1:i);
+        SIM.B = repmat(T.B{1}(nanmean(T.Horizon) , :) , length(SIM.t) , 1);
+        SIM.X = T.X{1};
+        slm_plotTrial('TrialHorseRace' , SIM , T)
     end
     AllR = addstruct(AllR , T);
     

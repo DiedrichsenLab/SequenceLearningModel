@@ -13,12 +13,14 @@ switch what
         for i = 1:length(numDec)
             T.decNum(T.decisionTime == numDec(i)) = i;
         end
-        
+        if size(SIM.B , 2)<length(T.stimTime)
+            SIM.B = repmat(SIM.B , 1,length(T.stimTime));
+        end
         for i=1:numPresses
             subplot(numPresses,1,i);
             plot(SIM.t,SIM.X(:,:,i));
             hold on;
-            plot(SIM.t,SIM.B,'k', 'LineWidth' , 1.5);
+            plot(SIM.t,SIM.B(:,i),'k', 'LineWidth' , 1.5);
             ylim = get(gca , 'YLim');
             h1 = line([T.stimTime(i) T.stimTime(i)] , ylim ,'color','r','linestyle',':' , 'LineWidth' , 2);
             h2 = line([T.decisionTime(i) T.decisionTime(i)] , ylim,'color','r', 'LineWidth' , 2);
@@ -44,8 +46,8 @@ switch what
                 text(10,.9 , ['Horizon = ' , num2str(T.Horizon) , '  -  Buffer size = ' , num2str(SIM.bufferSize)])
             end
             
-            title(['Decision No. ' ,num2str(T.decNum(i)), ', press No.' , num2str(i)])
-            set(gca , 'Box' , 'off' , 'FontSize' , 16)
+%             title(['Decision No. ' ,num2str(T.decNum(i)), ', press No.' , num2str(i)])
+            set(gca , 'Box' , 'off' , 'FontSize' , 10)
         end;
     case 'BlockMT'
         %colorz = {[0 0  1],[1 0 0],[0 1 0],[1 0 1],[0 1 1],[0.7 0.7 0.7],[1 1 0],[.3 .3 .3]};

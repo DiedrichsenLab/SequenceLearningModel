@@ -40,6 +40,26 @@ while(c<=length(varargin))
             error('Unknown option: %s',varargin{c});
     end
 end
+c1 = [255, 153, 179]/255; % Random Red Tones
+ce = [153, 0, 51]/255;
+for rgb = 1:3
+    tempcol(rgb , :) = linspace(c1(rgb),ce(rgb) , 6);
+end
+for i = 1:length(tempcol)
+    colz{i,1} = tempcol(: , i)';
+end
+
+clear tempcol
+c1 = [153, 194, 255]/255; % structured blue tones
+ce = [0, 0, 102]/255;
+for rgb = 1:3
+    tempcol(rgb , :) = linspace(c1(rgb),ce(rgb) , 6);
+end
+for i = 1:length(tempcol)
+    colz{i,2} = tempcol(: , i)';
+    avgCol{i} = mean([colz{i,2} ; colz{i,1}],1);
+end
+
 
 Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) & ...
     ismember(Dall.Horizon , Horizon) & ismember(Dall.SN , subjNum));
@@ -112,7 +132,7 @@ switch what
         
         figure('color' , 'white')
         subplot(211)
-        colorz = {[0.840000000000000,0.360000000000000,0.501176470588235],[0.360000000000000,0.456470588235294,0.760000000000000]};
+        colorz = colz(3,:);%{[0.840000000000000,0.360000000000000,0.501176470588235],[0.360000000000000,0.456470588235294,0.760000000000000]};
         lineplot(All.singleH , All.MT , 'plotfcn' , 'nanmean',...
             'split', All.fitoract  , 'linecolor' , colorz,...
             'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
@@ -224,7 +244,7 @@ switch what
             R.isError(tn,1) = ~isequal(R.stimulus(tn, :) , R.response(tn  ,:));
         end
         %% Horizon
-        plt = 0;
+        plt = 1;
         if plt
             C = R;
             R = getrow(R , ~R.isError);
@@ -244,7 +264,7 @@ switch what
             
             figure('color' , 'white')
             subplot(211)
-            colorz = {[0.840000000000000,0.360000000000000,0.501176470588235],[0.360000000000000,0.456470588235294,0.760000000000000]};
+            colorz = colz(3,:);{[0.840000000000000,0.360000000000000,0.501176470588235],[0.360000000000000,0.456470588235294,0.760000000000000]};
             lineplot(All.singleH , All.MT , 'plotfcn' , 'nanmedian',...
                 'split', All.fitoract  , 'linecolor' , colorz,...
                 'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
@@ -265,7 +285,7 @@ switch what
             title('RT')
             xlabel('Horizon')
             grid on
-            set(gca , 'FontSize' , 16 , 'YLim' , [400 750])
+            set(gca , 'FontSize' , 16 , 'YLim' , [300 750])
             
             MTRT = All;
             %% IPI
@@ -273,12 +293,12 @@ switch what
             Act = [];
             Fit = [];
             clear Fit Act
-            Fit.IPI = R(:,2:end-1);
+            Fit.IPI = R.IPI;
             Fit.IPI = reshape(Fit.IPI , numel(Fit.IPI) , 1);
             Act.IPI = ANA.IPI;
             Act.IPI = reshape(Act.IPI , numel(Act.IPI) , 1);
             
-            Fit.singleH  = repmat(nanmean(T.Horizon, 2) , 1 , size(T.stimulus,2)-1);
+            Fit.singleH  = repmat(nanmean(R.Horizon, 2), 1 , size(ANA.AllPress,2)-1);
             Fit.singleH  = reshape(Fit.singleH , numel(Fit.IPI) , 1);
             Act.singleH  = repmat(nanmean(ANA.Horizon, 2) , 1 , size(ANA.AllPress,2)-1);
             Act.singleH  = reshape(Act.singleH , numel(Act.IPI) , 1);
@@ -294,19 +314,34 @@ switch what
             
             
             All  = addstruct(Fit , Act);
-            
+            colorz = colz(:,1);
             figure('color' , 'white')
-            
+            subplot(211)
             lineplot(All.ipiNum , All.IPI , 'plotfcn' , 'nanmedian',...
-                'split', All.fitoract  , 'linecolor' , colorz,...
+                'split', All.singleH  , 'linecolor' , colorz,...
                 'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
                 'linewidth' , 3 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
-                'markersize' , 10, 'markercolor' , colorz , 'leg' , {'Fitted' , 'Actual'});
+                'markersize' , 10, 'markercolor' , colorz , 'leg' , {'H = 1' , 'H = 2' , 'H = 3' , 'H = 4' , 'H = 5-13'} , ...
+                'subset' , All.fitoract == 0);
             
-            title('IPIs')
+            title('IPIs - fitted')
             xlabel('IPIs number')
             grid on
-            set(gca , 'FontSize' , 16)
+            set(gca , 'FontSize' , 16 , 'YLim' , [150 550])
+            
+            subplot(212)
+            colorz = colz(:,2);
+            lineplot(All.ipiNum , All.IPI , 'plotfcn' , 'nanmedian',...
+                'split', All.singleH  , 'linecolor' , colorz,...
+                'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
+                'linewidth' , 3 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
+                'markersize' , 10, 'markercolor' , colorz , 'leg' , {'H = 1' , 'H = 2' , 'H = 3' , 'H = 4' , 'H = 5-13'} , ...
+                'subset' , All.fitoract == 1);
+            
+            title('IPIs - Actual')
+            xlabel('IPIs number')
+            grid on
+            set(gca , 'FontSize' , 16 , 'YLim' , [150 550])
             IPI = All;
         end
 end
