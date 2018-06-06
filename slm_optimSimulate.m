@@ -32,12 +32,17 @@ while(c<=length(varargin))
             % 1 or 0 -
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'subjNum'}
+            % subjects to include in modeling
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error('Unknown option: %s',varargin{c});
     end
 end
 
-Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) & ismember(Dall.Horizon , Horizon));
+Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) & ...
+    ismember(Dall.Horizon , Horizon) & ismember(Dall.SN , subjNum));
 if ~isempty(poolHorizons)
     Dall.Horizon(ismember(Dall.Horizon , poolHorizons)) = poolHorizons(1);
 end
@@ -219,7 +224,7 @@ switch what
             R.isError(tn,1) = ~isequal(R.stimulus(tn, :) , R.response(tn  ,:));
         end
         %% Horizon
-        plt = 0;
+        plt = 1;
         if plt
             C = R;
             R = getrow(R , ~R.isError);

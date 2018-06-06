@@ -59,14 +59,19 @@ while(c<=length(varargin))
             % 1 or 0 -
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'subjNum'}
+            % subjects to include in modeling
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error('Unknown option: %s',varargin{c});
     end
 end
-% mainDir = '/Users/nkordjazi/Documents/GitHub/';
-mainDir = '/Users/nedakordjazi/Documents/GitHub/';
+mainDir = '/Users/nkordjazi/Documents/GitHub/';
+% mainDir = '/Users/nedakordjazi/Documents/GitHub/';
 %% optimization
-Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) & ismember(Dall.Horizon , Horizon));
+Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) &...
+    ismember(Dall.Horizon , Horizon) & ismember(Dall.SN , subjNum));
 if ~isempty(poolHorizons)
     Dall.Horizon(ismember(Dall.Horizon , poolHorizons)) = poolHorizons(1);
 end
@@ -214,7 +219,7 @@ switch what
             
             OLS = @(param) nansum(nansum((model(param,T,runNum , i) - x_desired).^2));
             
-            opts = optimset('MaxIter', ItrNum ,'TolFun',1e+03,'Display','iter' , 'TolX' , 1e-7);
+            opts = optimset('MaxIter', ItrNum ,'TolFun',1e+03,'Display','iter' , 'TolX' , 1e-8);
             [Param Fval] = fminsearchbnd(OLS,initParam,loBound,hiBound, opts);
         end
 end

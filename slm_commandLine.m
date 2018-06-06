@@ -237,41 +237,41 @@ hiBound = [0.02 , 0.988 0.05 .6 .6 .6 .6];
 % day 1  - window size = 1
 
 
-% parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' 'Bound(4)' 'Bound(5)' 'Bound(6)'...
-%     'Bound(7)' 'Bound(8)' 'Bound(9)' 'Bound(10)' 'Bound(11)' 'Bound(12)' 'Bound(13)' 'Bound(14)'};
+parName = {'theta_stim(1)' 'theta_stim(2)' 'theta_stim(3)' 'theta_stim(4)' 'theta_stim(5)' 'Aintegrate'};
 
 %  parName = {'B0'};% 'B_coef'};
 % loBound = [ 1];
 % hiBound = [6];
 
-parName = {'Bound(1)'};
 
 
-loBound = [.1 ];
-hiBound = [.8];
+
+loBound = [0.0349 0.0404 0.046 0.053 0.0621 0.94172];
+hiBound = [0.03499 0.04043 0.0475 0.0545 0.0623 0.94173];
 h=0;
 day = [4 5];
 H = {[1] [2] [3] [4] [5:13]};
-initParam = [0.6];%3.85478167568902,0.451509146252228];%[0.45 0.45 0.45 0.45 0.45 0.45 0.45 0.45];
-[Param Fval] = slm_optimize(Dall , 'allwindows' ,  initParam , 'parName' , parName,'runNum' ,['5_',num2str(h),'_',num2str(day)] , 'cycNum' , 1 ,'samNum'  , 4 ,...
-    'ItrNum' , 1 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , day , 'Horizon' , [1:13] , 'poolHorizons' , [5:13],...
-    'customizeInitParam' , 0,'noise' , 0);
+initParam = [0.034989 0.04042 0.047 0.054 0.0622 0.94173];%[0.034989 0.04042 0.047 0.054 0.0622];%3.85478167568902,0.451509146252228];%[0.45 0.45 0.45 0.45 0.45 0.45 0.45 0.45];
+[Param Fval] = slm_optimize(Dall , 'allwindows' ,  initParam , 'parName' , parName,'runNum' ,['7_',num2str(h),'_',num2str(day)] , 'cycNum' , 10 ,'samNum'  , [] ,...
+    'ItrNum' , 200 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , day , 'Horizon' , [1:13] , 'poolHorizons' , [5:13],...
+    'customizeInitParam' , 0,'noise' , 0 ,  'subjNum' , [1:15]);
 close all
-%%
+%% Simulate
 h = 0;
 day = [4 5];
 parName = {'SigEps'};
 se = [0 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09];
 
 allFit = [];
-filename = ['param'  , '5_', num2str(h),'_',num2str(day), '.mat'];
-load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
+filename = ['param'  , '7_', num2str(h),'_',num2str(day), '.mat'];
+load(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
 par = param.par(end , :);
 for i = 1%:length(se)
-    par = se(i);
+%     par = se(i);
     day = [4 5];
-    [R] = slm_optimSimulate(Dall , 'allwindows' , par  , 'parName' , parName,'samNum'  , 1 ,...
-        'Day' , day, 'Horizon' , [1:13] , 'poolHorizons' , [5:13] , 'noise' ,1);
+    close all
+    [R] = slm_optimSimulate(Dall , 'allwindows' , par  , 'parName' , parName,'samNum'  , [] ,...
+        'Day' , day, 'Horizon' , [1:13] , 'poolHorizons' , [5:13] , 'noise' ,0 , 'subjNum' , [1:15]);
     R.SigEps = se(i)*ones(size(R.MT));
     allFit = addstruct(allFit , R);
 end

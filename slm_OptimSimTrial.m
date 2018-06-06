@@ -1,23 +1,23 @@
 function R = slm_optimSimTrial(par , T , runNum ,cycNum , parName , mode , noise)
+%% Intro
+% function R = slm_optimSimTrial(par , T , runNum ,cycNum , parName , mode , noise)
+% incoporates horizon size (T.Horizon) as well as buffer size (M.Capacity)
+% multiple planning possible
+% Simulates a trial using a parallel evidence-accumulation model for sequential response tasks
 
-%% parameters in the model (M) to be optimized
-% M.capacity   = par(1);
-% M.theta_stim = par(2);
-% M.Aintegrate = par(3);
-% M.Ainhibit   = par(4);
-% M.dtGrowth   = par(5);
-% M.SigEps     = par(6);
-% DecayParam   = par(7);
 
-%% outpu    [Raction time - 13 IPIS]
+% the model is basically an ARX (auroregressive with exogenious input).
+% X(i) = A*X(i-1) + Theta*Stimulus(i) + Noise      X defined the tensor of current state of decision making horseraces
+
+%% housekeeping
 
 D = dir;
 N = {};
 for i = 1:length(D)
     N = [N {D(i).name}];
 end
-% mainDir = '/Users/nkordjazi/Documents/GitHub/';
-mainDir = '/Users/nedakordjazi/Documents/GitHub/';
+mainDir = '/Users/nkordjazi/Documents/GitHub/';
+% mainDir = '/Users/nedakordjazi/Documents/GitHub/';
 % save a new emty variable to ammend with optimization iterations
 if~isempty(runNum) % is runNum is empty it means we are just simulating with a set of parametrs
     cd([mainDir , 'SequenceLearningModel'])
@@ -42,9 +42,8 @@ if~isempty(runNum) % is runNum is empty it means we are just simulating with a s
     param = addstruct(param , P);
     save([mainDir , 'SequenceLearningModel/param' , runNum , '.mat'] ,'param' );
 end
-%% we are going to hardcode tha parametrs in the model that we want to keep constant
+%% hardcode tha parametrs in the model that need to be kept constant
 
-% M.Bound      = 0.45;
 M.numOptions = 5;
 M.dT_visual  = 90;
 M.Ainhibit   = 0;
@@ -52,11 +51,12 @@ M.Capacity   =5;% 7;
 M.DecayParam   = 7;
 M.dT_motor   = 150;
 M.dtGrowth = 1;
-M.TSDecayParam  = 7.75;%5;
+M.TSDecayParam  = 7.75;
 M.TSmin = 0.03775;
-M.Aintegrate  = 0.94173;
+%               0.941727795107543;
+M.Aintegrate  = 0.941727795;
 if~noise
-    M.SigEps      = 0;%0.01;
+    M.SigEps      = 0;
 else
     M.SigEps      = 0.02;
 end
@@ -66,29 +66,25 @@ M.Bound(:,1) = [.60042 ;.601295 ;.606129; .6037 ;.602804];
 M.B0 = 4;%3.85478167568902;
 M.B_coef = 0.351509146252228;
 origCap = M.Capacity; % to preserve the original M.Capacity in designs that the capacity/horizon keeps changing
-% for pn = 1:length(parName)
-%     eval(['M.' , parName{pn} , ' = par(pn);'] )
-% end
+
 %% modulating theta_stim with capacity
 
 % ========= creating an exponential decay
 % M.theta_stim  = M.TSmin*exp(-([M.Capacity:-1:1]-1)./M.TSDecayParam);%linspace(0.01,0.04,M.Capacity);
 
 % ========= modulating with actual MTs
-load([mainDir ,'SequenceLearningModel/MTRTday5.mat'])
+% load([mainDir ,'SequenceLearningModel/MTRTday5.mat'])
 % M.theta_stim = M.TSmin + (K.MT_norm).* M.TSmin;
-M.theta_stim = [0.034989 0.04042 0.047 0.054 0.0622];
-%%
-% function [T,SIM]=slm_simTrial(M,T,varargin);
-% incoporates horizon size (T.Horizon) as well as buffer size (M.Capacity)
-% multiple planning possible
-% Simulates a trial using a parallel evidence-accumulation model for sequential response tasks
+% M.theta_stim = [0.034989 0.04042 0.047 0.054 0.0622]; N = 13
+% M.theta_stim = [0.0349899858731604,0.0404294904253830,0.0474978731759359,0.0544961706444883,0.0622975992041242]; % N = 15
+M.theta_stim =   [0.0349877979,   0.0404294904253830,   0.047005,          0.0542 ,0.0622975992041242]; % N = 15
 
 
-% the model is basically an ARX (auroregressive with exogenious input).
-% X(i) = A*X(i-1) + Theta*Stimulus(i) + Noise      X defined the tensor of current state of decision making horseraces
-
-%%
+%% substitute the pre-set parameters with optimization parameters
+% for pn = 1:length(parName)
+%     eval(['M.' , parName{pn} , ' = par(pn);'] )
+% end
+%% 
 AllT = T;
 AllR = [];
 R = [];
@@ -273,10 +269,10 @@ switch mode
     case {'optim'}
         if length(unique(AllR.singleH))==1
 %             R =  [AllR.RT AllR.IPI(: , 1:13)];% mean(AllR.IPI(: ,4:10) , 2) AllR.IPI(: , 11:13)];
-            R =  [AllR.RT]';
+            R =  [AllR.MT]';
             R(isnan(R))=10e+10;
         else
-            R =  [AllR.RT]';% mean(AllR.IPI(: ,4:10) , 2) AllR.IPI(: , 11:13)];
+            R =  [AllR.MT]';% mean(AllR.IPI(: ,4:10) , 2) AllR.IPI(: , 11:13)];
             R(isnan(R))=10e+10;
         end
     case{'sim'}
