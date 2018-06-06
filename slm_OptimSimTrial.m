@@ -65,13 +65,7 @@ end
 AllT = T;
 AllR = [];
 R = [];
-clear Growth
-H = [2:.5:4.5];
-Xdomain = [-8:8];
-for h = 1:length(H) % the decay constant. the bigger the b the faster the decay --> reached 0 faster
-    B1 = M.B0 - (max(H)-H(h)+1)*M.B_coef;
-    Decay(h,:) = 1./(1+1*exp(B1*Xdomain));
-end
+
 for trls = 1:length(T.TN)
     M.Capacity   = origCap;
     T = getrow(AllT , trls);
@@ -127,21 +121,25 @@ for trls = 1:length(T.TN)
     
     
     %% planning curve funsction for the stimulus evidence intake
-    % ============== exponential decay   1
-    %     cap_mult = ones(1,M.Capacity-1);
-    %     mult = [cap_mult , zeros(1,length(dec))];
-    %     mult = [mult(logical(mult)) , exp(-[dec-nDecision]./M.DecayParam)];      % How much stimulus exponentia decay
-    %
-    % ============== exponential decay   2
-    mult = exp(-([1:maxPresses]-1)./M.DecayParam);
-    mult(M.Capacity+1:end) = 0;
-    T.mult = mult;
-    % ============== logistic decay
-    %     mult = Decay(M.Capacity , 1:maxPresses);
-    
-    % ============== all ones --> when modulating theta_stim
-    %     mult = ones(1,maxPresses);
-    
+    switch M.PlanningCurve
+        case 'exp'
+            %% ============== exponential decay   1 --> ones for the
+            % capacity and then exp decay
+            cap_mult = ones(1,M.Capacity-1);
+            mult = [cap_mult , zeros(1,length(dec))];
+            mult = [mult(logical(mult)) , exp(-[dec-nDecision]./M.DecayParam)];      % How much stimulus exponentia decay
+            %% ============== exponential decay   2 --> expdecay and then zeros from capacity onwards
+%             mult = exp(-([1:maxPresses]-1)./M.DecayParam);
+%             mult(M.Capacity+1:end) = 0;
+%             T.mult = mult;
+        case 'logistic'
+            Xdomain = [-7:6];
+            mult = 1./(1+1*exp(                            M.B_coef*Xdomain));
+        case 'box'
+        case 'ramp'
+    end
+            
+
     %%
     
     dtgrowth = linspace(M.dT_motor ,M.dT_motor* M.dtGrowth, M.Capacity);

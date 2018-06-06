@@ -215,8 +215,7 @@ switch what
             M.Bound = bAll.*ones(M.Capacity,size(T.stimulus , 2));
             M.PlanningCurve = 'exp';
             M.DecayParam   = 7; % the decay constant for the 'exp' option of PlanningCurve
-            M.B0 = 7;           % parameter 1 for the 'logistic' option of PlanningCurve
-            M.B_coef = 2;       % parameter 2 for the 'logistic' option of PlanningCurve
+            M.B_coef = 1;       % for the 'logistic' option of PlanningCurve
             M.Box = 1;          % box size for the 'boxcar' option of PlanningCurve
             M.rampDecay = 14;   % number of steps between 1 and 0 for the 'ramp' option of PlanningCurve
             M.theta_stim = [0.035]; 
