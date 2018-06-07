@@ -7,7 +7,7 @@ h=0;
 initParam = [0.3 0.98 0.01];
 day = [4 5];
 h = 0;
-[Param Fval] = slm_optimize(Dall , 'allwindows' ,  initParam , 'parName' , parName,'runNum' ,['9_',num2str(h),'_',num2str(day)] , 'cycNum' , 7 ,'samNum'  , [] ,...
+[Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['0_',num2str(h),'_',num2str(day)] , 'cycNum' , 7 ,'samNum'  , [] ,...
     'ItrNum' , 1000 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , day , 'Horizon' , [1:13] , 'poolHorizons' , [5:13],...
     'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'MT'} , ...
     'MsetField' , {'PlanningCurve' , 'logistic'});
@@ -26,11 +26,20 @@ filename = 'paramexp.mat';
 load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
 parName = param.parName(end,:);
 par = param.par(end , :);
-[R] = slm_optimSimulate(Dall , 'allwindows' , par  , 'parName' , parName,'samNum'  , 100 ,...
-        'Day' , day, 'Horizon' , [1:13] , 'poolHorizons' , [5:13] , 'noise' ,0 , 'subjNum' , [1:15],...
-        'MsetField' , {'PlanningCurve' , 'exp'});
+[R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 100 ,...
+        'Day' , day, 'Horizon' , [1] , 'poolHorizons' , [5:13] , 'noise' ,0 , 'subjNum' , [1:15],...
+        'MsetField' , {'PlanningCurve' , 'exp' , 'SigEps' , 0.0} , 'NumPresses' , 1  , 'stimulus' , [3]);
 
     
+for tn = 1:length(R_N.MT)
+    plot([1:2:length(R_N.X{tn})*2] , R_N.X{tn}(3,:) , 'color' , [.6 .6 .6]);
+    line([R_N.pressTime(tn) R_N.pressTime(tn)] , [0 R_N.B{tn}] , 'color' , 'b')
+    hold on
+end
+hold on
+plot([1:2:length(R.X{1})*2] , R.X{1}(3,:) , 'color' , 'k' , 'LineWidth' , 3);
+line([R.pressTime R.pressTime] , [0 R.B{1}] , 'color' , 'b' , 'LineWidth' , 3)
+line([0 350] , [R.B{1} R.B{1}] , 'color' , 'r' , 'LineWidth' , 3)
     
     
     
@@ -53,7 +62,7 @@ for i = 1:length(se)
     close all
     clear par R
     par = [param.par(end , :) se(i)];
-    [R] = slm_optimSimulate(Dall , 'allwindows' , par  , 'parName' , parName,'samNum'  , 100 ,...
+    [R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 100 ,...
         'Day' , day, 'Horizon' , [1:13] , 'poolHorizons' , [5:13] , 'noise' ,1 , 'subjNum' , [1:15],...
         'MsetField' , {'PlanningCurve' , 'exp'});
     R.SigEps = se(i)*ones(size(R.MT));

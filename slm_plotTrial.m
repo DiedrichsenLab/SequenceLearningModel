@@ -41,11 +41,7 @@ switch what
                     legend([h1 h2 h3],{'Stimulus came on' , 'Decision boundry reached' , 'Press executed'})
                 end
             end
-            
-            if isfield(T , 'Horizon') && all(~isnan(T.Horizon))
-                text(10,.9 , ['Horizon = ' , num2str(T.Horizon) , '  -  Buffer size = ' , num2str(SIM.bufferSize)])
-            end
-            
+ 
 %             title(['Decision No. ' ,num2str(T.decNum(i)), ', press No.' , num2str(i)])
             set(gca , 'Box' , 'off' , 'FontSize' , 10)
         end;

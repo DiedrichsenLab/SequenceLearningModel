@@ -1,6 +1,6 @@
-function R = slm_optimSimTrial(par , T , M ,runNum ,cycNum , parName , mode , desiredField)
+function R = slm_optimSimTrial(par , T , M ,opts)
 %% Intro
-% function R = slm_optimSimTrial(par , T , runNum ,cycNum , parName , mode , noise)
+% function R = slm_optimSimTrial(par , T , opts.runNum ,opts.cycNum , parName , mode , noise)
 % incoporates horizon size (T.Horizon) as well as buffer size (M.Capacity)
 % multiple planning possible
 % Simulates a trial using a parallel evidence-accumulation model for sequential response tasks
@@ -19,34 +19,34 @@ end
 % mainDir = '/Users/nkordjazi/Documents/GitHub/';
 mainDir = '/Users/nedakordjazi/Documents/GitHub/';
 % save a new emty variable to ammend with optimization iterations
-if~isempty(runNum) % is runNum is empty it means we are just simulating with a set of parametrs
+if~isempty(opts.runNum) % is opts.runNum is empty it means we are just simulating with a set of parametrs
     cd([mainDir , 'SequenceLearningModel'])
-    if ~sum(strcmp(N , ['param' , runNum , '.mat']))
+    if ~sum(strcmp(N , ['param' , opts.runNum , '.mat']))
         param.cycNum = []; % number of resampling cycles within a run
         param.itrNum = []; % optimization iteration number within a cycle
         param.par = [];      % paramets
         param.parName = {};
-        save([mainDir , 'SequenceLearningModel/param' , runNum , '.mat'] ,'param' );
+        save([mainDir , 'SequenceLearningModel/param' , opts.runNum , '.mat'] ,'param' );
     end
     % ammend the ptimization matrix
-    load([mainDir , 'SequenceLearningModel/param' , runNum , '.mat'])
+    load([mainDir , 'SequenceLearningModel/param' , opts.runNum , '.mat'])
     
-    P.cycNum = cycNum; % run number
+    P.cycNum = opts.cycNum; % run number
     if ~isempty(param.itrNum)
         P.itrNum = param.itrNum(end)+1; % optimization cycle number within a run
     else
         P.itrNum = 1;
     end
     P.par = par;
-    P.parName = parName;
+    P.parName = M.parName;
     param = addstruct(param , P);
-    save([mainDir , 'SequenceLearningModel/param' , runNum , '.mat'] ,'param' );
+    save([mainDir , 'SequenceLearningModel/param' , opts.runNum , '.mat'] ,'param' );
 end
 
 origCap = M.Capacity; % to preserve the original M.Capacity in designs that the capacity/horizon keeps changing
 %% substitute the pre-set parameters with optimization parameters
-for pn = 1:length(parName)
-    eval(['M.' , parName{pn} , ' = par(pn);'] )
+for pn = 1:length(M.parName)
+    eval(['M.' , M.parName{pn} , ' = par(pn);'] )
 end
 
 %% 
@@ -225,7 +225,7 @@ for trls = 1:length(T.TN)
     pltTrial = 0;
     if pltTrial
         SIM.t = t(1,1:i);
-        SIM.B = repmat(T.B{1}(nanmean(T.Horizon) , :) , length(SIM.t) , 1);
+        SIM.B = repmat(sum(isnan(T.Horizon)) , length(SIM.t) , 1);
         SIM.X = T.X{1};
         slm_plotTrial('TrialHorseRace' , SIM , T)
     end
@@ -237,10 +237,10 @@ AllR.RT =  AllR.pressTime(:,1);
 AllR.singleH = nanmean(AllR.Horizon , 2);
 AllR.IPI = diff(AllR.pressTime , [], 2);
 R = [];
-switch mode
+switch opts.mode
     case {'optim'}
-        for xd = 1:length(desiredField)
-            eval(['R = [R ; AllR.' , desiredField{xd} , '];'] )
+        for xd = 1:length(opts.desiredField)
+            eval(['R = [R ; AllR.' , opts.desiredField{xd} , '];'] )
         end
         R =  R';
         R(isnan(R))=10e+10;
