@@ -1,4 +1,4 @@
-function R = slm_optimSimTrial(par , T , M ,runNum ,cycNum , parName , mode , noise)
+function R = slm_optimSimTrial(par , T , M ,runNum ,cycNum , parName , mode , desiredField)
 %% Intro
 % function R = slm_optimSimTrial(par , T , runNum ,cycNum , parName , mode , noise)
 % incoporates horizon size (T.Horizon) as well as buffer size (M.Capacity)
@@ -16,8 +16,8 @@ N = {};
 for i = 1:length(D)
     N = [N {D(i).name}];
 end
-mainDir = '/Users/nkordjazi/Documents/GitHub/';
-% mainDir = '/Users/nedakordjazi/Documents/GitHub/';
+% mainDir = '/Users/nkordjazi/Documents/GitHub/';
+mainDir = '/Users/nedakordjazi/Documents/GitHub/';
 % save a new emty variable to ammend with optimization iterations
 if~isempty(runNum) % is runNum is empty it means we are just simulating with a set of parametrs
     cd([mainDir , 'SequenceLearningModel'])
@@ -48,18 +48,6 @@ origCap = M.Capacity; % to preserve the original M.Capacity in designs that the 
 for pn = 1:length(parName)
     eval(['M.' , parName{pn} , ' = par(pn);'] )
 end
-%% modulating theta_stim with capacity
-
-% ========= creating an exponential decay
-% M.theta_stim  = M.TSmin*exp(-([M.Capacity:-1:1]-1)./M.TSDecayParam);%linspace(0.01,0.04,M.Capacity);
-
-% ========= modulating with actual MTs
-% load([mainDir ,'SequenceLearningModel/MTRTday5.mat'])
-% M.theta_stim = M.TSmin + (K.MT_norm).* M.TSmin;
-% M.theta_stim = [0.034989 0.04042 0.047 0.054 0.0622]; N = 13
-% M.theta_stim = [0.0349899858731604,0.0404294904253830,0.0474978731759359,0.0544961706444883,0.0622975992041242]; % N = 15
-
-
 
 %% 
 AllT = T;
@@ -103,7 +91,7 @@ for trls = 1:length(T.TN)
     S = zeros(M.numOptions,maxTime/dT,maxPresses); % Stimulus present
     % implement forced-RT collapsing decision boundary (logistic decay)
     
-    B = ones(size(T.stimulus,2),maxTime/dT).*repmat(M.Bound(M.Capacity , :)'  ,1, maxTime/dT); % Decision Bound - constant value
+    B = ones(size(T.stimulus,2),maxTime/dT).*repmat(M.Bound'  ,1, maxTime/dT); % Decision Bound - constant value
     t = [1:maxTime/dT]*dT-dT;   % Time in ms
     i = 1;                   % Index of simlation
     nDecision = 1;           % Current decision to male
@@ -113,10 +101,9 @@ for trls = 1:length(T.TN)
     % Set up parameters
     
     A  = eye(M.numOptions)*(M.Aintegrate)+(~eye(M.numOptions)).*M.Ainhibit;      % A defined the matrix of autoregressive coefficients
-    % A(3,1) = 0.05;
     prs = 0; % indexes the pressesd digits
     
-    % find the press indecies that have to be planed in the first decision cycle
+    % find the press indecies that have to be planned in the first decision cycle
     PlanIndx= prs+1 : prs+1+(maxPlan(nDecision)-1);
     
     
@@ -134,11 +121,20 @@ for trls = 1:length(T.TN)
 %             T.mult = mult;
         case 'logistic'
             Xdomain = [-7:6];
-            mult = 1./(1+1*exp(                            M.B_coef*Xdomain));
+            mult = 1./(1+1*exp(M.B_coef*Xdomain));
         case 'box'
+            mult = zeros(1,maxPresses);
+            mult(1:M.Box) = 1;
         case 'ramp'
+            mult = zeros(1,maxPresses);
+            mult(1:M.rampDecay) = linspace(1,0,M.rampDecay);
     end
-            
+    pltmult = 0;
+    if pltmult
+        figure('color' , 'white')
+        plot(mult , '-o' ,'LineWidth' , 1.5 , 'MarkerSize' , 5)
+        set(gca , 'XLim' , [1 maxPresses] , 'Box' , 'off')
+    end
 
     %%
     
@@ -146,7 +142,6 @@ for trls = 1:length(T.TN)
     decPressCount = 1;
     %% Linear growth for dt_motor to start faster and slow down to steady state
     % implimenting the idea of making dT a function of the percentage of the M.Capacity that you have planned ahead
-    
     plannedAhead = zeros(1,maxPresses); % the number of digits planned ahead on each press
     %%
     eps = randn([M.numOptions maxTime/dT maxPresses]) * M.SigEps;
@@ -162,16 +157,14 @@ for trls = 1:length(T.TN)
                 end
             end
         end
-        
-        
-        
+
         % Update the evidence state
         
         for j = 1:maxPresses
             if ~isnan(T.forcedPressTime(1,1))
-                X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim(M.Capacity).*mult(j).*S(:,i,j).*G(i)) + eps(:,i+1,j);
+                X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*mult(j).*S(:,i,j).*G(i)) + eps(:,i+1,j);
             else
-                X(:,i+1,j)= A * X(:,i,j) + M.theta_stim(M.Capacity).* mult(j) .* S(:,i,j) + eps(:,i+1,j);
+                X(:,i+1,j)= A * X(:,i,j) + M.theta_stim.* mult(j) .* S(:,i,j) + eps(:,i+1,j);
             end
         end
         % if the system is in the first decision cycle, it wont start pressing
@@ -220,9 +213,6 @@ for trls = 1:length(T.TN)
             end
         end
         i=i+1;
-        if i == 250000
-            keyboard
-        end
     end;
     T.X{1} = X(:,1:i,:);
     T.B{1} = M.Bound;
@@ -246,17 +236,14 @@ AllR.MT = AllR.pressTime(:,end) - AllR.pressTime(:,1);
 AllR.RT =  AllR.pressTime(:,1);
 AllR.singleH = nanmean(AllR.Horizon , 2);
 AllR.IPI = diff(AllR.pressTime , [], 2);
-
+R = [];
 switch mode
     case {'optim'}
-        if length(unique(AllR.singleH))==1
-%             R =  [AllR.RT AllR.IPI(: , 1:13)];% mean(AllR.IPI(: ,4:10) , 2) AllR.IPI(: , 11:13)];
-            R =  [AllR.RT]';
-            R(isnan(R))=10e+10;
-        else
-            R =  [AllR.RT]';% mean(AllR.IPI(: ,4:10) , 2) AllR.IPI(: , 11:13)];
-            R(isnan(R))=10e+10;
+        for xd = 1:length(desiredField)
+            eval(['R = [R ; AllR.' , desiredField{xd} , '];'] )
         end
+        R =  R';
+        R(isnan(R))=10e+10;
     case{'sim'}
         R =  AllR;
 end

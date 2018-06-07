@@ -228,56 +228,62 @@ hiBound = [0.02 , 0.988 0.05 .6 .6 .6 .6];
 
 [Param Fval] = slm_optimize(Dall , initParam , 'parName' , parName,'runNum' ,1 , 'cycNum' , 1 ,'samNum'  , [] ,...
     'ItrNum' , 300 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , [5] , 'Horizon' , [1] , 'poolHorizons' , [7:13]);
-%% optimize mult
+%% optimize 
+parName = { 'bAll' , 'Aintegrate','theta_stim' ,};
 
-% optimization step number 2
-% now keep 'theta_stim'  'Aintegrate' 'SigEps' consant within the
-% slm_optimSimTrial as the last iteration of the previous optimization and
-% optimize for more fine grained boundry values
-% day 1  - window size = 1
-
-
-parName = {'Bound(1)' 'Bound(2)' 'Bound(3)' , 'Bound(4)' 'Bound(5)'};
-
-%  parName = {'B0'};% 'B_coef'};
-% loBound = [ 1];
-% hiBound = [6];
-
-
-
-
-loBound = [.4 ;.4 ;.4; .4 ;.4];
-hiBound = [.7 ;.7 ;.7; .7 ;.7];
+loBound = [];
+hiBound = [];
 h=0;
+initParam = [0.3 0.98 0.01];
 day = [4 5];
-H = {[1] [2] [3] [4] [5:13]};
-initParam = [.6 ;.601295 ;.606129; .6037 ;.602804];;%[0.034989 0.04042 0.047 0.054 0.0622];%3.85478167568902,0.451509146252228];%[0.45 0.45 0.45 0.45 0.45 0.45 0.45 0.45];
-[Param Fval] = slm_optimize(Dall , 'allwindows' ,  initParam , 'parName' , parName,'runNum' ,['8_',num2str(h),'_',num2str(day)] , 'cycNum' , 10 ,'samNum'  , [] ,...
-    'ItrNum' , 200 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , day , 'Horizon' , [1:13] , 'poolHorizons' , [5:13],...
-    'customizeInitParam' , 0,'noise' , 0 ,  'subjNum' , [1:15]);
+h = 0;
+[Param Fval] = slm_optimize(Dall , 'allwindows' ,  initParam , 'parName' , parName,'runNum' ,['9_',num2str(h),'_',num2str(day)] , 'cycNum' , 7 ,'samNum'  , [] ,...
+    'ItrNum' , 1000 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , day , 'Horizon' , [1:13] , 'poolHorizons' , [5:13],...
+    'customizeInitParam' , 0,'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'MT'} , ...
+    'MsetField' , {'PlanningCurve' , 'logistic'});
 close all
 %% Simulate
-h = 0;
-day = [4 5];
-parName = {'SigEps'};
-se = [0 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09];
 
-allFit = [];
-filename = ['param'  , '8_', num2str(h),'_',num2str(day), '.mat'];
-load(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
+
+clear param parName par day R
+day = [4 5];
+filename = 'paramexp.mat';
+% filename = 'paramlog.mat';
+% filename = ['param'  , '6_', num2str(h),'_',num2str(day), '.mat'];
+load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
+parName = param.parName(end,:);
 par = param.par(end , :);
-for i = 1%:length(se)
-%     par = se(i);
+[R] = slm_optimSimulate(Dall , 'allwindows' , par  , 'parName' , parName,'samNum'  , 100 ,...
+        'Day' , day, 'Horizon' , [1:13] , 'poolHorizons' , [5:13] , 'noise' ,0 , 'subjNum' , [1:15],...
+        'MsetField' , {'PlanningCurve' , 'exp'});
+%% Simulate with levels of noise
+se = [0 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09];
+h = 0;
+clear param parName par day R
+day = [4 5];
+filename = 'paramexp.mat';
+% filename = 'paramlog.mat';
+% filename = ['param'  , '6_', num2str(h),'_',num2str(day), '.mat'];
+load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
+parName = param.parName(end,:);
+allFit = [];
+parName = [param.parName(end,:) , 'SigEps'];
+for i = 1:length(se)
     day = [4 5];
     close all
+    clear par R
+    par = [param.par(end , :) se(i)];
     [R] = slm_optimSimulate(Dall , 'allwindows' , par  , 'parName' , parName,'samNum'  , 100 ,...
-        'Day' , day, 'Horizon' , [2:4] , 'poolHorizons' , [5:13] , 'noise' ,0 , 'subjNum' , [1:15]);
+        'Day' , day, 'Horizon' , [1:13] , 'poolHorizons' , [5:13] , 'noise' ,1 , 'subjNum' , [1:15],...
+        'MsetField' , {'PlanningCurve' , 'exp'});
     R.SigEps = se(i)*ones(size(R.MT));
     allFit = addstruct(allFit , R);
 end
+
 A = getrow(allFit , ~allFit.isError);
+figure('color' , 'white')
 lineplot(A.singleH , A.MT , 'plotfcn' , 'nanmedian',...
-                'split', A.SigEps  );
+                'split', A.SigEps  , 'leg' , 'auto');
 
 %%
 M = [];

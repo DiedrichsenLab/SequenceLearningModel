@@ -67,12 +67,17 @@ while(c<=length(varargin))
             % the name of the field in the data to minimize the error on e.g. MT TR IPI...
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'MsetField'}
+            % the names and values of the fields we want to set in M
+            % has to be cell of value names, followed by their values
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error('Unknown option: %s',varargin{c});
     end
 end
-mainDir = '/Users/nkordjazi/Documents/GitHub/';
-% mainDir = '/Users/nedakordjazi/Documents/GitHub/';
+% mainDir = '/Users/nkordjazi/Documents/GitHub/';
+mainDir = '/Users/nedakordjazi/Documents/GitHub/';
 %% optimization
 Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) &...
     ismember(Dall.Horizon , Horizon) & ismember(Dall.SN , subjNum));
@@ -82,108 +87,43 @@ end
 
 initParam = rawinitParam;
 switch what
-    case 'windowsSeparate'
-        Horizon = unique(Dall.Horizon);
-        for i = 1:cycNum
-            disp(['Initializing optimization cycle number ' , num2str(i) , '/', num2str(cycNum) , ' with ' , num2str(ItrNum) , ' iterations...'])
-            if i>1
-                customizeInitParam = 0; % dont customize after the first cycle
-                load([mainDir , 'SequenceLearningModel/param' , runNum , '.mat'])
-                initParam = param.par(end , :);
-            end
-            % Set up the T structure
-            ANA0 = getrow( ismember(Dall.Horizon , Horizon));
-            A = [];
-            for h = Horizon
-                ANA = getrow(ANA0 , ANA0.Horizon == h);
-                serr = std(ANA.MT);%/sqrt(length(ANA.MT));
-                stdbound = [serr-tol(1)*serr serr+tol(1)*serr];
-                meanbound = [mean(ANA.MT)-tol(2)*mean(ANA.MT) mean(ANA.MT)+tol(2)*mean(ANA.MT)];
-                MT_std = 0;
-                MT_mean = 0;
-                while ~(MT_std & MT_mean)
-                    if ~isempty(samNum)
-                        temp =  getrow(ANA , randperm(length(ANA.TN) , samNum));
-                    else
-                        temp  = ANA;
-                    end
-                    serr = std(temp.MT);%/sqrt(length(temp.MT));
-                    MT_std = serr>stdbound(1) & serr<stdbound(2);
-                    %         MT_std = 1;
-                    MT_mean = mean(temp.MT)>meanbound(1) & mean(temp.MT)<meanbound(2);
-                end
-                A = addstruct(A ,temp);
-            end
-            
-            ANA = A;
-            model = @(param,T,runNum , i) slm_optimSimTrial(param , T , runNum , i , parName , 'optim' , noise); % Model Function
-            
-            SeqLength = unique(ANA.seqlength);
-            T.TN = ANA.TN;
-            T.Horizon =repmat(ANA.Horizon , 1, SeqLength) .*(ones(length(ANA.TN),SeqLength));
-            for tn = 1:length(ANA.TN)
-                T.Horizon(tn , 1:ANA.Horizon(tn)) = NaN;
-            end
-            T.numPress = ANA.seqlength;
-            T.stimTime = zeros(length(ANA.TN) , SeqLength);
-            T.stimulus = ANA.AllPress;
-            T.forcedPressTime = nan(length(ANA.TN) , SeqLength);
-            
-            % Set up the cost function
-            x_desired = [ANA.AllPressTimes(:,1)-1500  ANA.IPI(: , 1:13)];% mean(ANA.IPI(: ,4:10) , 2) ANA.IPI(: , 11:13)];
-            if ~noise
-                T = getrow(T , 1); % when the noise is off all the trials will turn out identical
-                x_desired = nanmedian(x_desired);
-            end
-            % curate the initial parameters if told to do so
-            if customizeInitParam
-                org = nanmedian(x_desired);
-                org = (org - min(org))/max(org);
-                rawinitParam = mapminmax(org , .3,.6);
-                initParam = rawinitParam;
-            end
-            
-            OLS = @(param) nansum(nansum((model(param,T,runNum , i) - x_desired).^2));
-            
-            opts = optimset('MaxIter', ItrNum ,'TolFun',1e+03,'Display','iter' , 'TolX' , 1e-7);
-            [Param Fval] = fminsearchbnd(OLS,initParam,loBound,hiBound, opts);
-        end
     case 'allwindows'
         Horizon = unique(Dall.Horizon);
         for i = 1:cycNum
+            %% in cycle numbers bigger than 1, retrieve the last param set from the last cycle and use as initials
             disp(['Initializing optimization cycle number ' , num2str(i) , '/', num2str(cycNum) , ' with ' , num2str(ItrNum) , ' iterations...'])
             if i>1
                 customizeInitParam = 0; % dont customize after the first cycle
                 load([mainDir , 'SequenceLearningModel/param' , runNum , '.mat'])
                 initParam = param.par(end , :);
             end
-            % Set up the T structure
-            ANA0 = getrow(Dall , ismember(Dall.Horizon , Horizon));
+            ANA = getrow(Dall , ismember(Dall.Horizon , Horizon));
+            ANA.RT = ANA.AllPressTimes(:,1)-1500;
+            %% set up the desired output
+            G = tapply(ANA , {'Horizon'} , {'MT' , 'nanmedian'},{'RT' , 'nanmedian'},{'IPI' , 'nanmedian'});
+            x_desired = [];
+            for xd = 1:length(desiredField)
+                eval(['x_desired = [x_desired ; G.' , desiredField{xd} , '];'] )
+            end
+            x_desired = x_desired';
+            %% subsample the data 
             A = [];
-            ANA = ANA0;
-            serr = std(ANA.MT);%/sqrt(length(ANA.MT));
-            stdbound = [serr-tol(1)*serr serr+tol(1)*serr];
-            meanbound = [mean(ANA.MT)-tol(2)*mean(ANA.MT) mean(ANA.MT)+tol(2)*mean(ANA.MT)];
-            MT_std = 0;
-            MT_mean = 0;
             if ~noise
                 samNum = 1;
             end
-            M = ANA;
             A = [];
             for h = 1:length(Horizon)
-                N = getrow(M , M.Horizon == Horizon(h)); % when the noise is off all the trials will turn out identical
-                N = getrow(N , 1:samNum);
+                N = getrow(ANA , ANA.Horizon == Horizon(h)); % when the noise is off all the trials will turn out identical
+                if ~isempty(samNum)
+                    N =  getrow(N , randperm(length(N.TN) , samNum));
+                end
                 A = addstruct(A , N);
             end
-
             ANA = A;
-            ANA.RT = ANA.AllPressTimes(:,1)-1500;
-            model = @(param,T, M ,runNum , i) slm_optimSimTrial(param , T ,M, runNum , i , parName , 'optim' , noise); % Model Function
-            
-            
-            
-            % set up the inputs to the model funtion T , M
+            %% set up the otimization handle object
+            model = @(param,T, M ,runNum , i) slm_optimSimTrial(param , T ,M, runNum , i , parName , 'optim' , desiredField); % Model Function
+
+            %% set up the inputs to the model funtion T , M
             SeqLength = unique(ANA.seqlength);
             T.TN = ANA.TN;
             T.Horizon = ANA.Horizon;
@@ -196,50 +136,51 @@ switch what
                 T.Horizon(tn , 1:T.Horizon(tn)) = NaN;
             end
             
-            % set the default M values
+            %% set the default M values
             M.numOptions = 5;
             M.dT_visual  = 90;
             M.Ainhibit   = 0;
-            M.Capacity   =5;
-            
+            M.Capacity   =1;
             M.dT_motor   = 150;
             M.dtGrowth = 1;
             M.TSDecayParam  = 7.75;
-            M.Aintegrate  = 0.9417;
+            M.Aintegrate  = 0.98;
+            M.bAll = 0.6;
+            M.Bound = M.bAll.*ones(1,size(T.stimulus , 2)); % boundry is a vector of length maxPresses 
+            M.PlanningCurve = 'exp'; % other options: 'logistic', 'box' , 'ramp'
+            M.DecayParam   = 7; % the decay constant for the 'exp' option of PlanningCurve
+            M.B_coef = 1;       % for the 'logistic' option of PlanningCurve
+            M.Box = 1;          % box size for the 'boxcar' option of PlanningCurve
+            M.rampDecay = size(T.stimulus , 2);   % number of steps between 1 and 0 for the 'ramp' option of PlanningCurve
+            M.theta_stim = 0.01; 
             if~noise
                 M.SigEps      = 0;
             else
                 M.SigEps      = 0.02;
             end
-            bAll = 0.6;
-            M.Bound = bAll.*ones(M.Capacity,size(T.stimulus , 2));
-            M.PlanningCurve = 'exp';
-            M.DecayParam   = 7; % the decay constant for the 'exp' option of PlanningCurve
-            M.B_coef = 1;       % for the 'logistic' option of PlanningCurve
-            M.Box = 1;          % box size for the 'boxcar' option of PlanningCurve
-            M.rampDecay = 14;   % number of steps between 1 and 0 for the 'ramp' option of PlanningCurve
-            M.theta_stim = [0.035]; 
-            
-            
-            % curate the initial parameters if told to do so
+            c = 1;
+            %% re-set the fields that have been defined in input
+            while(c<=length(MsetField))
+                eval(['M.',MsetField{c} '= MsetField{c+1};']);
+                c=c+2;
+            end
+                        %% curate the initial parameters if told to do so
             if customizeInitParam
                 org = nanmedian(x_desired);
                 org = (org - min(org))/max(org);
                 rawinitParam = mapminmax(org , .3,.6);
                 initParam = rawinitParam;
             end
-            % set up the cost function and the desired output
-            G = tapply(ANA , {'Horizon'} , {'MT' , 'nanmedian'},{'RT' , 'nanmedian'});
-            x_desired = [];
-            for xd = 1:length(desiredField)
-                eval(['x_desired = [x_desired ; G.' , desiredField{xd} , '];'] )
-            end
-            x_desired = x_desired';
+            %% set up the cost function 
             
             OLS = @(param) nansum(nansum((model(param,T, M ,runNum , i) - x_desired).^2));
-            
+            %% optimization
             opts = optimset('MaxIter', ItrNum ,'TolFun',1e+03,'Display','iter' , 'TolX' , 1e-8);
-            [Param Fval] = fminsearchbnd(OLS,initParam,loBound,hiBound, opts);
+            if isempty(loBound) | isempty(hiBound)
+                [Param Fval] = fminsearch(OLS,initParam,opts);
+            else
+                [Param Fval] = fminsearchbnd(OLS,initParam,loBound,hiBound, opts);
+            end
         end
 end
 
