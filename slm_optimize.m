@@ -50,11 +50,6 @@ while(c<=length(varargin))
             % [] or the horizons you want to pool together
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
-        case {'customizeInitParam'}
-            % 1 or 0 ---> for boundries where the initial parametrs
-            % are best to be set as the proportions of the IPIs
-            eval([varargin{c} '= varargin{c+1};']);
-            c=c+2;
         case {'noise'}
             % 1 or 0 -
             eval([varargin{c} '= varargin{c+1};']);
@@ -93,7 +88,6 @@ switch what
             %% in cycle numbers bigger than 1, retrieve the last param set from the last cycle and use as initials
             disp(['Initializing optimization cycle number ' , num2str(i) , '/', num2str(cycNum) , ' with ' , num2str(ItrNum) , ' iterations...'])
             if i>1
-                customizeInitParam = 0; % dont customize after the first cycle
                 load([mainDir , 'SequenceLearningModel/param' , runNum , '.mat'])
                 initParam = param.par(end , :);
             end
@@ -164,13 +158,7 @@ switch what
                 eval(['M.',MsetField{c} '= MsetField{c+1};']);
                 c=c+2;
             end
-                        %% curate the initial parameters if told to do so
-            if customizeInitParam
-                org = nanmedian(x_desired);
-                org = (org - min(org))/max(org);
-                rawinitParam = mapminmax(org , .3,.6);
-                initParam = rawinitParam;
-            end
+           
             %% set up the cost function 
             
             OLS = @(param) nansum(nansum((model(param,T, M ,runNum , i) - x_desired).^2));

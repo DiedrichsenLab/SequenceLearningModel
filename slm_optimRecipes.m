@@ -1,6 +1,6 @@
 %% 1- optimize 
+clear param parName par day R
 parName = { 'bAll' , 'Aintegrate','theta_stim' ,};
-
 loBound = [];
 hiBound = [];
 h=0;
@@ -9,7 +9,7 @@ day = [4 5];
 h = 0;
 [Param Fval] = slm_optimize(Dall , 'allwindows' ,  initParam , 'parName' , parName,'runNum' ,['9_',num2str(h),'_',num2str(day)] , 'cycNum' , 7 ,'samNum'  , [] ,...
     'ItrNum' , 1000 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , day , 'Horizon' , [1:13] , 'poolHorizons' , [5:13],...
-    'customizeInitParam' , 0,'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'MT'} , ...
+    'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'MT'} , ...
     'MsetField' , {'PlanningCurve' , 'logistic'});
 close all
 
