@@ -24,22 +24,23 @@ filename = 'paramexp.mat';
 % filename = 'paramlog.mat';
 % filename = ['param'  , '6_', num2str(h),'_',num2str(day), '.mat'];
 load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
-parName = param.parName(end,:);
-par = param.par(end , :);
+parName = param.parName(end,[1,3]);
+par = param.par(end , [1,3]);
 [R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 100 ,...
         'Day' , day, 'Horizon' , [1] , 'poolHorizons' , [5:13] , 'noise' ,0 , 'subjNum' , [1:15],...
-        'MsetField' , {'PlanningCurve' , 'exp' , 'SigEps' , 0.0} , 'NumPresses' , 1  , 'stimulus' , [3]);
-
+        'MsetField' , {'PlanningCurve' , 'exp' , 'SigEps' , 0.0, 'Aintegrate' ,.99} , 'NumPresses' , 1  , 'stimulus' , [3]);
     
+figure('color' , 'white')
 for tn = 1:length(R_N.MT)
     plot([1:2:length(R_N.X{tn})*2] , R_N.X{tn}(3,:) , 'color' , [.6 .6 .6]);
-    line([R_N.pressTime(tn) R_N.pressTime(tn)] , [0 R_N.B{tn}] , 'color' , 'b')
     hold on
+    plot([R_N.pressTime(tn) R_N.pressTime(tn)] , [0 nanmean(R.B{1})] , 'color' , 'b')
+%     plot([1:2:length(R_N.X{tn})*2] , R_N.B{tn} , 'color' , 'r')
 end
+line([0 length(R.X{1})*2] , [mean(R.B{1}) mean(R.B{1})] , 'color' , 'r' , 'LineWidth' , 3)
 hold on
 plot([1:2:length(R.X{1})*2] , R.X{1}(3,:) , 'color' , 'k' , 'LineWidth' , 3);
-line([R.pressTime R.pressTime] , [0 R.B{1}] , 'color' , 'b' , 'LineWidth' , 3)
-line([0 350] , [R.B{1} R.B{1}] , 'color' , 'r' , 'LineWidth' , 3)
+line([R.pressTime R.pressTime] , [0 mean(R.B{1})] , 'color' , 'b' , 'LineWidth' , 3)
     
     
     
