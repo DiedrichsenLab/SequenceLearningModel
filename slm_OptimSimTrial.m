@@ -16,8 +16,8 @@ N = {};
 for i = 1:length(D)
     N = [N {D(i).name}];
 end
-% mainDir = '/Users/nkordjazi/Documents/GitHub/';
-mainDir = '/Users/nedakordjazi/Documents/GitHub/';
+mainDir = '/Users/nkordjazi/Documents/GitHub/';
+% mainDir = '/Users/nedakordjazi/Documents/GitHub/';
 % save a new emty variable to ammend with optimization iterations
 if~isempty(opts.runNum) % is opts.runNum is empty it means we are just simulating with a set of parametrs
     cd([mainDir , 'SequenceLearningModel'])
@@ -225,7 +225,7 @@ for trls = 1:length(T.TN)
     pltTrial = 0;
     if pltTrial
         SIM.t = t(1,1:i);
-        SIM.B = repmat(sum(isnan(T.Horizon)) , length(SIM.t) , 1);
+        SIM.B = repmat(T.B{1} , length(SIM.t) , 1);
         SIM.X = T.X{1};
         slm_plotTrial('TrialHorseRace' , SIM , T)
     end
@@ -240,7 +240,8 @@ R = [];
 switch opts.mode
     case {'optim'}
         for xd = 1:length(opts.desiredField)
-            eval(['R = [R ; AllR.' , opts.desiredField{xd} , '];'] )
+            Temp = tapply(AllR ,{'singleH'}, {opts.desiredField{xd} , 'median'});
+            eval(['R = [R ; Temp.' , opts.desiredField{xd} , '];'] )
         end
         R =  R';
         R(isnan(R))=10e+10;

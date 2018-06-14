@@ -1,16 +1,16 @@
 %% 1- optimize 
-clear param parName par day R
-parName = { 'bAll' , 'Aintegrate','theta_stim' ,};
+% clear param parName par day R
+parName = { 'bAll' ,'theta_stim' ,'Aintegrate','SigEps'};
 loBound = [];
 hiBound = [];
 h=0;
-initParam = [0.3 0.98 0.01];
+initParam = param.par(end , :);
 day = [4 5];
 h = 0;
-[Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['0_',num2str(h),'_',num2str(day)] , 'cycNum' , 7 ,'samNum'  , [] ,...
+[Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['3_',num2str(h),'_',num2str(day)] , 'cycNum' , 7 ,'samNum'  , [20] ,...
     'ItrNum' , 1000 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , day , 'Horizon' , [1:13] , 'poolHorizons' , [5:13],...
-    'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'MT'} , ...
-    'MsetField' , {'PlanningCurve' , 'logistic'});
+    'noise' , 1 ,  'subjNum' , [1:15] , 'desiredField' , {'MT'} , ...
+    'MsetField' , {'PlanningCurve' , 'exp'});
 close all
 
 
@@ -20,15 +20,15 @@ close all
 
 clear param parName par day R
 day = [4 5];
-filename = 'paramexp.mat';
+filename = 'param3_0_4  5.mat';
 % filename = 'paramlog.mat';
 % filename = ['param'  , '6_', num2str(h),'_',num2str(day), '.mat'];
-load(['/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
-parName = param.parName(end,[1,3]);
-par = param.par(end , [1,3]);
-[R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 100 ,...
-        'Day' , day, 'Horizon' , [1] , 'poolHorizons' , [5:13] , 'noise' ,0 , 'subjNum' , [1:15],...
-        'MsetField' , {'PlanningCurve' , 'exp' , 'SigEps' , 0.0, 'Aintegrate' ,.99} , 'NumPresses' , 1  , 'stimulus' , [3]);
+load(['/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/' , filename]);
+parName = param.parName(end,:);
+par = param.par(end , :);
+[RN] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 100 ,...
+        'Day' , day, 'Horizon' , [1:13] , 'poolHorizons' , [5:13] , 'noise' ,1, 'subjNum' , [1:15],...
+        'MsetField' , {'PlanningCurve' , 'exp'} , 'NumPresses' , 5);%  , 'stimulus' , [3]);
     
 figure('color' , 'white')
 for tn = 1:length(R_N.MT)

@@ -80,8 +80,8 @@ while(c<=length(varargin))
             error('Unknown option: %s',varargin{c});
     end
 end
-% mainDir = '/Users/nkordjazi/Documents/GitHub/';
-mainDir = '/Users/nedakordjazi/Documents/GitHub/';
+mainDir = '/Users/nkordjazi/Documents/GitHub/';
+% mainDir = '/Users/nedakordjazi/Documents/GitHub/';
 %% optimization
 Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) &...
     ismember(Dall.Horizon , Horizon) & ismember(Dall.SN , subjNum));
@@ -178,7 +178,7 @@ for i = 1:cycNum
     opts.desiredField = desiredField;
     OLS = @(param) nansum(nansum((model(param,T, M ,opts) - x_desired).^2));
     %% optimization
-    opts = optimset('MaxIter', ItrNum ,'TolFun',1e+03,'Display','iter' , 'TolX' , 1e-8);
+    opts = optimset('MaxIter', ItrNum ,'TolFun',1e+03,'Display','iter' , 'TolX' , 1e-4);
     if isempty(loBound) | isempty(hiBound)
         [Param Fval] = fminsearch(OLS,initParam,opts);
     else
