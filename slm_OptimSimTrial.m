@@ -16,8 +16,8 @@ N = {};
 for i = 1:length(D)
     N = [N {D(i).name}];
 end
-% mainDir = '/Users/nkordjazi/Documents/GitHub/';
-mainDir = '/Users/nedakordjazi/Documents/GitHub/';
+mainDir = '/Users/nkordjazi/Documents/GitHub/';
+% mainDir = '/Users/nedakordjazi/Documents/GitHub/';
 % save a new emty variable to ammend with optimization iterations
 if~isempty(opts.runNum) % is opts.runNum is empty it means we are just simulating with a set of parametrs
     cd([mainDir , 'SequenceLearningModel'])
@@ -121,7 +121,7 @@ for trls = 1:length(T.TN)
 %             T.mult = mult;
         case 'logistic'
             Xdomain = [-7:6];
-            mult = 1./(1+1*exp(M.B_coef*Xdomain));
+            mult = 1./(1+1*exp(M.B_coef1*(Xdomain-M.B_coef2)));
         case 'box'
             mult = zeros(1,maxPresses);
             mult(1:floor(M.Box)) = 1;

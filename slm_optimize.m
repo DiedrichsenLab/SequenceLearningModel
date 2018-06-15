@@ -85,8 +85,8 @@ while(c<=length(varargin))
             error('Unknown option: %s',varargin{c});
     end
 end
-% mainDir = '/Users/nkordjazi/Documents/GitHub/';
-mainDir = '/Users/nedakordjazi/Documents/GitHub/';
+mainDir = '/Users/nkordjazi/Documents/GitHub/';
+% mainDir = '/Users/nedakordjazi/Documents/GitHub/';
 %% optimization
 Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) &...
     ismember(Dall.Horizon , Horizon) & ismember(Dall.SN , subjNum));
@@ -162,11 +162,12 @@ for i = 1:cycNum
     M.TSDecayParam  = 3;
     M.Aintegrate    = 0.98;
     M.bAll          = 0.4;     % press boundary for 5 window sizes
-    M.bInit         = M.bAll; % initial bound for 5 window sizes
-    M.PlanningCurve = 'exp'; % other options: 'logistic', 'box' , 'ramp'
-    M.DecayParam    = 7; % the decay constant for the 'exp' option of PlanningCurve
-    M.B_coef        = 1;       % for the 'logistic' option of PlanningCurve
-    M.Box           = 1;          % box size for the 'boxcar' option of PlanningCurve
+    M.bInit         = M.bAll;  % initial bound for 5 window sizes
+    M.PlanningCurve = 'exp';   % other options: 'logistic', 'box' , 'ramp'
+    M.DecayParam    = 7;       % the decay constant for the 'exp' option of PlanningCurve
+    M.B_coef1       = 1;       % for the 'logistic' option of PlanningCurve
+    M.B_coef2       = 0;       % for the 'logistic' option of PlanningCurve
+    M.Box           = 1;       % box size for the 'boxcar' option of PlanningCurve
     M.rampDecay     = size(T.stimulus , 2);   % number of steps between 1 and 0 for the 'ramp' option of PlanningCurve
     M.theta_stim    = 0.01;
     M.parName       = parName;
@@ -189,7 +190,7 @@ for i = 1:cycNum
     opts.desiredField = desiredField;
     OLS = @(param) nansum(nansum((model(param,T, M ,opts) - x_desired).^2));
     %% optimization
-    opts = optimset('MaxIter', ItrNum ,'TolFun',1,'Display','iter' , 'TolX' , 1e-6);
+    opts = optimset('MaxIter', ItrNum ,'TolFun',1,'Display','iter' , 'TolX' , 1e-4);
     if isempty(loBound) | isempty(hiBound)
         [Param Fval] = fminsearch(OLS,initParam,opts);
     else

@@ -1,45 +1,77 @@
 %% 1- optimize the decision boundary and decayParam with Giacomos parameters Aintegrate ana Theta_stim with noise set to 0
 % clear param parName par day R
-parName = { 'bAll' , 'Box'};
+parName = { 'bAll' , 'rampDecay'};
 loBound = [];
 hiBound = [];
 h=0;
-load('param0_0_4  5.mat')
-initParam = [.5 , 2];
+
+initParam = [.55 , 5];
 day = [4 5];
-h = 0;
-[Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['1_box_',num2str(h),'_',num2str(day)] , 'cycNum' , 7 ,'samNum'  , [5] ,...
+h = 0; % all window sizes
+[Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['1_ramp_',num2str(h),'_',num2str(day)] , 'cycNum' , 7 ,'samNum'  , [5] ,...
     'ItrNum' , 1000 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , day , 'Horizon' , [1:5] , 'poolHorizons' , [5:13],...
     'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'MT'} , 'noisefreeRep' , [],  ...
-    'MsetField' , {'PlanningCurve' , 'logistic'  ,'theta_stim' ,0.0084,'Aintegrate' , 0.985});
+    'MsetField' , {'PlanningCurve' , 'ramp'  ,'theta_stim' ,0.0084,'Aintegrate' , 0.985});
 close all
 
 %% 2- optimize the initial decision boundary to get the RTs for every window size
 % clear param parName par day R
-parName = { 'binit' , 'B_coef'};
+parName = { 'bInit'};
 loBound = [];
 hiBound = [];
 h=0;
-load('param1_1_0_4  5.mat.mat')
-initParam = [.3 , 1];
+load('param1_ramp_0_4  5.mat')
+b = param.par(end , 1);
+rd = param.par(end , 2);
+
+
+initParam = [.5];
 day = [4 5];
-h = 0;
-[Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['1_1_',num2str(h),'_',num2str(day)] , 'cycNum' , 7 ,'samNum'  , [5] ,...
-    'ItrNum' , 1000 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , day , 'Horizon' , [1:5] , 'poolHorizons' , [5:13],...
-    'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'MT'} , 'noisefreeRep' , [],  ...
-    'MsetField' , {'PlanningCurve' , 'logistic'  ,'theta_stim' ,0.0084,'Aintegrate' , 0.985});
+for  h = 1:5
+[Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['1_rampBinit_',num2str(h),'_',num2str(day)] , 'cycNum' , 1,'samNum'  , [5] ,...
+    'ItrNum' , 1000 , 'loBound' , loBound , 'hiBound' , hiBound , 'Day' , day , 'Horizon' , [h] , 'poolHorizons' , [5:13],...
+    'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'RT'} , 'noisefreeRep' , [],  ...
+    'MsetField' , {'PlanningCurve' , 'ramp'  ,'theta_stim' ,0.0084,'Aintegrate' , 0.985 , 'bAll', b , 'rampDecay', rd});
+end
 close all
 %% 2 - create the noise-free simulation
 day = [4 5];
-load('param1_1_0_4  5.mat')
-parName = param.parName(end,:); % [0.492,2.32]
-par = param.par(end , :);
-[R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 100 ,...
-        'Day' , day, 'Horizon' , [1:5] , 'poolHorizons' , [5:13] , 'noise' ,0, 'subjNum' , [1:15],...
+load('param1_ramp_0_4  5.mat')
+b = param.par(end , 1);
+rd = param.par(end , 2);
+AllR = [];
+for  h = 1:5
+    fname = ['param1_rampBinit_',num2str(h),'_',num2str(day) , '.mat'];
+    load(fname)
+    parName = param.parName(end,:); % [0.492,2.32]
+    par = param.par(end , :);
+    [R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 100 ,...
+        'Day' , day, 'Horizon' , [h] , 'poolHorizons' , [5:13] , 'noise' ,0, 'subjNum' , [1:15],...
         'MsetField' , ...
-        {'PlanningCurve' , 'ramp' ,  'SigEps' , 0.0 ,'theta_stim' ,0.0084,'Aintegrate' , 0.985});% ,'NumPresses',1 , 'stimulus' , [3]);
+        {'PlanningCurve' , 'ramp' ,  'SigEps' , 0.0 ,'theta_stim' ,0.0084,'Aintegrate' , 0.985,'bAll', b , 'rampDecay', rd});% ,'NumPresses',1 , 'stimulus' , [3]);
+    close all
+    AllR = addstruct(AllR , R);
+end
+R_seq = AllR;
+Dall.RT = Dall.AllPressTimes(:,1)-1500;
+A = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , [4 5]) &...
+ismember(Dall.Horizon , [1:5]));
+figure('color' , 'white')
+subplot(211)
+hold on
+plot(R_seq.MT , 'o-', 'color' , [0 0 1] )  
+lineplot(A.Horizon  , A.MT ,  'plotfcn','nanmedian' , 'linecolor' ,  [0 1 0 ],...
+                    'errorcolor' , [0 1 0]) 
 
 
+                
+subplot(212)
+hold on
+plot(R_seq.RT , 'o-', 'color' , [0 0 1] )  
+lineplot(A.Horizon  , A.RT ,  'plotfcn','nanmedian' , 'linecolor' ,  [0 1 0 ],...
+                    'errorcolor' , [0 1 0]) 
+                
+                
 %% 3- optimize the noise level using the parametrs of the noise free optimization as presets
 % in the noisey round, we fit not to the actual data, but to the niseless
 % simulation
