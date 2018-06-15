@@ -34,7 +34,7 @@ for  h = 1:5
     'MsetField' , {'PlanningCurve' , 'ramp'  ,'theta_stim' ,0.0084,'Aintegrate' , 0.985 , 'bAll', b , 'rampDecay', rd});
 end
 close all
-%% 2 - create the noise-free simulation
+%% 3 - create the noise-free simulation
 day = [4 5];
 load('param1_ramp_0_4  5.mat')
 b = param.par(end , 1);
@@ -52,26 +52,97 @@ for  h = 1:5
     close all
     AllR = addstruct(AllR , R);
 end
+%% 4 - visualize
+c1 = [255, 153, 179]/255; % Random Red Tones
+ce = [153, 0, 51]/255;
+for rgb = 1:3
+    tempcol(rgb , :) = linspace(c1(rgb),ce(rgb) , 6);
+end
+for i = 1:length(tempcol)
+    colz{i,1} = tempcol(: , i)';
+end
+
+clear tempcol
+c1 = [153, 194, 255]/255; % structured blue tones
+ce = [0, 0, 102]/255;
+for rgb = 1:3
+    tempcol(rgb , :) = linspace(c1(rgb),ce(rgb) , 6);
+end
+for i = 1:length(tempcol)
+    colz{i,2} = tempcol(: , i)';
+    avgCol{i} = mean([colz{i,2} ; colz{i,1}],1);
+end
+
 R_seq = AllR;
 Dall.RT = Dall.AllPressTimes(:,1)-1500;
 A = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , [4 5]) &...
 ismember(Dall.Horizon , [1:5]));
 figure('color' , 'white')
 subplot(211)
+% MT
 hold on
 plot(R_seq.MT , 'o-', 'color' , [0 0 1] )  
-lineplot(A.Horizon  , A.MT ,  'plotfcn','nanmedian' , 'linecolor' ,  [0 1 0 ],...
-                    'errorcolor' , [0 1 0]) 
+lineplot(A.Horizon  , A.MT ,  'plotfcn','nanmedian' , 'linecolor' ,  [0 1 0 ],'errorcolor' , [0 1 0]) 
 
-
-                
+% RT          
 subplot(212)
 hold on
 plot(R_seq.RT , 'o-', 'color' , [0 0 1] )  
-lineplot(A.Horizon  , A.RT ,  'plotfcn','nanmedian' , 'linecolor' ,  [0 1 0 ],...
-                    'errorcolor' , [0 1 0]) 
-                
-                
+lineplot(A.Horizon  , A.RT ,  'plotfcn','nanmedian' , 'linecolor' ,  [0 1 0 ],'errorcolor' , [0 1 0]) 
+
+% IPI
+Fit.IPI = AllR.IPI;
+Fit.IPI = reshape(Fit.IPI , numel(Fit.IPI) , 1);
+Act.IPI = A.IPI;
+Act.IPI = reshape(Act.IPI , numel(Act.IPI) , 1);
+
+Fit.singleH  = repmat(nanmean(AllR.Horizon, 2), 1 , size(A.AllPress,2)-1);
+Fit.singleH  = reshape(Fit.singleH , numel(Fit.IPI) , 1);
+Act.singleH  = repmat(nanmean(A.Horizon, 2) , 1 , size(A.AllPress,2)-1);
+Act.singleH  = reshape(Act.singleH , numel(Act.IPI) , 1);
+
+
+Fit.ipiNum = repmat(1:size(AllR.stimulus,2)-1 , size(AllR.stimulus,1) , 1);
+Fit.ipiNum = reshape(Fit.ipiNum , numel(Fit.ipiNum) , 1);
+Act.ipiNum = repmat(1:size(AllR.stimulus,2)-1 , length(A.AllPress) , 1);
+Act.ipiNum = reshape(Act.ipiNum , numel(Act.ipiNum) , 1);
+
+Act.fitoract = ones(size(Act.ipiNum));
+Fit.fitoract = zeros(size(Fit.ipiNum));
+
+All  = addstruct(Fit , Act);
+colorz = colz(:,1);
+figure('color' , 'white')
+subplot(211)
+
+H = unique(All.singleH);
+for h= 1:length(H)
+    A = getrow(Fit , Fit.singleH==H(h));
+    plot(A.ipiNum  ,A.IPI, '-o' , 'Color' , colorz{h} , ...
+        'MarkerEdgeColor' , colorz{h} , 'MarkerFaceColor' , colorz{h},...
+        'LineWidth' , 1.5 , 'MarkerSize' , 5)
+    hold on
+end
+legend({'H = 1' , 'H = 2' , 'H = 3' , 'H = 4' , 'H = 5-13'} , 'Box' , 'off')
+title('IPIs - fitted')
+xlabel('IPIs number')
+grid on
+set(gca , 'FontSize' , 16 , 'Box' , 'off' , 'YLim' , [150 700])
+
+subplot(212)
+colorz = colz(:,2);
+lineplot(All.ipiNum , All.IPI , 'plotfcn' , 'nanmedian',...
+    'split', All.singleH  , 'linecolor' , colorz,...
+    'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
+    'linewidth' , 1.5 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
+    'markersize' , 5, 'markercolor' , colorz , 'leg' , {'H = 1' , 'H = 2' , 'H = 3' , 'H = 4' , 'H = 5-13'} , ...
+    'subset' , All.fitoract == 1);
+
+title('IPIs - Actual')
+xlabel('IPIs number')
+grid on
+set(gca , 'FontSize' , 16 , 'YLim' , [150 700])
+
 %% 3- optimize the noise level using the parametrs of the noise free optimization as presets
 % in the noisey round, we fit not to the actual data, but to the niseless
 % simulation
