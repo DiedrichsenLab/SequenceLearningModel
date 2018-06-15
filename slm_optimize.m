@@ -76,12 +76,17 @@ while(c<=length(varargin))
             % for when you want constant stimulus
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'noisefreeRep'}
+            % the noise free response for situations where we want the
+            % noisey response to be around the median of the noise -free
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error('Unknown option: %s',varargin{c});
     end
 end
-mainDir = '/Users/nkordjazi/Documents/GitHub/';
-% mainDir = '/Users/nedakordjazi/Documents/GitHub/';
+% mainDir = '/Users/nkordjazi/Documents/GitHub/';
+mainDir = '/Users/nedakordjazi/Documents/GitHub/';
 %% optimization
 Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) &...
     ismember(Dall.Horizon , Horizon) & ismember(Dall.SN , subjNum));
@@ -103,8 +108,14 @@ for i = 1:cycNum
     %% set up the desired output
     G = tapply(ANA , {'Horizon'} , {'MT' , 'nanmedian'},{'RT' , 'nanmedian'},{'IPI' , 'nanmedian'});
     x_desired = [];
-    for xd = 1:length(desiredField)
-        eval(['x_desired = [x_desired ; G.' , desiredField{xd} , '];'] )
+    if exist('noisefreeRep') & ~isempty(noisefreeRep)
+        for xd = 1:length(desiredField)
+            eval(['x_desired = [x_desired ; noisefreeRep.' , desiredField{xd} , '];'] )
+        end
+    else
+        for xd = 1:length(desiredField)
+            eval(['x_desired = [x_desired ; G.' , desiredField{xd} , '];'] )
+        end
     end
     x_desired = x_desired';
     %% subsample the data
@@ -142,35 +153,35 @@ for i = 1:cycNum
     end
     
     %% set the default M values
-    M.numOptions = 5;
-    M.dT_visual  = 90;
-    M.Ainhibit   = 0;
-    M.Capacity   =1;
-    M.dT_motor   = 150;
-    M.dtGrowth = 1;
-    M.TSDecayParam  = 7.75;
-    M.Aintegrate  = 0.98;
-    M.bAll = 0.6;
-    M.Bound = M.bAll.*ones(1,size(T.stimulus , 2)); % boundry is a vector of length maxPresses
+    M.numOptions    = 5;
+    M.dT_visual     = 90;
+    M.Ainhibit      = 0;
+    M.Capacity      = 1;
+    M.dT_motor      = 150;
+    M.dtGrowth      = 1;
+    M.TSDecayParam  = 3;
+    M.Aintegrate    = 0.98;
+    M.bAll          = 0.4;     % press boundary for 5 window sizes
+    M.bInit         = M.bAll; % initial bound for 5 window sizes
     M.PlanningCurve = 'exp'; % other options: 'logistic', 'box' , 'ramp'
-    M.DecayParam   = 7; % the decay constant for the 'exp' option of PlanningCurve
-    M.B_coef = 1;       % for the 'logistic' option of PlanningCurve
-    M.Box = 1;          % box size for the 'boxcar' option of PlanningCurve
-    M.rampDecay = size(T.stimulus , 2);   % number of steps between 1 and 0 for the 'ramp' option of PlanningCurve
-    M.theta_stim = 0.01;
+    M.DecayParam    = 7; % the decay constant for the 'exp' option of PlanningCurve
+    M.B_coef        = 1;       % for the 'logistic' option of PlanningCurve
+    M.Box           = 1;          % box size for the 'boxcar' option of PlanningCurve
+    M.rampDecay     = size(T.stimulus , 2);   % number of steps between 1 and 0 for the 'ramp' option of PlanningCurve
+    M.theta_stim    = 0.01;
+    M.parName       = parName;
     if~noise
-        M.SigEps      = 0;
+        M.SigEps    = 0;
     else
-        M.SigEps      = 0.02;
+        M.SigEps    = 0.02;
     end
-    M.parName = parName;
+    
     c = 1;
     %% re-set the fields that have been defined in input
     while(c<=length(MsetField))
         eval(['M.',MsetField{c} '= MsetField{c+1};']);
         c=c+2;
     end
-    
     %% set up the cost function
     opts.runNum       = runNum;
     opts.cycNum       = i;
@@ -178,7 +189,7 @@ for i = 1:cycNum
     opts.desiredField = desiredField;
     OLS = @(param) nansum(nansum((model(param,T, M ,opts) - x_desired).^2));
     %% optimization
-    opts = optimset('MaxIter', ItrNum ,'TolFun',1e+03,'Display','iter' , 'TolX' , 1e-4);
+    opts = optimset('MaxIter', ItrNum ,'TolFun',1,'Display','iter' , 'TolX' , 1e-6);
     if isempty(loBound) | isempty(hiBound)
         [Param Fval] = fminsearch(OLS,initParam,opts);
     else

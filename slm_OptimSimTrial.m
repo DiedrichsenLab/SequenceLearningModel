@@ -16,8 +16,8 @@ N = {};
 for i = 1:length(D)
     N = [N {D(i).name}];
 end
-mainDir = '/Users/nkordjazi/Documents/GitHub/';
-% mainDir = '/Users/nedakordjazi/Documents/GitHub/';
+% mainDir = '/Users/nkordjazi/Documents/GitHub/';
+mainDir = '/Users/nedakordjazi/Documents/GitHub/';
 % save a new emty variable to ammend with optimization iterations
 if~isempty(opts.runNum) % is opts.runNum is empty it means we are just simulating with a set of parametrs
     cd([mainDir , 'SequenceLearningModel'])
@@ -48,7 +48,7 @@ origCap = M.Capacity; % to preserve the original M.Capacity in designs that the 
 for pn = 1:length(M.parName)
     eval(['M.' , M.parName{pn} , ' = par(pn);'] )
 end
-
+M.Bound = [M.bInit ones(1 ,size(T.stimulus,2)-1)*M.bAll]; % boundry is a vector of length maxPresses
 %% 
 AllT = T;
 AllR = [];
@@ -124,10 +124,10 @@ for trls = 1:length(T.TN)
             mult = 1./(1+1*exp(M.B_coef*Xdomain));
         case 'box'
             mult = zeros(1,maxPresses);
-            mult(1:M.Box) = 1;
+            mult(1:floor(M.Box)) = 1;
         case 'ramp'
             mult = zeros(1,maxPresses);
-            mult(1:M.rampDecay) = linspace(1,0,M.rampDecay);
+            mult(1:floor(M.rampDecay)) = linspace(1,0,floor(M.rampDecay));
     end
     pltmult = 0;
     if pltmult
@@ -236,12 +236,23 @@ AllR.MT = AllR.pressTime(:,end) - AllR.pressTime(:,1);
 AllR.RT =  AllR.pressTime(:,1);
 AllR.singleH = nanmean(AllR.Horizon , 2);
 AllR.IPI = diff(AllR.pressTime , [], 2);
+for tn = 1:size(AllR.stimulus,1)
+    AllR.isError(tn,1) = ~isequal(AllR.stimulus(tn, :) , AllR.response(tn  ,:));
+end
 R = [];
 switch opts.mode
     case {'optim'}
         for xd = 1:length(opts.desiredField)
-            Temp = tapply(AllR ,{'singleH'}, {opts.desiredField{xd} , 'median'});
-            eval(['R = [R ; Temp.' , opts.desiredField{xd} , '];'] )
+            H = unique(AllR.singleH);
+            for hh = 1:length(H)
+                Temp = getrow(AllR , ~AllR.isError & AllR.singleH == H(hh));
+                if ~isempty(Temp.MT)
+                    Temp = tapply(Temp ,{'singleH'}, {opts.desiredField{xd} , 'median'} );
+                    eval(['R = [R ; Temp.' , opts.desiredField{xd} , '];'] )
+                else
+                    R = [R;NaN];
+                end
+            end
         end
         R =  R';
         R(isnan(R))=10e+10;

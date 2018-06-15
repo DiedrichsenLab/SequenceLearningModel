@@ -120,28 +120,29 @@ end
 
 
 %% set the default M values
-M.numOptions = 5;
-M.dT_visual  = 90;
-M.Ainhibit   = 0;
-M.Capacity   =1;
-M.dT_motor   = 150;
-M.dtGrowth = 1;
-M.TSDecayParam  = 7.75;
-M.Aintegrate  = 0.98;
-M.bAll = 0.6;
-M.Bound = M.bAll.*ones(1,size(T.stimulus , 2)); % boundry is a vector of length maxPresses
+M.numOptions    = 5;
+M.dT_visual     = 90;
+M.Ainhibit      = 0;
+M.Capacity      = 1;
+M.dT_motor      = 150;
+M.dtGrowth      = 1;
+M.TSDecayParam  = 3;
+M.Aintegrate    = 0.98;
+M.bAll          = 0.4;     % press boundary for 5 window sizes
+M.bInit         = M.bAll; % initial bound for 5 window sizes
 M.PlanningCurve = 'exp'; % other options: 'logistic', 'box' , 'ramp'
-M.DecayParam   = 7; % the decay constant for the 'exp' option of PlanningCurve
-M.B_coef = 1;       % for the 'logistic' option of PlanningCurve
-M.Box = 1;          % box size for the 'boxcar' option of PlanningCurve
-M.rampDecay = size(T.stimulus , 2);   % number of steps between 1 and 0 for the 'ramp' option of PlanningCurve
-M.theta_stim = 0.01;
+M.DecayParam    = 7; % the decay constant for the 'exp' option of PlanningCurve
+M.B_coef        = 1;       % for the 'logistic' option of PlanningCurve
+M.Box           = 1;          % box size for the 'boxcar' option of PlanningCurve
+M.rampDecay     = size(T.stimulus , 2);   % number of steps between 1 and 0 for the 'ramp' option of PlanningCurve
+M.theta_stim    = 0.01;
+M.parName       = parName;
 if~noise
-    M.SigEps      = 0;
+    M.SigEps    = 0;
 else
-    M.SigEps      = 0.02;
+    M.SigEps    = 0.02;
 end
-M.parName = parName;
+
 %% re-set the fields that have been defined in input
 c = 1;
 for c = 1:length(parName)
@@ -152,6 +153,7 @@ while(c<=length(MsetField))
     eval(['M.',MsetField{c} '= MsetField{c+1};']);
     c=c+2;
 end
+
 %% simulate
 opts.runNum       = [];
 opts.cycNum       = [];
@@ -159,11 +161,9 @@ opts.mode         = 'sim';
 opts.desiredField = [];
 
 R = slm_optimSimTrial(par , T , M , opts);
-for tn = 1:size(R.stimulus,1)
-    R.isError(tn,1) = ~isequal(R.stimulus(tn, :) , R.response(tn  ,:));
-end
+
 %% Horizon
-plt = 0;
+plt = 1;
 if plt
     ANA = getrow(Dall , ismember(Dall.Horizon , Horizon));
     ANA.RT = ANA.AllPressTimes(:,1)-1500;
