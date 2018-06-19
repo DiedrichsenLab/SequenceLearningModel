@@ -141,7 +141,7 @@ for i = 1:cycNum
     T.Horizon = ANA.Horizon;
     T.numPress = SeqLength.*ones(length(ANA.TN) , 1);
     T.stimTime = zeros(length(ANA.TN) , SeqLength);
-    if exist('stimulus')
+    if exist('stimulus') & ~isempty(stimulus)
         T.stimulus = repmat(stimulus ,length(ANA.TN) , 1); % constant stimulus
     else
         T.stimulus = ANA.AllPress(:,1:SeqLength);
@@ -168,7 +168,7 @@ for i = 1:cycNum
     M.B_coef1       = 1;       % for the 'logistic' option of PlanningCurve
     M.B_coef2       = 0;       % for the 'logistic' option of PlanningCurve
     M.Box           = 1;       % box size for the 'boxcar' option of PlanningCurve
-    M.rampDecay     = size(T.stimulus , 2);   % number of steps between 1 and 0 for the 'ramp' option of PlanningCurve
+    M.rampDecay     = size(T.stimulus , 2);   
     M.theta_stim    = 0.01;
     M.parName       = parName;
     if~noise

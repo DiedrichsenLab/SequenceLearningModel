@@ -135,7 +135,7 @@ M.DecayParam    = 7; % the decay constant for the 'exp' option of PlanningCurve
 M.B_coef1       = 1;       % for the 'logistic' option of PlanningCurve
 M.B_coef2       = 0;       % for the 'logistic' option of PlanningCurve
 M.Box           = 1;          % box size for the 'boxcar' option of PlanningCurve
-M.rampDecay     = size(T.stimulus , 2);   % number of steps between 1 and 0 for the 'ramp' option of PlanningCurve
+M.rampDecay     = size(T.stimulus , 2);  
 M.theta_stim    = 0.01;
 M.parName       = parName;
 if~noise
@@ -164,7 +164,7 @@ opts.desiredField = [];
 R = slm_optimSimTrial(par , T , M , opts);
 
 %% Horizon
-plt = 1;
+plt = 0;
 if plt
     ANA = getrow(Dall , ismember(Dall.Horizon , Horizon));
     ANA.RT = ANA.AllPressTimes(:,1)-1500;

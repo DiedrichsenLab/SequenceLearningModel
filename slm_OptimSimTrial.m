@@ -53,7 +53,6 @@ M.Bound = [M.bInit ones(1 ,size(T.stimulus,2)-1)*M.bAll]; % boundry is a vector 
 AllT = T;
 AllR = [];
 R = [];
-
 for trls = 1:length(T.TN)
     M.Capacity   = origCap;
     T = getrow(AllT , trls);
@@ -113,26 +112,54 @@ for trls = 1:length(T.TN)
             %% ============== exponential decay   1 --> ones for the
             % capacity and then exp decay
             cap_mult = ones(1,M.Capacity-1);
-            mult = [cap_mult , zeros(1,length(dec))];
-            mult = [mult(logical(mult)) , exp(-[dec-nDecision]./M.DecayParam)];      % How much stimulus exponentia decay
+            planFunc = [cap_mult , zeros(1,length(dec))];
+            planFunc = [planFunc(logical(planFunc)) , exp(-[dec-nDecision]./M.DecayParam)];      % How much stimulus exponentia decay
             %% ============== exponential decay   2 --> expdecay and then zeros from capacity onwards
-%             mult = exp(-([1:maxPresses]-1)./M.DecayParam);
-%             mult(M.Capacity+1:end) = 0;
-%             T.mult = mult;
+%             planFunc = exp(-([1:maxPresses]-1)./M.DecayParam);
+%             planFunc(M.Capacity+1:end) = 0;
+%             T.planFunc = planFunc;
         case 'logistic'
-            Xdomain = [-7:6];
-            mult = 1./(1+1*exp(M.B_coef1*(Xdomain-M.B_coef2)));
+            Xdomain = [-M.B_coef2:20];
+            planFunc = 1./(1+1*exp(M.B_coef1*(Xdomain)));
+            planFunc = planFunc(1:size(T.stimulus , 2));
         case 'box'
-            mult = zeros(1,maxPresses);
-            mult(1:floor(M.Box)) = 1;
+            planFunc = zeros(1,maxPresses);
+            planFunc(1:floor(M.Box)) = 1;
         case 'ramp'
-            mult = zeros(1,maxPresses);
-            mult(1:floor(M.rampDecay)) = linspace(1,0,floor(M.rampDecay));
+            planFunc = zeros(1,maxPresses);
+            planFunc(1:floor(M.rampDecay)) = linspace(1,0,floor(M.rampDecay));
+        case 'logistic+ramp'
+            Xdomain = [-M.B_coef2:20];
+            planFunc1 = 1./(1+1*exp(M.B_coef1*(Xdomain)));
+            planFunc1 = planFunc1(1:size(T.stimulus , 2));
+            
+            planFunc2 = zeros(1,maxPresses);
+            planFunc2(1:floor(M.rampDecay)) = linspace(1,0,floor(M.rampDecay));
+            
+            planFunc = max(planFunc1,planFunc2);
+        case 'exp+ramp'
+            cap_mult = ones(1,M.Capacity-1);
+            planFunc1 = [cap_mult , zeros(1,length(dec))];
+            planFunc1 = [planFunc1(logical(planFunc1)) , exp(-[dec-nDecision]./M.DecayParam)];
+            
+            planFunc2 = zeros(1,maxPresses);
+            planFunc2(1:floor(M.rampDecay)) = linspace(1,0,floor(M.rampDecay));
+            
+            planFunc = planFunc1+planFunc2;
+        case 'box+ramp'
+            planFunc1 = zeros(1,maxPresses);
+            planFunc1(1:floor(M.Box)) = 1;
+            
+            planFunc2 = zeros(1,maxPresses);
+            planFunc2(1:floor(M.rampDecay)) = linspace(1,0,floor(M.rampDecay));
+            
+            planFunc = planFunc1 + planFunc2;
     end
+    T.planFunc = planFunc;
     pltmult = 0;
     if pltmult
         figure('color' , 'white')
-        plot(mult , '-o' ,'LineWidth' , 1.5 , 'MarkerSize' , 5)
+        plot(planFunc , '-o' ,'LineWidth' , 1.5 , 'MarkerSize' , 5)
         set(gca , 'XLim' , [1 maxPresses] , 'Box' , 'off')
     end
 
@@ -162,9 +189,9 @@ for trls = 1:length(T.TN)
         
         for j = 1:maxPresses
             if ~isnan(T.forcedPressTime(1,1))
-                X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*mult(j).*S(:,i,j).*G(i)) + eps(:,i+1,j);
+                X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*planFunc(j).*S(:,i,j).*G(i)) + eps(:,i+1,j);
             else
-                X(:,i+1,j)= A * X(:,i,j) + M.theta_stim.* mult(j) .* S(:,i,j) + eps(:,i+1,j);
+                X(:,i+1,j)= A * X(:,i,j) + M.theta_stim.* planFunc(j) .* S(:,i,j) + eps(:,i+1,j);
             end
         end
         % if the system is in the first decision cycle, it wont start pressing
@@ -199,8 +226,8 @@ for trls = 1:length(T.TN)
         if (isPressing)
             if (t(i+1))>=T.pressTime(prs)
                 isPressing = 0;
-                mult(prs+1 : end) = mult(prs:end-1);
-                mult(1:prs) = 0;
+                planFunc(prs+1 : end) = planFunc(prs:end-1);
+                planFunc(1:prs) = 0;
                 % update the remaining presses
                 remPress = max(0 , remPress - maxPlan(nDecision));
                 nDecision = nDecision+1;       % Waiting for the next decision
@@ -220,7 +247,6 @@ for trls = 1:length(T.TN)
         T.pressTime = nan(1 , size(T.stimulus , 2));
         T.decisionTime = nan(1 , size(T.stimulus , 2));
         T.response = nan(1 , size(T.stimulus , 2));
-        
     end
     pltTrial = 0;
     if pltTrial
