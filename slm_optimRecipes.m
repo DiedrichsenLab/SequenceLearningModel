@@ -1,14 +1,22 @@
 slm_NoiselessFitModel('Fit' , Dall , 'planFunc' , 'exp')
-slm_NoiselessFitModel('Fit' , Dall , 'planFunc' , 'logistic+ramp','NameExt','1')
-slm_NoiselessFitModel('Fit' , Dall , 'planFunc' , 'logistic','NameExt','3')
-slm_NoiselessFitModel('Fit' , Dall , 'planFunc' , 'exp+ramp','NameExt','1')
-slm_NoiselessFitModel('Fit' , Dall , 'planFunc' , 'box+ramp')
+slm_NoiselessFitModel('Fit' , Dall , 'planFunc' , 'ramp')
+slm_NoiselessFitModel('Fit' , Dall , 'planFunc' , 'logistic');
+
+slm_NoiselessFitModel('Fit' , Dall , 'planFunc' , 'box_logistic')
+slm_NoiselessFitModel('Fit' , Dall , 'planFunc' , 'box_exp')
+slm_NoiselessFitModel('Fit' , Dall , 'planFunc' , 'box_ramp')
 
 
 
 slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'exp')
-slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'logistic','NameExt','2')
+slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'logistic');
 slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'ramp')
+
+slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'box_logistic')
+slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'box_ramp')
+slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'box_exp')
+
+slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'ramp','NameExt','1')
 slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'logistic+ramp')
 slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'exp+ramp')
 slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'logistic+ramp','NameExt','1')

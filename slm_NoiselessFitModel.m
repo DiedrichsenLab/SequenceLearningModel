@@ -47,48 +47,50 @@ end
 switch planFunc
     case 'logistic'
         parName = { 'bAll' , 'B_coef1' 'B_coef2'};
-        initParam = [.12 , 3 1];
+        initParam = [.52 3 1];
     case 'ramp'
-        parName = { 'bAll' , 'rampDecay'};
-        initParam = [.55 , 5];
+        parName = { 'bAll' , 'rampDecay' };
+        initParam = [.50 , 5 4];
     case 'box'
         parName = { 'bAll' , 'Box'};
         initParam = [.55 , 5];
-    case 'logistic+ramp'
-        parName = { 'bAll' , 'B_coef1' 'B_coef2'  'rampDecay'};
-        initParam = [.4 , 2 2 2];
-    case 'exp+ramp'
-        parName = { 'bAll' , 'DecayParam'  'rampDecay'};
-        initParam = [.5 , 7 2];
-    case 'box+ramp'
-        parName = { 'bAll' , 'Box'  'rampDecay'};
-        initParam = [.3 , 4 4];
+    case 'box_logistic'
+        parName = { 'bAll' , 'B_coef1' 'B_coef2'  'Box'};
+        initParam = [.4 , 2 3 4];
+    case 'box_exp'
+        parName = { 'bAll' , 'DecayParam'  'Box'};
+        initParam = [.5 , 7 5];
+    case 'box_ramp'
+        parName = { 'bAll' , 'rampDecay' ,'Box'};
+        initParam = [.50 , 7  3];
         
 end
-
+baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+% baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
 switch what
     case 'Fit'
         %% STEP 1 - fit the ball and the planning function parametrs to get MT
         MSF = {'PlanningCurve' , planFunc  ,'theta_stim' ,0.0084,'Aintegrate' , 0.985};
-        [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'_',num2str(day)] , 'cycNum' , cycNum ,'samNum'  , [5] ,...
-            'ItrNum' , ItrNum , 'loBound' , [] , 'hiBound' , [] , 'Day' , day , 'Horizon' , [1:5] , 'poolHorizons' , [5:13],...
-            'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'MT'} , 'noisefreeRep' , [],'MsetField' , MSF);
+        [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'_',num2str(day)],...
+            'Horizon' , [1:5] , 'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'MT'} ,'MsetField' , MSF);
         
         %% STEP 2 - with parameters of STEP 1 fit the initial decision boundary to get the RTs for every window size
-        
+        saveDir = [planFunc,NameExt,'_',num2str(day)];
+        cd([baseDir , saveDir]);
         parName = { 'bInit'};
         load(['param_',planFunc,NameExt,'_',num2str(day),'.mat'])
         for p = 1:size(param.par,2)
             MSF = [MSF , param.parName{end,p},param.par(end,p)];
         end
-        
         for  h = 1:5
-            [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'Binit_',num2str(h),'_',num2str(day)] , 'cycNum' , cycNum,'samNum'  , [5] ,...
-                'ItrNum' , ItrNum , 'loBound' , [] , 'hiBound' , [] , 'Day' , day , 'Horizon' , [h] , 'poolHorizons' , [5:13],...
-                'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'RT'} , 'noisefreeRep' , [], 'MsetField' , MSF);
+            [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'Binit_',num2str(h),'_',num2str(day)],...
+                'samNum'  , [5] ,'Horizon' , [h] ,'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'RT'} ,  'MsetField' , MSF ,...
+                'saveDir' , saveDir);
         end
     case 'Simulate'
         %% STEP 3 - create the noise-free simulation
+        saveDir = [planFunc,NameExt,'_',num2str(day)];
+        cd([baseDir , saveDir]);
         MSF = {'PlanningCurve' , planFunc  ,'theta_stim' ,0.0084,'Aintegrate' , 0.985};
         load(['param_',planFunc,NameExt,'_',num2str(day),'.mat'])
         for p = 1:size(param.par,2)
@@ -136,13 +138,14 @@ switch what
         hold on
         plot(R_seq.MT , 'o-', 'color' , [0 0 1] )
         lineplot(A.Horizon  , A.MT ,  'plotfcn','nanmedian' , 'linecolor' ,  [0 1 0 ],'errorcolor' , [0 1 0])
+        title('MT')
         
         % RT
         subplot(234)
         hold on
         plot(R_seq.RT , 'o-', 'color' , [0 0 1] )
         lineplot(A.Horizon  , A.RT ,  'plotfcn','nanmedian' , 'linecolor' ,  [0 1 0 ],'errorcolor' , [0 1 0])
-        
+        title('RT')
         % IPI
         Fit.IPI = AllR.IPI;
         Fit.IPI = reshape(Fit.IPI , numel(Fit.IPI) , 1);

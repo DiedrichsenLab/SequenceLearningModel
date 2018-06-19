@@ -1,12 +1,21 @@
 function [Param Fval] = slm_optimize(Dall , initParam , varargin)
-cycNum = 50;
+cycNum = 1;
 samNum = 20;
 tol = [0.5 0.03];
-ItrNum = 20;
+ItrNum = 1000;
 NumPresses = size(Dall.AllPress , 2);
+loBound = [];
+hiBound = [];
+Day = [4 5];
+poolHorizons = [5:13];
+noisefreeRep = [];
 c = 1;
+% mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+
 while(c<=length(varargin))
     switch(varargin{c})
+        
         case {'parName'}
             % names of paramters
             eval([varargin{c} '= varargin{c+1};']);
@@ -81,12 +90,19 @@ while(c<=length(varargin))
             % noisey response to be around the median of the noise -free
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'saveDir'}
+            % Directory to save the mat files to
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error('Unknown option: %s',varargin{c});
     end
 end
-mainDir = '/Users/nkordjazi/Documents/GitHub/';
-% mainDir = '/Users/nedakordjazi/Documents/GitHub/';
+if ~exist('saveDir')
+    saveDir = [mainDir , runNum(2:end)];
+else
+    saveDir = [mainDir , saveDir];
+end
 %% optimization
 Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) &...
     ismember(Dall.Horizon , Horizon) & ismember(Dall.SN , subjNum));
@@ -99,8 +115,10 @@ Horizon = unique(Dall.Horizon);
 for i = 1:cycNum
     %% in cycle numbers bigger than 1, retrieve the last param set from the last cycle and use as initials
     disp(['Initializing optimization cycle number ' , num2str(i) , '/', num2str(cycNum) , ' with ' , num2str(ItrNum) , ' iterations...'])
-    if i>1
-        load([mainDir , 'SequenceLearningModel/param' , runNum , '.mat'])
+    if i==1
+        mkdir(saveDir);
+    else
+        load([saveDir , '/param' , runNum , '.mat'])
         initParam = param.par(end , :);
     end
     ANA = getrow(Dall , ismember(Dall.Horizon , Horizon));
@@ -168,7 +186,7 @@ for i = 1:cycNum
     M.B_coef1       = 1;       % for the 'logistic' option of PlanningCurve
     M.B_coef2       = 0;       % for the 'logistic' option of PlanningCurve
     M.Box           = 1;       % box size for the 'boxcar' option of PlanningCurve
-    M.rampDecay     = size(T.stimulus , 2);   
+    M.rampDecay     = size(T.stimulus , 2);   % for the 'ramp' option of PlanningCurve
     M.theta_stim    = 0.01;
     M.parName       = parName;
     if~noise
@@ -188,6 +206,7 @@ for i = 1:cycNum
     opts.cycNum       = i;
     opts.mode         = 'optim';
     opts.desiredField = desiredField;
+    opts.saveDir      = saveDir;
     OLS = @(param) nansum(nansum((model(param,T, M ,opts) - x_desired).^2));
     %% optimization
     opts = optimset('MaxIter', ItrNum ,'TolFun',1,'Display','iter' , 'TolX' , 1e-4);

@@ -16,20 +16,20 @@ N = {};
 for i = 1:length(D)
     N = [N {D(i).name}];
 end
-mainDir = '/Users/nkordjazi/Documents/GitHub/';
-% mainDir = '/Users/nedakordjazi/Documents/GitHub/';
+% mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel';
+mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
 % save a new emty variable to ammend with optimization iterations
 if~isempty(opts.runNum) % is opts.runNum is empty it means we are just simulating with a set of parametrs
-    cd([mainDir , 'SequenceLearningModel'])
+    cd(opts.saveDir )
     if ~sum(strcmp(N , ['param' , opts.runNum , '.mat']))
         param.cycNum = []; % number of resampling cycles within a run
         param.itrNum = []; % optimization iteration number within a cycle
         param.par = [];      % paramets
         param.parName = {};
-        save([mainDir , 'SequenceLearningModel/param' , opts.runNum , '.mat'] ,'param' );
+        save([opts.saveDir ,'/param' , opts.runNum , '.mat'] ,'param' );
     end
     % ammend the ptimization matrix
-    load([mainDir , 'SequenceLearningModel/param' , opts.runNum , '.mat'])
+    load([opts.saveDir ,'/param' , opts.runNum , '.mat'])
     
     P.cycNum = opts.cycNum; % run number
     if ~isempty(param.itrNum)
@@ -40,7 +40,7 @@ if~isempty(opts.runNum) % is opts.runNum is empty it means we are just simulatin
     P.par = par;
     P.parName = M.parName;
     param = addstruct(param , P);
-    save([mainDir , 'SequenceLearningModel/param' , opts.runNum , '.mat'] ,'param' );
+    save([opts.saveDir ,'/param' , opts.runNum , '.mat'] ,'param' );
 end
 
 origCap = M.Capacity; % to preserve the original M.Capacity in designs that the capacity/horizon keeps changing
@@ -128,7 +128,7 @@ for trls = 1:length(T.TN)
         case 'ramp'
             planFunc = zeros(1,maxPresses);
             planFunc(1:floor(M.rampDecay)) = linspace(1,0,floor(M.rampDecay));
-        case 'logistic+ramp'
+        case 'box_logistic'
             Xdomain = [-M.B_coef2:20];
             planFunc1 = 1./(1+1*exp(M.B_coef1*(Xdomain)));
             planFunc1 = planFunc1(1:size(T.stimulus , 2));
@@ -136,24 +136,24 @@ for trls = 1:length(T.TN)
             planFunc2 = zeros(1,maxPresses);
             planFunc2(1:floor(M.rampDecay)) = linspace(1,0,floor(M.rampDecay));
             
-            planFunc = max(planFunc1,planFunc2);
-        case 'exp+ramp'
+            planFunc = planFunc1.*planFunc2;
+        case 'box_exp'
             cap_mult = ones(1,M.Capacity-1);
             planFunc1 = [cap_mult , zeros(1,length(dec))];
             planFunc1 = [planFunc1(logical(planFunc1)) , exp(-[dec-nDecision]./M.DecayParam)];
             
             planFunc2 = zeros(1,maxPresses);
-            planFunc2(1:floor(M.rampDecay)) = linspace(1,0,floor(M.rampDecay));
+            planFunc2(1:floor(M.Box)) = 1;
             
-            planFunc = planFunc1+planFunc2;
-        case 'box+ramp'
+            planFunc = planFunc1.*planFunc2;
+        case 'box_ramp'
             planFunc1 = zeros(1,maxPresses);
             planFunc1(1:floor(M.Box)) = 1;
             
             planFunc2 = zeros(1,maxPresses);
             planFunc2(1:floor(M.rampDecay)) = linspace(1,0,floor(M.rampDecay));
             
-            planFunc = planFunc1 + planFunc2;
+            planFunc = planFunc1.*planFunc2;
     end
     T.planFunc = planFunc;
     pltmult = 0;
