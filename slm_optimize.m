@@ -10,8 +10,8 @@ Day = [4 5];
 poolHorizons = [5:13];
 noisefreeRep = [];
 c = 1;
-% mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
-mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+% mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
 
 while(c<=length(varargin))
     switch(varargin{c})

@@ -16,8 +16,8 @@ N = {};
 for i = 1:length(D)
     N = [N {D(i).name}];
 end
-% mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel';
-mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel';
+% mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
 % save a new emty variable to ammend with optimization iterations
 if~isempty(opts.runNum) % is opts.runNum is empty it means we are just simulating with a set of parametrs
     cd(opts.saveDir )
@@ -49,7 +49,7 @@ for pn = 1:length(M.parName)
     eval(['M.' , M.parName{pn} , ' = par(pn);'] )
 end
 M.Bound = [M.bInit ones(1 ,size(T.stimulus,2)-1)*M.bAll]; % boundry is a vector of length maxPresses
-%% 
+%%
 AllT = T;
 AllR = [];
 R = [];
@@ -68,7 +68,7 @@ for trls = 1:length(T.TN)
     % calculate the number of decision steps as total number of presses - capacity
     % this is because the first "capacity" presses would be planned in one decision step
     dec=1: max(maxPresses - M.Capacity+1,M.Capacity);  % Number of decision steps
-%       dec=1: maxPresses;
+    %       dec=1: maxPresses;
     
     
     % for the first decision step, "capacity" digits are planned and for the rest, the shift is 1 by 1.
@@ -115,9 +115,9 @@ for trls = 1:length(T.TN)
             planFunc = [cap_mult , zeros(1,length(dec))];
             planFunc = [planFunc(logical(planFunc)) , exp(-[dec-nDecision]./M.DecayParam)];      % How much stimulus exponentia decay
             %% ============== exponential decay   2 --> expdecay and then zeros from capacity onwards
-%             planFunc = exp(-([1:maxPresses]-1)./M.DecayParam);
-%             planFunc(M.Capacity+1:end) = 0;
-%             T.planFunc = planFunc;
+            %             planFunc = exp(-([1:maxPresses]-1)./M.DecayParam);
+            %             planFunc(M.Capacity+1:end) = 0;
+            %             T.planFunc = planFunc;
         case 'logistic'
             Xdomain = [-M.B_coef2:20];
             planFunc = 1./(1+1*exp(M.B_coef1*(Xdomain)));
@@ -162,7 +162,7 @@ for trls = 1:length(T.TN)
         plot(planFunc , '-o' ,'LineWidth' , 1.5 , 'MarkerSize' , 5)
         set(gca , 'XLim' , [1 maxPresses] , 'Box' , 'off')
     end
-
+    
     %%
     
     dtgrowth = linspace(M.dT_motor ,M.dT_motor* M.dtGrowth, M.Capacity);
@@ -184,7 +184,7 @@ for trls = 1:length(T.TN)
                 end
             end
         end
-
+        
         % Update the evidence state
         
         for j = 1:maxPresses
@@ -249,6 +249,7 @@ for trls = 1:length(T.TN)
         T.response = nan(1 , size(T.stimulus , 2));
     end
     pltTrial = 0;
+    
     if pltTrial
         SIM.t = t(1,1:i);
         SIM.B = repmat(T.B{1} , length(SIM.t) , 1);

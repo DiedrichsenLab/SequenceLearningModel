@@ -65,14 +65,14 @@ switch planFunc
         initParam = [.50 , 7  3];
         
 end
-baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
-% baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+% baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
 switch what
     case 'Fit'
         %% STEP 1 - fit the ball and the planning function parametrs to get MT
         MSF = {'PlanningCurve' , planFunc  ,'theta_stim' ,0.0084,'Aintegrate' , 0.985};
         [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'_',num2str(day)],...
-            'Horizon' , [1:5] , 'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'MT'} ,'MsetField' , MSF);
+            'Horizon' , [1:5] , 'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'MT'} ,'MsetField' , MSF , 'NumPresses' , NumPresses);
         
         %% STEP 2 - with parameters of STEP 1 fit the initial decision boundary to get the RTs for every window size
         saveDir = [planFunc,NameExt,'_',num2str(day)];
@@ -85,7 +85,7 @@ switch what
         for  h = 1:5
             [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'Binit_',num2str(h),'_',num2str(day)],...
                 'samNum'  , [5] ,'Horizon' , [h] ,'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'RT'} ,  'MsetField' , MSF ,...
-                'saveDir' , saveDir);
+                'saveDir' , saveDir, 'NumPresses' , NumPresses);
         end
     case 'Simulate'
         %% STEP 3 - create the noise-free simulation
