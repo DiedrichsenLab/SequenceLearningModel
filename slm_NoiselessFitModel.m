@@ -65,8 +65,8 @@ switch planFunc
         initParam = [.50 , 7  3];
         
 end
-% baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
-baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+% baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
 switch what
     case 'Fit'
         %% STEP 1 - fit the ball and the planning function parametrs to get MT
@@ -104,7 +104,7 @@ switch what
             parName = param.parName(end,:); 
             par = param.par(end , :);
             [R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 100 ,...
-                'Day' , day, 'Horizon' , [h] , 'poolHorizons' , [5:13] , 'noise' ,0, 'subjNum' , [1:15],'MsetField' , MSF);
+                'Day' , day, 'Horizon' , [h] , 'poolHorizons' , [5:13] , 'noise' ,0, 'subjNum' , [1:15],'MsetField' , MSF, 'NumPresses' , NumPresses);
             AllR = addstruct(AllR , R);
         end
         %% STEP 4 - visualize
@@ -133,20 +133,33 @@ switch what
         A = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , [4 5]) &...
             ismember(Dall.Horizon , [1:5]));
         figure('color' , 'white')
-        subplot(231)
+        subplot(121)
         % MT
         hold on
         plot(R_seq.MT , 'o-', 'color' , [0 0 1] )
-        lineplot(A.Horizon  , A.MT ,  'plotfcn','nanmedian' , 'linecolor' ,  [0 1 0 ],'errorcolor' , [0 1 0])
+        lineplot(A.Horizon  , A.MT ,  'plotfcn','nanmedian' ,'style_thickline',...
+            'linecolor' ,  'm','errorcolor' , 'm')
         title('MT')
+        set(gca,'FontSize' , 18,'GridAlpha' , .2 , 'Box' , 'off','YLim' , [3000 7000] , 'YTick' , [3000:1000: 6000],...
+            'YTickLabel' , [3:6] , 'XTick', [1:5] ,'XTickLabel' ,{'1' , '2' , '3' , '4' , '5 - 13'} );
+        ylabel('Execution time [s]','FontSize' , 20)
+        xlabel('Viewing window size (W)' ,'FontSize' , 20)
         
         % RT
-        subplot(234)
+        subplot(122)
         hold on
-        plot(R_seq.RT , 'o-', 'color' , [0 0 1] )
-        lineplot(A.Horizon  , A.RT ,  'plotfcn','nanmedian' , 'linecolor' ,  [0 1 0 ],'errorcolor' , [0 1 0])
+        plot(R_seq.RT , 'o-')
+        lineplot(A.Horizon  , A.RT ,  'plotfcn','nanmedian' , ...
+            'style_thickline','linecolor' ,  'm','errorcolor' , 'm')
         title('RT')
+        set(gca,'FontSize' , 18,'GridAlpha' , .2 , 'Box' , 'off',...
+            'YLim' , [400 800] , 'YTick' , [400:100: 800],...
+            'YTickLabel' , [0.4:.1:0.8] , 'XTick', [1:5] ,'XTickLabel' ,{'1' , '2' , '3' , '4' , '5 - 13'} );
+        ylabel('Initial reaction time [s]','FontSize' , 20)
+        xlabel('Viewing window size (W)' ,'FontSize' , 20)
+        
         % IPI
+        figure('color' , 'white')
         Fit.IPI = AllR.IPI;
         Fit.IPI = reshape(Fit.IPI , numel(Fit.IPI) , 1);
         Act.IPI = A.IPI;
@@ -168,7 +181,7 @@ switch what
         
         All  = addstruct(Fit , Act);
         colorz = colz(:,1);
-        subplot(232)
+        subplot(121)
         
         H = unique(All.singleH);
         for h= 1:length(H)
@@ -178,28 +191,28 @@ switch what
                 'LineWidth' , 1.5 , 'MarkerSize' , 5)
             hold on
         end
-        legend({'H = 1' , 'H = 2' , 'H = 3' , 'H = 4' , 'H = 5-13'} , 'Box' , 'off')
-        title('IPIs - fitted')
-        xlabel('IPIs number')
-        grid on
-        set(gca , 'FontSize' , 16 , 'Box' , 'off' , 'YLim' , [150 700])
+        legend({'W = 1' , 'W = 2' , 'W = 3' , 'W = 4' , 'W = 5-13'} , 'Box' , 'off')
+        xlabel('IPI number')
+        ylabel('Inter-press interval time [s]')
+        set(gca , 'FontSize' , 16 , 'Box' , 'off' , 'YLim' , [150 650],'YTick' , [200:100: 600],...
+            'YTickLabel' , [0.2:.1:0.6] )
         
-        subplot(235)
+        subplot(122)
         colorz = colz(:,2);
         lineplot(All.ipiNum , All.IPI , 'plotfcn' , 'nanmedian',...
             'split', All.singleH  , 'linecolor' , colorz,...
             'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
             'linewidth' , 1.5 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
-            'markersize' , 5, 'markercolor' , colorz , 'leg' , {'H = 1' , 'H = 2' , 'H = 3' , 'H = 4' , 'H = 5-13'} , ...
+            'markersize' , 5, 'markercolor' , colorz , 'leg' , {'W = 1' , 'W = 2' , 'W = 3' , 'W = 4' , 'W = 5-13'} , ...
             'subset' , All.fitoract == 1);
         
-        title('IPIs - Actual')
+        ylabel('Inter-press interval time [s]')
         xlabel('IPIs number')
-        grid on
-        set(gca , 'FontSize' , 16 , 'YLim' , [150 700])
+        set(gca , 'FontSize' , 16 , 'Box' , 'off' , 'YLim' , [150 650],'YTick' , [200:100: 600],...
+            'YTickLabel' , [0.2:.1:0.6] )
         
-        subplot(2,3,[3 6])
-        plot(R_seq.planFunc(1,:), '-o' ,'LineWidth' , 1.5 , 'MarkerSize' , 5)
+        figure('color' , 'white')
+        plot(R_seq.planFunc(1,:), '-o' ,'LineWidth' , 2 , 'MarkerSize' , 5)
         set(gca , 'XLim' , [1 size(R_seq.stimulus,2)] , 'Box' , 'off')
         title([planFunc , ' planning function'])
 end

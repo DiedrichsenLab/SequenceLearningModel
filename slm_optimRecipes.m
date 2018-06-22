@@ -14,7 +14,7 @@ slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'ramp')
 
 slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'box_logistic')
 slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'box_ramp')
-slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'box_exp')
+slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'box_exp');% , 'NumPresses' , 6)
 
 
 slm_NoiselessFitModel('Fit' , Dall , 'planFunc' , 'exp','NameExt' , 'dummy' , 'NumPresses' , 5)

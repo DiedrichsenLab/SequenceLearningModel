@@ -102,7 +102,11 @@ for h = 1:length(Horizon)
 end
 ANA = A;
 %% set up the inputs to the model funtion T , M
-SeqLength = NumPresses;
+if ~isempty(NumPresses)
+    SeqLength = NumPresses;
+else
+    SeqLength = size(Dall.AllPress , 2);
+end
 T.TN = ANA.TN;
 T.Horizon = ANA.Horizon;
 T.numPress = SeqLength.*ones(length(ANA.TN) , 1);

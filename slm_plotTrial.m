@@ -45,6 +45,58 @@ switch what
 %             title(['Decision No. ' ,num2str(T.decNum(i)), ', press No.' , num2str(i)])
             set(gca , 'Box' , 'off' , 'FontSize' , 10)
         end;
+        
+    case 'TrialHorseRace_pres'
+        colz = [83, 255, 26;26, 255, 255;255, 26, 255;255, 26, 26;255, 153, 0]/255;
+        figure('color' , 'black')
+        [~,~,numPresses] = size(SIM.X);
+        
+        numDec = unique(T.decisionTime);
+        for i = 1:length(numDec)
+            T.decNum(T.decisionTime == numDec(i)) = i;
+        end
+        if size(SIM.B , 2)<length(T.stimTime)
+            SIM.B = repmat(SIM.B , 1,length(T.stimTime));
+        end
+        % for better visualization of the noise free state so that the traces are not super-imposed
+        addToFing = [0 -.05 -.1 -.15 -.2];
+        B(1,:,:) = SIM.B; 
+        SIM.B = repmat(B , 5,1,1);
+        for opt = 1:5
+            SIM.X(opt,:,:) =SIM.X(opt,:,:)+addToFing(opt);
+            SIM.B(opt,:,:) = SIM.B(opt,:,:)+addToFing(opt);
+        end
+        for i=1:5
+            subplot(5,1,i);
+            for opts = 1:5
+                plot(SIM.t,SIM.X(opts,:,i), 'LineWidth' , 2,'color' , colz(opts , :));
+                hold on
+            end
+            plot(SIM.t,SIM.B(T.response(i),:,i),'w', 'LineWidth' , 3);
+            ylim = get(gca , 'YLim');
+            h1 = line([T.stimTime(i) T.stimTime(i)] , ylim ,'color','r','linestyle',':' , 'LineWidth' , 2);
+            h2 = line([T.decisionTime(i) T.decisionTime(i)] , ylim,'color','r', 'LineWidth' , 2);
+            h3 = line([T.pressTime(i) T.pressTime(i)],ylim,'color','w', 'LineWidth' , 2);
+            
+            % just legend the first one, the rest are the same
+            if ~isnan(T.forcedPressTime(1,1))
+                h4 = line([0 0],ylim,'color','b', 'LineWidth' , 1);
+                line([800 800],ylim,'color','b', 'LineWidth' , 1);
+                line([1600 1600],ylim,'color','b', 'LineWidth' , 1);
+                line([2400 2400],ylim,'color','b', 'LineWidth' , 1);
+                h5 = line([2300 2300],ylim,'color','g', 'LineWidth' , 1);
+                line([2500 2500],ylim,'color','g', 'LineWidth' , 1);
+                legend([h1 h2 h3 h4 h5],{'Stimulus came on' , 'Decision boundry reached' , 'Press executed',...
+                    'Forced-RT tones','Response window'})
+            else
+                if i==1
+                    legend([h1 h2 h3],{'Stimulus came on' , 'Decision boundry reached' , 'Press executed'})
+                end
+            end
+ 
+%             title(['Decision No. ' ,num2str(T.decNum(i)), ', press No.' , num2str(i)])
+            set(gca , 'Box' , 'off' , 'FontSize' , 16 , 'Ylim' , [-.3 .8],'ColorOrder',colz)
+        end;
     case 'BlockMT'
         %colorz = {[0 0  1],[1 0 0],[0 1 0],[1 0 1],[0 1 1],[0.7 0.7 0.7],[1 1 0],[.3 .3 .3]};
         for i = 1:length(T.TN)

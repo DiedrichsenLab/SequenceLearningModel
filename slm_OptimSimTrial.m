@@ -16,8 +16,8 @@ N = {};
 for i = 1:length(D)
     N = [N {D(i).name}];
 end
-mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel';
-% mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+% mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel';
+mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
 % save a new emty variable to ammend with optimization iterations
 if~isempty(opts.runNum) % is opts.runNum is empty it means we are just simulating with a set of parametrs
     cd(opts.saveDir )
@@ -254,7 +254,7 @@ for trls = 1:length(T.TN)
         SIM.t = t(1,1:i);
         SIM.B = repmat(T.B{1} , length(SIM.t) , 1);
         SIM.X = T.X{1};
-        slm_plotTrial('TrialHorseRace' , SIM , T)
+        slm_plotTrial('TrialHorseRace_pres' , SIM , T)
     end
     AllR = addstruct(AllR , T);
     
