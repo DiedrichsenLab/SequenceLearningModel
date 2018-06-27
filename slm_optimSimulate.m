@@ -139,7 +139,8 @@ M.DecayParam    = 7; % the decay constant for the 'exp' option of PlanningCurve
 M.B_coef1       = 1;       % for the 'logistic' option of PlanningCurve
 M.B_coef2       = 0;       % for the 'logistic' option of PlanningCurve
 M.Box           = 1;          % box size for the 'boxcar' option of PlanningCurve
-M.rampDecay     = size(T.stimulus , 2);  
+M.rampDecay1     = size(T.stimulus , 2);   % for the 'ramp' option of PlanningCurve
+M.rampDecay2     = 0;   % for the 'ramp' option of PlanningCurve
 M.theta_stim    = 0.01;
 M.parName       = parName;
 if~noise

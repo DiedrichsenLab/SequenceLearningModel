@@ -45,8 +45,15 @@ end
 
 origCap = M.Capacity; % to preserve the original M.Capacity in designs that the capacity/horizon keeps changing
 %% substitute the pre-set parameters with optimization parameters
+parcount = 1;
 for pn = 1:length(M.parName)
-    eval(['M.' , M.parName{pn} , ' = par(pn);'] )
+    if strcmp(M.parName{pn} , 'planFunc')
+        eval(['M.' , M.parName{pn} , ' = par(parcount:parcount+13);'] )
+        parcount = parcount+14;
+    else
+        eval(['M.' , M.parName{pn} , ' = par(parcount);'] )
+        parcount = parcount+1;
+    end
 end
 M.Bound = [M.bInit ones(1 ,size(T.stimulus,2)-1)*M.bAll]; % boundry is a vector of length maxPresses
 %%
@@ -127,14 +134,16 @@ for trls = 1:length(T.TN)
             planFunc(1:floor(M.Box)) = 1;
         case 'ramp'
             planFunc = zeros(1,maxPresses);
-            planFunc(1:floor(M.rampDecay)) = linspace(1,0,floor(M.rampDecay));
+            rampcoef = polyfit([1 M.rampDecay1], [1 M.rampDecay2], 1);
+            planFunc = polyval(rampcoef, [1:maxPresses]);
+            planFunc(planFunc<0) = 0;
         case 'box_logistic'
             Xdomain = [-M.B_coef2:20];
             planFunc1 = 1./(1+1*exp(M.B_coef1*(Xdomain)));
             planFunc1 = planFunc1(1:size(T.stimulus , 2));
             
             planFunc2 = zeros(1,maxPresses);
-            planFunc2(1:floor(M.rampDecay)) = linspace(1,0,floor(M.rampDecay));
+            planFunc2(1:floor(M.Box)) = 1;
             
             planFunc = planFunc1.*planFunc2;
         case 'box_exp'
@@ -154,6 +163,8 @@ for trls = 1:length(T.TN)
             planFunc2(1:floor(M.rampDecay)) = linspace(1,0,floor(M.rampDecay));
             
             planFunc = planFunc1.*planFunc2;
+        case 'arbitrary'
+           planFunc = M.planFunc;
     end
     T.planFunc = planFunc;
     pltmult = 0;
@@ -273,15 +284,28 @@ switch opts.mode
             H = unique(AllR.singleH);
             for hh = 1:length(H)
                 Temp = getrow(AllR , ~AllR.isError & AllR.singleH == H(hh));
-                if ~isempty(Temp.MT)
+                if ~isempty(Temp.MT) & ~strcmp(opts.desiredField{1} , 'IPI')
                     Temp = tapply(Temp ,{'singleH'}, {opts.desiredField{xd} , 'median'} );
+                    eval(['R = [R ; Temp.' , opts.desiredField{xd} , '];'] )
+                elseif ~isempty(Temp.MT) & strcmp(opts.desiredField{1} , 'IPI')
+                    Temp.prsnum = repmat([1:maxPresses-1] , size(Temp.IPI , 1) ,1);
+                    Temp.singleH = repmat(Temp.singleH , 1,size(Temp.IPI , 2));
+                    Temp.prsnum = reshape(Temp.prsnum , numel(Temp.prsnum) , 1);
+                    Temp.singleH = reshape(Temp.singleH , numel(Temp.singleH) , 1);
+                    Temp.IPI = reshape(Temp.IPI , numel(Temp.IPI) , 1);
+                    Temp = tapply(Temp ,{'singleH' , 'prsnum'}, {opts.desiredField{xd} , 'median'} );
                     eval(['R = [R ; Temp.' , opts.desiredField{xd} , '];'] )
                 else
                     R = [R;NaN];
                 end
             end
         end
-        R =  R';
+        if strcmp(opts.desiredField{1} , 'IPI')
+            R = [R(1:2); mean(R(5:9)) ; R(12:13)];
+            R = reshape(R , 1,numel(R));
+        else
+            R = R';
+        end
         R(isnan(R))=10e+10;
     case{'sim'}
         R =  AllR;

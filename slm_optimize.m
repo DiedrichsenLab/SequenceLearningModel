@@ -10,8 +10,8 @@ Day = [4 5];
 poolHorizons = [5:13];
 noisefreeRep = [];
 c = 1;
-% mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
-mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+% mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
 
 while(c<=length(varargin))
     switch(varargin{c})
@@ -135,7 +135,12 @@ for i = 1:cycNum
             eval(['x_desired = [x_desired ; G.' , desiredField{xd} , '];'] )
         end
     end
-    x_desired = x_desired';
+    if strcmp(desiredField , 'IPI')
+        x_desired = [x_desired(1:2) mean(x_desired(5:9)) x_desired(12:13)];
+        x_desired = reshape(x_desired , 1,numel(x_desired));
+    else
+        x_desired = x_desired';
+    end
     %% subsample the data
     A = [];
     if ~noise
@@ -154,7 +159,11 @@ for i = 1:cycNum
     model = @(param,T, M, opts) slm_optimSimTrial(param , T ,M,opts); % Model Function
     
     %% set up the inputs to the model funtion T , M
-    SeqLength = NumPresses;
+    if ~isempty(NumPresses)
+        SeqLength = NumPresses;
+    else
+        SeqLength = size(Dall.AllPress , 2);
+    end
     T.TN = ANA.TN;
     T.Horizon = ANA.Horizon;
     T.numPress = SeqLength.*ones(length(ANA.TN) , 1);
@@ -186,9 +195,11 @@ for i = 1:cycNum
     M.B_coef1       = 1;       % for the 'logistic' option of PlanningCurve
     M.B_coef2       = 0;       % for the 'logistic' option of PlanningCurve
     M.Box           = 1;       % box size for the 'boxcar' option of PlanningCurve
-    M.rampDecay     = size(T.stimulus , 2);   % for the 'ramp' option of PlanningCurve
+    M.rampDecay1     = size(T.stimulus , 2);   % for the 'ramp' option of PlanningCurve
+    M.rampDecay2     = 0;   % for the 'ramp' option of PlanningCurve
     M.theta_stim    = 0.01;
     M.parName       = parName;
+    M.planFunc = linspace(1,0,NumPresses); % for the arbitrary option of the PlanningCurve
     if~noise
         M.SigEps    = 0;
     else
@@ -201,6 +212,7 @@ for i = 1:cycNum
         eval(['M.',MsetField{c} '= MsetField{c+1};']);
         c=c+2;
     end
+
     %% set up the cost function
     opts.runNum       = runNum;
     opts.cycNum       = i;
@@ -209,7 +221,7 @@ for i = 1:cycNum
     opts.saveDir      = saveDir;
     OLS = @(param) nansum(nansum((model(param,T, M ,opts) - x_desired).^2));
     %% optimization
-    opts = optimset('MaxIter', ItrNum ,'TolFun',1,'Display','iter' , 'TolX' , 1e-4);
+    opts = optimset('MaxIter', ItrNum ,'TolFun',1,'Display','iter' , 'TolX' , 1e-6);
     if isempty(loBound) | isempty(hiBound)
         [Param Fval] = fminsearch(OLS,initParam,opts);
     else

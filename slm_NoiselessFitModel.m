@@ -2,13 +2,19 @@ function slm_NoiselessFitModel(what , Dall , varargin)
 planFunc = 'exp';
 initParam = [.55 , 7];
 parName = { 'bAll' , 'DecayParam'};
-NumPresses = [];
+NumPresses = size(Dall.AllPress , 2);
 stimulus = [];
 ItrNum = 1000;
 cycNum = 1;
 day = [4 5]; % just fitting days 4, 5
+Horizon = [1:5];
+initPlan = 'uniform';
 c = 1;
 NameExt = [];
+MsetField = {};
+if length(varargin)==1
+    varargin = varargin{1}; % coming from a highr loop, so nneds to be unpacked
+end
 while(c<=length(varargin))
     switch(varargin{c})
         case {'runNum'}
@@ -39,6 +45,19 @@ while(c<=length(varargin))
             % extension for fimename for fitting more than once
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+         case {'MsetField'}
+             % the names and values of the fields we want to set in M
+             % has to be cell of value names, followed by their values
+             eval([varargin{c} '= varargin{c+1};']);
+             c=c+2;
+        case {'Horizon'}
+            % what Horizon to include
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'initPlan'}
+            % for the arbitrary planning function this defines the starting point
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error('Unknown option: %s',varargin{c});
     end
@@ -49,42 +68,79 @@ switch planFunc
         parName = { 'bAll' , 'B_coef1' 'B_coef2'};
         initParam = [.52 3 1];
     case 'ramp'
-        parName = { 'bAll' , 'rampDecay' };
-        initParam = [.50 , 5 4];
+        parName = { 'bAll' , 'rampDecay1' , 'rampDecay2'};
+        initParam = [.50 , 7 0];
     case 'box'
         parName = { 'bAll' , 'Box'};
         initParam = [.55 , 5];
     case 'box_logistic'
-        parName = { 'bAll' , 'B_coef1' 'B_coef2'  'Box'};
-        initParam = [.4 , 2 3 4];
+        parName = { 'bAll' , 'B_coef1' 'B_coef2'};
+        initParam = [.5 , 3 3];
     case 'box_exp'
-        parName = { 'bAll' , 'DecayParam'  'Box'};
-        initParam = [.5 , 7 5];
+        parName = { 'bAll' , 'DecayParam'};
+        initParam = [.5 , 7];
     case 'box_ramp'
-        parName = { 'bAll' , 'rampDecay' ,'Box'};
-        initParam = [.50 , 7  3];
-        
+        parName = { 'bAll' , 'rampDecay'};
+        initParam = [.50 , 7 ];
+    case 'arbitrary'
+        parName = { 'bAll' , 'planFunc'};
+        switch initPlan
+            case 'ramp'
+                initParam = [.4 linspace(1,0,NumPresses)];             % start from RAMP
+            case 'exp'
+                initParam = [.45 exp(-([1:NumPresses]-1)./4)];     % start from EXP
+            case 'logistic'
+                Xdomain = [-floor(NumPresses/2):30];        % start from logistic
+                PF = 1./(1+1*exp(Xdomain));
+                PF = PF(1:NumPresses);%.*[ones(1,3) zeros(1,NumPresses-3)];
+                initParam = [.51 , PF];
+            case 'box_exp'
+                initParam = [.51 exp(-([1:NumPresses]-1)./4).*([ones(1,4) zeros(1,NumPresses-4)])];     % start from Box-EXP
+            case 'uniform'
+                initParam = [.5 ones(1,NumPresses)];     % start from all equal uniform
+            case 'random'
+                initParam = [.1 rand(1,NumPresses)];     % start from all random
+        end
 end
-baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
-% baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+% baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
 switch what
-    case 'Fit'
+    case 'FitIPIRT'
         %% STEP 1 - fit the ball and the planning function parametrs to get MT
         MSF = {'PlanningCurve' , planFunc  ,'theta_stim' ,0.0084,'Aintegrate' , 0.985};
+        MSF = [MSF , MsetField];
         [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'_',num2str(day)],...
-            'Horizon' , [1:5] , 'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'MT'} ,'MsetField' , MSF , 'NumPresses' , NumPresses);
-        
+            'Horizon' , Horizon , 'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'IPI'} ,'MsetField' , MSF , 'NumPresses' , NumPresses);
+        slm_NoiselessFitModel('FitRT' , Dall , varargin);
+    case 'FitMTRT'
+        %% STEP 1 - fit the ball and the planning function parametrs to get MT
+        MSF = {'PlanningCurve' , planFunc  ,'theta_stim' ,0.0084,'Aintegrate' , 0.985};
+        MSF = [MSF , MsetField];
+        [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'_',num2str(day)],...
+            'Horizon' , Horizon , 'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'MT'} ,'MsetField' , MSF , 'NumPresses' , NumPresses);
+        slm_NoiselessFitModel('FitRT' , Dall , varargin);
+    case 'FitRT'
         %% STEP 2 - with parameters of STEP 1 fit the initial decision boundary to get the RTs for every window size
+        MSF = {'PlanningCurve' , planFunc  ,'theta_stim' ,0.0084,'Aintegrate' , 0.985};
+        MSF = [MSF , MsetField];
         saveDir = [planFunc,NameExt,'_',num2str(day)];
         cd([baseDir , saveDir]);
         parName = { 'bInit'};
         load(['param_',planFunc,NameExt,'_',num2str(day),'.mat'])
-        for p = 1:size(param.par,2)
-            MSF = [MSF , param.parName{end,p},param.par(end,p)];
+        parcount = 1;   
+        for p = 1:size(param.parName,2)
+            if strcmp(param.parName{end,p} , 'planFunc')
+                MSF = [MSF , param.parName{end,p},param.par(end,parcount:parcount+(NumPresses-1))];
+                parcount = parcount  +NumPresses;
+            else
+                MSF = [MSF , param.parName{end,p},param.par(end,parcount)];
+                parcount = parcount  +1;
+            end
         end
-        for  h = 1:5
+        
+        for  h = 1:length(Horizon)
             [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'Binit_',num2str(h),'_',num2str(day)],...
-                'samNum'  , [5] ,'Horizon' , [h] ,'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'RT'} ,  'MsetField' , MSF ,...
+                'samNum'  , [5] ,'Horizon' , [Horizon(h)] ,'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'RT'} ,  'MsetField' , MSF ,...
                 'saveDir' , saveDir, 'NumPresses' , NumPresses);
         end
     case 'Simulate'
@@ -92,22 +148,31 @@ switch what
         saveDir = [planFunc,NameExt,'_',num2str(day)];
         cd([baseDir , saveDir]);
         MSF = {'PlanningCurve' , planFunc  ,'theta_stim' ,0.0084,'Aintegrate' , 0.985};
+        MSF = [MSF , MsetField];
         load(['param_',planFunc,NameExt,'_',num2str(day),'.mat'])
-        for p = 1:size(param.par,2)
-            MSF = [MSF , param.parName{end,p},param.par(end,p)];
+        parcount = 1;   
+        for p = 1:size(param.parName,2)
+            if strcmp(param.parName{end,p} , 'planFunc')
+                MSF = [MSF , param.parName{end,p},param.par(end,parcount:parcount+(NumPresses-1))];
+                parcount = parcount  +NumPresses;
+            else
+                MSF = [MSF , param.parName{end,p},param.par(end,parcount)];
+                parcount = parcount  +1;
+            end
         end
         AllR = [];
-        for  h = 1:5
+        for  h = 1:length(Horizon)
             clear  param
             fname = ['param_',planFunc,NameExt,'Binit_',num2str(h),'_',num2str(day) , '.mat'];
             load(fname)
             parName = param.parName(end,:); 
             par = param.par(end , :);
             [R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 100 ,...
-                'Day' , day, 'Horizon' , [h] , 'poolHorizons' , [5:13] , 'noise' ,0, 'subjNum' , [1:15],'MsetField' , MSF, 'NumPresses' , NumPresses);
+                'Day' , day, 'Horizon' , [Horizon(h)] , 'poolHorizons' , [5:13] , 'noise' ,0, 'subjNum' , [1:15],'MsetField' , MSF, 'NumPresses' , NumPresses);
             AllR = addstruct(AllR , R);
         end
         %% STEP 4 - visualize
+        view = 1; % 1 if you just want to view so everything is plotted in one figure - 0 for publications, separate figures
         c1 = [255, 153, 179]/255; % Random Red Tones
         ce = [153, 0, 51]/255;
         for rgb = 1:3
@@ -133,7 +198,11 @@ switch what
         A = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , [4 5]) &...
             ismember(Dall.Horizon , [1:5]));
         figure('color' , 'white')
-        subplot(121)
+        if view
+            subplot(231)
+        else
+            subplot(121)
+        end
         % MT
         hold on
         plot(R_seq.MT , 'o-', 'color' , [0 0 1] )
@@ -146,7 +215,11 @@ switch what
         xlabel('Viewing window size (W)' ,'FontSize' , 20)
         
         % RT
-        subplot(122)
+        if view
+            subplot(232)
+        else
+            subplot(122)
+        end
         hold on
         plot(R_seq.RT , 'o-')
         lineplot(A.Horizon  , A.RT ,  'plotfcn','nanmedian' , ...
@@ -159,7 +232,7 @@ switch what
         xlabel('Viewing window size (W)' ,'FontSize' , 20)
         
         % IPI
-        figure('color' , 'white')
+        
         Fit.IPI = AllR.IPI;
         Fit.IPI = reshape(Fit.IPI , numel(Fit.IPI) , 1);
         Act.IPI = A.IPI;
@@ -181,7 +254,12 @@ switch what
         
         All  = addstruct(Fit , Act);
         colorz = colz(:,1);
-        subplot(121)
+        if view
+            subplot(234)
+        else
+            figure('color' , 'white')
+            subplot(121)
+        end
         
         H = unique(All.singleH);
         for h= 1:length(H)
@@ -197,7 +275,11 @@ switch what
         set(gca , 'FontSize' , 16 , 'Box' , 'off' , 'YLim' , [150 650],'YTick' , [200:100: 600],...
             'YTickLabel' , [0.2:.1:0.6] )
         
-        subplot(122)
+        if view
+            subplot(235)
+        else
+            subplot(122)
+        end
         colorz = colz(:,2);
         lineplot(All.ipiNum , All.IPI , 'plotfcn' , 'nanmedian',...
             'split', All.singleH  , 'linecolor' , colorz,...
@@ -211,7 +293,11 @@ switch what
         set(gca , 'FontSize' , 16 , 'Box' , 'off' , 'YLim' , [150 650],'YTick' , [200:100: 600],...
             'YTickLabel' , [0.2:.1:0.6] )
         
-        figure('color' , 'white')
+        if view
+            subplot(2,3,[3 6])
+        else
+            figure('color' , 'white')
+        end
         plot(R_seq.planFunc(1,:), '-o' ,'LineWidth' , 2 , 'MarkerSize' , 5)
         set(gca , 'XLim' , [1 size(R_seq.stimulus,2)] , 'Box' , 'off')
         title([planFunc , ' planning function'])
