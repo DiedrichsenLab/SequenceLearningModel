@@ -1,12 +1,18 @@
 slm_NoiselessFitModel('FitMTRT' , Dall , 'planFunc' , 'exp')
 slm_NoiselessFitModel('FitMTRT' , Dall , 'planFunc' , 'ramp')
 slm_NoiselessFitModel('FitMTRT' , Dall , 'planFunc' , 'logistic');
+slm_NoiselessFitModel('FitMTRT' , Dall , 'planFunc' , 'arbitrary','initPlan' , 'uniform' , 'NameExt' , 'allH');
+
 slm_NoiselessFitModel('FitIPIRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [2],'initPlan' , 'uniform' , 'NameExt' , 'H2');
 slm_NoiselessFitModel('FitIPIRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [2],'initPlan' , 'logistic' ,'NameExt' , 'H2logistic');
 slm_NoiselessFitModel('FitIPIRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [2],'initPlan' , 'box_exp' ,'NameExt' , 'H2boxexp');
 slm_NoiselessFitModel('FitIPIRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [2],'initPlan' , 'exp' ,'NameExt' , 'H2exp');
+slm_NoiselessFitModel('FitIPIRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [2],'initPlan' , 'exp' ,'NameExt' , 'H2exp');
 
 
+%%
+input_initalParam = [];
+input_parName = [];
 
 for box = 2:9
     NameExt = ['_Box' , num2str(box)];
@@ -25,7 +31,17 @@ for box = 2:9
 %     slm_NoiselessFitModel('Fit' , Dall , 'planFunc' , 'box_ramp' , 'MsetField' , {'Box' , box}, 'NameExt' , NameExt);
     slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'box_ramp' , 'MsetField' , {'Box' , box}, 'NameExt' , NameExt);
 end
+%%
+slm_NoiselessFitModel('FitIPIRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1],'input_initalParam' , [.49 1 .6],...
+    'input_parName' , {'bAll' 'planFunc(1)' 'planFunc(2)'},'NameExt' , 'H1');
+slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1],'NameExt' , 'H1');
 
+
+load('/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/arbitraryH1_4  5/param_arbitraryH1_4  5.mat')
+slm_NoiselessFitModel('FitIPIRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1 2],'input_initalParam' , [param.par(end , 1)  param.par(end , 2) param.par(end , 3) param.par(end , 3)-.01],...
+    'input_parName' , {'bAll' , 'planFunc(1)' , 'planFunc(2)' 'planFunc(3)'},'NameExt' , 'H2');% , 'MsetField' , {'planFunc(1)' ,param.par(end , 2)});%, 'bAll' , param.par(end , 1)});
+
+slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1 2],'NameExt' , 'H2');%, 'MsetField' , {'planFunc(1)' ,param.par(end , 2)});
 
 %% 
 
@@ -46,6 +62,8 @@ slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary' , 'Horizon' ,
 slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary' , 'Horizon' , 2, 'NameExt' , 'H2boxexp');
 slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary' , 'Horizon' , 2, 'NameExt' , 'H2exp');
 
+
+slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1],'NameExt' , 'H1');
 
 
 

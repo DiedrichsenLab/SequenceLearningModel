@@ -132,7 +132,7 @@ M.dT_motor      = 150;
 M.dtGrowth      = 1;
 M.TSDecayParam  = 3;
 M.Aintegrate    = 0.98;
-M.bAll          = 0.4;     % press boundary for 5 window sizes
+M.bAll          = 0.5;     % press boundary for 5 window sizes
 M.bInit         = M.bAll; % initial bound for 5 window sizes
 M.PlanningCurve = 'exp'; % other options: 'logistic', 'box' , 'ramp'
 M.DecayParam    = 7; % the decay constant for the 'exp' option of PlanningCurve
@@ -143,6 +143,7 @@ M.rampDecay1     = size(T.stimulus , 2);   % for the 'ramp' option of PlanningCu
 M.rampDecay2     = 0;   % for the 'ramp' option of PlanningCurve
 M.theta_stim    = 0.01;
 M.parName       = parName;
+M.planFunc = zeros(1,NumPresses); % for the arbitrary option of the PlanningCurve
 if~noise
     M.SigEps    = 0;
 else

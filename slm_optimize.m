@@ -126,21 +126,29 @@ for i = 1:cycNum
     %% set up the desired output
     G = tapply(ANA , {'Horizon'} , {'MT' , 'nanmedian'},{'RT' , 'nanmedian'},{'IPI' , 'nanmedian'});
     x_desired = [];
+    x_d = [];
     if exist('noisefreeRep') & ~isempty(noisefreeRep)
         for xd = 1:length(desiredField)
             eval(['x_desired = [x_desired ; noisefreeRep.' , desiredField{xd} , '];'] )
         end
     else
         for xd = 1:length(desiredField)
-            eval(['x_desired = [x_desired ; G.' , desiredField{xd} , '];'] )
+            if sum(strcmp(desiredField{xd} , 'IPI'))
+                for hh = 1:length(Horizon)
+                    F = getrow(G , G.Horizon==Horizon(hh));
+                    eval(['x_d = F.' , desiredField{xd} ,';'] )
+                    x_desired = [x_desired  [x_d(1:2) mean(x_d(5:9))]];% x_desired(12:13)];
+                end
+            else
+                eval(['x_desired = [x_desired  G.' , desiredField{xd} , '''];'] )
+            end
         end
+        
     end
-    if strcmp(desiredField , 'IPI')
-        x_desired = [x_desired(1:2) mean(x_desired(5:9)) x_desired(12:13)];
-        x_desired = reshape(x_desired , 1,numel(x_desired));
-    else
-        x_desired = x_desired';
-    end
+    
+    
+    x_desired = reshape(x_desired , 1,numel(x_desired));
+
     %% subsample the data
     A = [];
     if ~noise
@@ -188,7 +196,7 @@ for i = 1:cycNum
     M.dtGrowth      = 1;
     M.TSDecayParam  = 3;
     M.Aintegrate    = 0.98;
-    M.bAll          = 0.4;     % press boundary for 5 window sizes
+    M.bAll          = 0.5;     % press boundary for 5 window sizes
     M.bInit         = M.bAll;  % initial bound for 5 window sizes
     M.PlanningCurve = 'exp';   % other options: 'logistic', 'box' , 'ramp'
     M.DecayParam    = 7;       % the decay constant for the 'exp' option of PlanningCurve
@@ -199,7 +207,7 @@ for i = 1:cycNum
     M.rampDecay2     = 0;   % for the 'ramp' option of PlanningCurve
     M.theta_stim    = 0.01;
     M.parName       = parName;
-    M.planFunc = linspace(1,0,NumPresses); % for the arbitrary option of the PlanningCurve
+    M.planFunc = zeros(1,NumPresses); % for the arbitrary option of the PlanningCurve
     if~noise
         M.SigEps    = 0;
     else

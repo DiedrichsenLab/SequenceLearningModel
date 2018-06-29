@@ -11,6 +11,8 @@ Horizon = [1:5];
 initPlan = 'uniform';
 c = 1;
 NameExt = [];
+input_initalParam = [];
+input_parName = [];
 MsetField = {};
 if length(varargin)==1
     varargin = varargin{1}; % coming from a highr loop, so nneds to be unpacked
@@ -58,11 +60,20 @@ while(c<=length(varargin))
             % for the arbitrary planning function this defines the starting point
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'input_initalParam'}
+            % for the arbitrary initial parameters to not use the hardcoded ones
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
+        case {'input_parName'}
+            % for the arbitrary parameter names to not use the hardcoded ones
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error('Unknown option: %s',varargin{c});
     end
 end
 
+    
 switch planFunc
     case 'logistic'
         parName = { 'bAll' , 'B_coef1' 'B_coef2'};
@@ -84,7 +95,7 @@ switch planFunc
         initParam = [.50 , 7 ];
     case 'arbitrary'
         parName = { 'bAll' , 'planFunc'};
-        switch initPlan
+        switch initPlan % initialize with one of the following options
             case 'ramp'
                 initParam = [.4 linspace(1,0,NumPresses)];             % start from RAMP
             case 'exp'
@@ -102,6 +113,12 @@ switch planFunc
                 initParam = [.1 rand(1,NumPresses)];     % start from all random
         end
 end
+if ~isempty(input_initalParam)
+    initParam = input_initalParam;
+end
+if ~isempty(input_parName)
+    parName = input_parName;
+end
 % baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
 baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
 switch what
@@ -110,7 +127,7 @@ switch what
         MSF = {'PlanningCurve' , planFunc  ,'theta_stim' ,0.0084,'Aintegrate' , 0.985};
         MSF = [MSF , MsetField];
         [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'_',num2str(day)],...
-            'Horizon' , Horizon , 'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'IPI'} ,'MsetField' , MSF , 'NumPresses' , NumPresses);
+            'Horizon' , Horizon , 'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'IPI' , 'MT'} ,'MsetField' , MSF , 'NumPresses' , NumPresses);
         slm_NoiselessFitModel('FitRT' , Dall , varargin);
     case 'FitMTRT'
         %% STEP 1 - fit the ball and the planning function parametrs to get MT
