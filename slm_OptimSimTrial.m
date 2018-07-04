@@ -286,13 +286,16 @@ switch opts.mode
         else
             G = AllR;
         end
-        G.MT = G.MT/maxPresses;
-        G.diffMT = -diff(G.MT,1,1);
-        G.diffIPI = diff(G.IPI , 1,2);
+        %         G.MT = G.MT/maxPresses;
+        if opts.diffMT
+            G.diffMT = [G.MT ; -10*diff(G.MT,1,1)];
+%             G.diffMT = [-diff(G.MT,1,1)];
+        end
+        G.diffIPI = -diff(G.IPI , 1,2);
         x_d = [];
         Horizon = unique(G.singleH);
         for xd = 1:length(opts.desiredField)
-            if sum(strcmp(opts.desiredField{xd} , 'IPI'))
+            if sum(strcmp(opts.desiredField{xd} , 'IPI')) | sum(strcmp(opts.desiredField{xd} , 'diffIPI')) 
                 for hh = 1:length(Horizon)
                     F = getrow(G , G.singleH==Horizon(hh));
                     eval(['x_d = F.' , opts.desiredField{xd} ,';'] )

@@ -11,8 +11,9 @@ poolHorizons = [5:13];
 noisefreeRep = [];
 optimizeIPINumber = [1:3];
 c = 1;
-% mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
-mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+diffMT = 0;
+mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+% mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
 
 while(c<=length(varargin))
     switch(varargin{c})
@@ -99,6 +100,10 @@ while(c<=length(varargin))
             % IPI numbers to include in the optimization
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'diffMT'}  % for the 'FitIPIRT' case
+            % use the difference between MTs instead of MTs
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error('Unknown option: %s',varargin{c});
     end
@@ -131,8 +136,11 @@ for i = 1:cycNum
     %% set up the desired output
     G = tapply(ANA , {'Horizon'} , {'MT' , 'nanmedian'},{'RT' , 'nanmedian'},{'IPI' , 'nanmedian'});
     G.MT = G.MT;%/NumPresses;
-    G.diffMT = -diff(G.MT,1,1);
-    G.diffIPI = diff(G.IPI , 1,2);
+    if diffMT
+                G.diffMT = [G.MT ; -diff(10*G.MT,1,1)];
+%         G.diffMT = [-diff(G.MT,1,1)];
+    end
+    %     G.diffIPI = diff(G.IPI , 1,2);
     x_desired = [];
     x_d = [];
     if exist('noisefreeRep') & ~isempty(noisefreeRep)
@@ -141,7 +149,7 @@ for i = 1:cycNum
         end
     else
         for xd = 1:length(desiredField)
-            if sum(strcmp(desiredField{xd} , 'IPI'))
+            if sum(strcmp(desiredField{xd} , 'IPI')) | sum(strcmp(desiredField{xd} , 'diffIPI'))
                 for hh = 1:length(Horizon)
                     F = getrow(G , G.Horizon==Horizon(hh));
                     eval(['x_d = F.' , desiredField{xd} ,';'] )
@@ -153,8 +161,7 @@ for i = 1:cycNum
         end
         
     end
-    
-    
+
     x_desired = reshape(x_desired , 1,numel(x_desired));
 
     %% subsample the data
@@ -197,7 +204,7 @@ for i = 1:cycNum
     
     %% set the default M values
     M.numOptions    = 5;
-    M.dT_visual     = 90;
+    M.dT_visual     = 100;
     M.Ainhibit      = 0;
     M.Capacity      = 1;
     M.dT_motor      = 120;
@@ -236,6 +243,7 @@ for i = 1:cycNum
     opts.desiredField = desiredField;
     opts.saveDir      = saveDir;
     opts.optimizeIPINumber = optimizeIPINumber;
+    opts.diffMT = diffMT;
     OLS = @(param) nansum(nansum((model(param,T, M ,opts) - x_desired).^2));
     %% optimization
     opts = optimset('MaxIter', ItrNum ,'TolFun',1,'Display','iter' , 'TolX' , 1e-6);

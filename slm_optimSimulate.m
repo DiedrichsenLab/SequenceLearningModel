@@ -125,7 +125,7 @@ end
 
 %% set the default M values
 M.numOptions    = 5;
-M.dT_visual     = 90;
+M.dT_visual     = 100;
 M.Ainhibit      = 0;
 M.Capacity      = 1;
 M.dT_motor      = 120;
