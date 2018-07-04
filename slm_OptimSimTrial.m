@@ -191,7 +191,7 @@ for trls = 1:length(T.TN)
         if sum(indx)
             for j=indx
                 if T.stimulus(j)>0 && T.stimulus(j)<=5 % in single resp task, some stimuli are distractors
-                    S(T.stimulus(j),i,j)=1;
+                    S(T.stimulus(j),i,j)=1; % indipendent horseraces
                 end
             end
         end
@@ -286,6 +286,9 @@ switch opts.mode
         else
             G = AllR;
         end
+        G.MT = G.MT/maxPresses;
+        G.diffMT = -diff(G.MT,1,1);
+        G.diffIPI = diff(G.IPI , 1,2);
         x_d = [];
         Horizon = unique(G.singleH);
         for xd = 1:length(opts.desiredField)
@@ -293,7 +296,7 @@ switch opts.mode
                 for hh = 1:length(Horizon)
                     F = getrow(G , G.singleH==Horizon(hh));
                     eval(['x_d = F.' , opts.desiredField{xd} ,';'] )
-                    R = [R  [x_d(1:2) mean(x_d(5:9))]];% R(12:13)];
+                    R = [R  [x_d(opts.optimizeIPINumber)]];% R(12:13)];
                 end
             else
                 eval(['R = [R  G.' , opts.desiredField{xd} , '''];'] )
@@ -304,33 +307,3 @@ switch opts.mode
     case{'sim'}
         R =  AllR;
 end
-
-% for xd = 1:length(opts.desiredField)
-%     H = unique(AllR.singleH);
-%     for hh = 1:length(H)
-%         Temp = getrow(AllR , ~AllR.isError & AllR.singleH == H(hh));
-%         Temp.IPI =  Temp.IPI(:,1:11);
-%         if ~isempty(Temp.MT) & ~strcmp(opts.desiredField{1} , 'IPI')
-%             Temp = tapply(Temp ,{'singleH'}, {opts.desiredField{xd} , 'median'} );
-%             eval(['R = [R ; Temp.' , opts.desiredField{xd} , '];'] )
-%         elseif ~isempty(Temp.MT) & strcmp(opts.desiredField{1} , 'IPI')
-%             Temp.prsnum = repmat([1:11] , size(Temp.IPI , 1) ,1);
-%             Temp.singleH = repmat(Temp.singleH , 1,size(Temp.IPI , 2));
-%             Temp.prsnum = reshape(Temp.prsnum , numel(Temp.prsnum) , 1);
-%             Temp.singleH = reshape(Temp.singleH , numel(Temp.singleH) , 1);
-%             Temp.IPI = reshape(Temp.IPI , numel(Temp.IPI) , 1);
-%             Temp = tapply(Temp ,{'singleH' , 'prsnum'}, {opts.desiredField{xd} , 'median'} );
-%             eval(['R = [R ; Temp.' , opts.desiredField{xd} , '];'] )
-%         else
-%             R = [R;NaN];
-%         end
-%     end
-% end
-% if strcmp(opts.desiredField{1} , 'IPI')
-%     R = [R(1:2); mean(R(5:9)) ];% R(12:13)];
-%     R = reshape(R , 1,numel(R));
-% else
-%     R = R';
-% end
-
-

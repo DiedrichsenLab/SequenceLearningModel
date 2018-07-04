@@ -9,9 +9,10 @@ hiBound = [];
 Day = [4 5];
 poolHorizons = [5:13];
 noisefreeRep = [];
+optimizeIPINumber = [1:3];
 c = 1;
-mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
-% mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+% mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
 
 while(c<=length(varargin))
     switch(varargin{c})
@@ -94,6 +95,10 @@ while(c<=length(varargin))
             % Directory to save the mat files to
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'optimizeIPINumber'}
+            % IPI numbers to include in the optimization
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error('Unknown option: %s',varargin{c});
     end
@@ -125,6 +130,9 @@ for i = 1:cycNum
     ANA.RT = ANA.AllPressTimes(:,1)-1500;
     %% set up the desired output
     G = tapply(ANA , {'Horizon'} , {'MT' , 'nanmedian'},{'RT' , 'nanmedian'},{'IPI' , 'nanmedian'});
+    G.MT = G.MT;%/NumPresses;
+    G.diffMT = -diff(G.MT,1,1);
+    G.diffIPI = diff(G.IPI , 1,2);
     x_desired = [];
     x_d = [];
     if exist('noisefreeRep') & ~isempty(noisefreeRep)
@@ -137,7 +145,7 @@ for i = 1:cycNum
                 for hh = 1:length(Horizon)
                     F = getrow(G , G.Horizon==Horizon(hh));
                     eval(['x_d = F.' , desiredField{xd} ,';'] )
-                    x_desired = [x_desired  [x_d(1:2) mean(x_d(5:9))]];% x_desired(12:13)];
+                    x_desired = [x_desired  [x_d(optimizeIPINumber)]];% x_desired(12:13)];
                 end
             else
                 eval(['x_desired = [x_desired  G.' , desiredField{xd} , '''];'] )
@@ -192,7 +200,7 @@ for i = 1:cycNum
     M.dT_visual     = 90;
     M.Ainhibit      = 0;
     M.Capacity      = 1;
-    M.dT_motor      = 150;
+    M.dT_motor      = 120;
     M.dtGrowth      = 1;
     M.TSDecayParam  = 3;
     M.Aintegrate    = 0.98;
@@ -227,6 +235,7 @@ for i = 1:cycNum
     opts.mode         = 'optim';
     opts.desiredField = desiredField;
     opts.saveDir      = saveDir;
+    opts.optimizeIPINumber = optimizeIPINumber;
     OLS = @(param) nansum(nansum((model(param,T, M ,opts) - x_desired).^2));
     %% optimization
     opts = optimset('MaxIter', ItrNum ,'TolFun',1,'Display','iter' , 'TolX' , 1e-6);
