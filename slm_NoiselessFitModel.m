@@ -186,14 +186,14 @@ switch what
         %%
         load([baseDir ,'arbitraryMTall_Hall1-2_4  5/param_arbitraryMTall_Hall1-2_4  5.mat'])
         MsetField = [MsetField , param.parName{end , end} ,  {param.par(end,end)}];
-        
+         MsetField = {'planFunc(1)'    [1]};
         
         input_parName = {'bAll'   'theta_stim'   'planFunc(2)' 'planFunc(3)' 'planFunc(4)' 'planFunc(5)'};
         input_initalParam = [0.55	0.0086	0.7	0.47	0.32	0.05];%	0.20	0.0888];
 %         input_parName = {'bAll'   'planFunc(2)'   'planFunc(3)'    'planFunc(4)'    'planFunc(5)'};
 %         input_initalParam = [0.7000  0.7000    0.5000    0.3000    0.1000];
-        slm_NoiselessFitModel('FitMTRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [2:5],'input_initalParam' , input_initalParam,...
-                'input_parName' , input_parName,'NameExt' , 'MTall_H2-3','loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
+        slm_NoiselessFitModel('FitIPIRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1:5],'input_initalParam' , input_initalParam,...
+                'input_parName' , input_parName,'NameExt' , 'MTHall_H','loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
                 'MsetField' ,MsetField,'optimizeIPINumber' , [1],'includeMT' , 1 , 'diffMT' , 1);
         slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'MTall_H2-3' , 'Horizon' , [1:5],'MsetField' ,MsetField)
         %%
@@ -284,14 +284,14 @@ switch what
             if diffMT
                 optim = {'IPI' , 'diffMT'};
             else
-                optim = {'IPI' , 'MT'};
+                optim = {'diffIPI' , 'MT'};
             end
         else
             optim= {'IPI'};
         end
         [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'_',num2str(day)],...
             'Horizon' , Horizon , 'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , optim ,'MsetField' , MSF ,...
-            'NumPresses' , NumPresses,'loBound' , loBound , 'hiBound',hiBound,'optimizeIPINumber',optimizeIPINumber);
+            'NumPresses' , NumPresses,'loBound' , loBound , 'hiBound',hiBound,'optimizeIPINumber',optimizeIPINumber , 'diffMT' , diffMT);
         if includeRT
             slm_NoiselessFitModel('FitRT' , Dall , varargin);
         end
