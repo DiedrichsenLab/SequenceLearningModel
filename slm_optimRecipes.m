@@ -32,7 +32,7 @@ for box = 2:9
     slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'box_ramp' , 'MsetField' , {'Box' , box}, 'NameExt' , NameExt);
 end
 %%
-slm_NoiselessFitModel('stepwiseWindowPlan' , Dall)
+slm_NoiselessFitModel('stepwiseWindowPlan' , Dall , 'Day' , [4 5])
 
 
 slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [windo{h}],'NameExt' , NameExt);

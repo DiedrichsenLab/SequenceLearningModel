@@ -6,7 +6,7 @@ NumPresses = size(Dall.AllPress , 2);
 stimulus = [];
 ItrNum = 1000;
 cycNum = 1;
-day = [4 5]; % just fitting days 4, 5
+Day = [4 5]; % just fitting days 4, 5
 Horizon = [1:5];
 initPlan = 'uniform';
 c = 1;
@@ -26,6 +26,10 @@ if length(varargin)==1
 end
 while(c<=length(varargin))
     switch(varargin{c})
+         case {'Day'}
+            % days to fit
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         case {'runNum'}
             % the number of run
             eval([varargin{c} '= varargin{c+1};']);
@@ -150,131 +154,46 @@ end
 if ~isempty(input_parName)
     parName = input_parName;
 end
-% baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
-baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+% baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
 switch what
     case 'stepwiseWindowPlan'
         windo = {1 2 3 4 5};
         MsetField = {'planFunc(1)'    [1]};
-        for h = 1:length(windo)
-            NameExt{h} = ['MTRT_H' , num2str(windo{h}(1))];
-        end
-        %% get bound and theta stim from w  = 1;
-        input_parName = {'bAll'    'theta_stim' };%    'planFunc(3)'    'planFunc(4)'    'planFunc(5)'};
-        input_initalParam = [0.602	0.00857];%	0.45	0.20	0.0888];
-%         input_parName = {'bAll'   'planFunc(2)'   'planFunc(3)'    'planFunc(4)'    'planFunc(5)'};
-%         input_initalParam = [0.7000  0.7000    0.5000    0.3000    0.1000];
-        slm_NoiselessFitModel('FitMTRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1],'input_initalParam' , input_initalParam,...
-                'input_parName' , input_parName,'NameExt' , 'MTall_H1','loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
-                'MsetField' ,MsetField,'optimizeIPINumber' , [1],'includeMT' , 1 , 'diffMT' , 0);
-        slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'MTall_H1' , 'Horizon' , [1:5],'MsetField' ,MsetField)
-        %% fit all Windows for  MT using H=1:5 and initial conditions
-        load([baseDir ,'arbitraryMTall_H1_4  5/param_arbitraryMTall_H1_4  5.mat'])
-        MsetField = {'planFunc(1)'    [1]};
-        for pp = 1:2
-            MsetField = [MsetField , param.parName{end , pp} ,  {param.par(end,pp)}];
-        end 
-        
-        input_parName = {'planFunc(2)'};%    'planFunc(3)'    'planFunc(4)'    'planFunc(5)'};
-        input_initalParam = [.7];%	0.45	0.20	0.0888];
-%         input_parName = {'bAll'   'planFunc(2)'   'planFunc(3)'    'planFunc(4)'    'planFunc(5)'};
-%         input_initalParam = [0.7000  0.7000    0.5000    0.3000    0.1000];
-        slm_NoiselessFitModel('FitMTRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1:2],'input_initalParam' , input_initalParam,...
-                'input_parName' , input_parName,'NameExt' , 'MTall_H1-2','loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
-                'MsetField' ,MsetField,'optimizeIPINumber' , [1],'includeMT' , 1 , 'diffMT' , 1);
-        slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'MTall_H1-2' , 'Horizon' , [1:5],'MsetField' ,MsetField)
-        %%
-        load([baseDir ,'arbitraryMTall_Hall1-2_4  5/param_arbitraryMTall_Hall1-2_4  5.mat'])
-        MsetField = [MsetField , param.parName{end , end} ,  {param.par(end,end)}];
-         MsetField = {'planFunc(1)'    [1]};
-        
-        input_parName = {'bAll'   'theta_stim'   'planFunc(2)' 'planFunc(3)' 'planFunc(4)' 'planFunc(5)'};
-        input_initalParam = [0.55	0.0086	0.7	0.47	0.32	0.05];%	0.20	0.0888];
-%         input_parName = {'bAll'   'planFunc(2)'   'planFunc(3)'    'planFunc(4)'    'planFunc(5)'};
-%         input_initalParam = [0.7000  0.7000    0.5000    0.3000    0.1000];
-        slm_NoiselessFitModel('FitIPIRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1:5],'input_initalParam' , input_initalParam,...
-                'input_parName' , input_parName,'NameExt' , 'MTHall_H','loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
-                'MsetField' ,MsetField,'optimizeIPINumber' , [1],'includeMT' , 1 , 'diffMT' , 1);
-        slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'MTall_H2-3' , 'Horizon' , [1:5],'MsetField' ,MsetField)
-        %%
-        load([baseDir ,'arbitraryMTall_H2-3_4  5/param_arbitraryMTall_H2-3_4  5.mat'])
-        
-        input_parName = {'planFunc(2)' 'planFunc(3)' 'planFunc(4)' 'planFunc(5)'};
-        input_initalParam = param.par(end,:);%	0.20	0.0888];
-%         input_parName = {'bAll'   'planFunc(2)'   'planFunc(3)'    'planFunc(4)'    'planFunc(5)'};
-%         input_initalParam = [0.7000  0.7000    0.5000    0.3000    0.1000];
-        slm_NoiselessFitModel('FitMTRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [2 5],'input_initalParam' , input_initalParam,...
-                'input_parName' , input_parName,'NameExt' , 'MTdiff_H2-3','loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
-                'MsetField' ,MsetField,'optimizeIPINumber' , [1],'includeMT' , 1 , 'diffMT' , 1);
-         slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'MTdiff_H2-3' , 'Horizon' , [1:5],'MsetField' ,MsetField)
-        %%
-        %% fit W = 1 ,2  for IPIs 1 and MT
-        h = [1 2];
-        W  = 'FitIPIRT';
-        load([baseDir ,'arbitraryMTall_Hall1_4  5/param_arbitraryMTall_Hall1_4  5.mat'])
-%         input_parName = {'bAll' , 'theta_stim' ,'Aintegrate','planFunc(2)'};
-%         input_initalParam = [0.52000    0.0083    0.9852    0.7000];
-        input_parName = {'bAll' ,'planFunc(2)'};
-        input_initalParam = [0.52000    0.7000];
-        slm_NoiselessFitModel(W , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1 2],'input_initalParam' , input_initalParam,...
-            'input_parName' , input_parName,'NameExt' , 'IPI_H1-2','loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
-            'optimizeIPINumber' , [1:2],'includeMT' , 1 , 'MsetField' ,MsetField);
-        slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'IPI_H1-2' , 'Horizon' , [1:5],'MsetField' ,MsetField)
-        %% fit W = 3 : 5  for IPIs 1:3 using H=1,2 and initial conditions
-        load([baseDir ,'arbitraryIPI_H1-2_4  5/param_arbitraryIPI_H1-2_4  5.mat'])
-        MsetField = {'planFunc(1)'    [1]};
-        for pp = 1:3
-            MsetField = [MsetField , param.parName{end , pp} ,  {param.par(end,pp)}];
-        end   
-        
-        input_initalParam = [];
-        for h   = 3:5
-            input_parName = {};
-            input_initalParam = [];
-            for hi = 2:h
-                input_parName =  [input_parName {['planFunc(' , num2str(hi) , ')']}];
+        if sum(ismember(Day , [4 5]))
+            input_parName = {'bAll'   'theta_stim'   'planFunc(2)'};% 'planFunc(3)' 'planFunc(4)' 'planFunc(5)'};
+            input_initalParam = [.7	0.0045	0.2];%	0.47	0.32	0.05];%	0.20	0.0888];
+            slm_NoiselessFitModel('FitIPIRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1:2],'input_initalParam' , input_initalParam,...
+                'input_parName' , input_parName,'NameExt' , 'IPIMTRTHall_H1-2','loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
+                'MsetField' ,MsetField,'optimizeIPINumber' , [1:4],'includeMT' , 1 , 'diffMT' , 1 , 'Day' , Day);
+            slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'IPIMTRTHall_H1-2' , 'Horizon' , [1:5],'MsetField' ,MsetField,'includeRT',1, 'Day' , Day)
+            %%
+            load([baseDir ,'arbitraryIPIMTRTHall_H1-2_4  5/param_arbitraryIPIMTRTHall_H1-2_4  5.mat'])
+            MsetField = {'planFunc(1)'    [1]};
+            for pp = 1:3
+                MsetField = [MsetField , param.parName{end , pp} ,  {param.par(end,pp)}];
             end
-            if h >3
-                load([baseDir , 'arbitrary',NameExt{h-1},'_4  5/param_arbitrary',NameExt{h-1},'_4  5.mat'])
-                input_initalParam = param.par(end,:);
-                input_initalParam = [input_initalParam-.01 max(input_initalParam(end)-.1 , 0)];
-            else
-                load([baseDir ,'arbitraryIPI_H1-2_4  5/param_arbitraryIPI_H1-2_4  5.mat'])
-                input_initalParam = param.par(end,end); %planFunc(2)
-                input_initalParam = [input_initalParam .5];
+            
+            input_parName = {'planFunc(3)' 'planFunc(4)' 'planFunc(5)'};
+            input_initalParam = [0.1 0.03 0.00];%	0.20	0.0888];
+            slm_NoiselessFitModel('FitIPIRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [3:5],'input_initalParam' , input_initalParam,...
+                'input_parName' , input_parName,'NameExt' , 'IPIMTRTHall_H3-5','loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
+                'MsetField' ,MsetField,'optimizeIPINumber' , [1:4],'includeMT' , 1 , 'diffMT' , 1, 'Day' , Day);
+            slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'IPIMTRTHall_H3-5' , 'Horizon' , [1:5],'MsetField' ,MsetField, 'Day' , Day)
+        else
+            load([baseDir ,'arbitraryIPIMTRTHall_H1-2_4  5/param_arbitraryIPIMTRTHall_H1-2_4  5.mat'])
+            MsetField = {'planFunc(1)'    [1]};
+            for pp = 2
+                MsetField = [MsetField , param.parName{end , pp} ,  {param.par(end,pp)}];
             end
-            slm_NoiselessFitModel(W , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [2:5],'input_initalParam' , input_initalParam,...
-                'input_parName' , input_parName,'NameExt' , NameExt{h},'loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
-                'optimizeIPINumber' , [1 2],'includeMT' , 1 ,'MsetField' ,MsetField);
-            slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , NameExt{h} , 'Horizon' , [1:windo{h}],'MsetField' ,MsetField)
+            input_parName = {'bAll'  'planFunc(2)' 'planFunc(3)'};% 'planFunc(4)' 'planFunc(5)'};
+            input_initalParam = [.5	0.2	0];%	0.32	0.05];%	0.20	0.0888];
+            slm_NoiselessFitModel('FitIPIRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1:5],'input_initalParam' , input_initalParam,...
+                'input_parName' , input_parName,'NameExt' , 'IPIMTRTHall_H1-5','loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
+                'MsetField' ,MsetField,'optimizeIPINumber' , [1:4],'includeMT' , 1 , 'diffMT' , 1 , 'Day' , Day);
+            slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'IPIMTRTHall_H1-5' , 'Horizon' , [1:5],'MsetField' ,MsetField,'includeRT',1, 'Day' , Day)
         end
-        %% fit all Windows for IPIs 1:3 5:9 using H=1:5 and initial conditions
-        MsetField = {'planFunc(1)'    [1]};
-        
-        load([baseDir , 'arbitrary',NameExt{h},'_4  5/param_arbitrary',NameExt{h},'_4  5.mat'])
-        input_initalParam = param.par(end,:)-.01;
-        input_parName     = param.parName(end , :);
-        load([baseDir ,'arbitraryIPI_H1-2_4  5/param_arbitraryIPI_H1-2_4  5.mat'])
-        input_initalParam = [input_initalParam, param.par(end,1:3)];
-        input_parName     = [input_parName    , param.parName(end,1:3)];
-        
-        slm_NoiselessFitModel(W , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1:5],'input_initalParam' , input_initalParam,...
-                'input_parName' , input_parName,'NameExt' , 'IPI_Hall','loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
-                'optimizeIPINumber' ,[1:3 5:9],'MsetField' ,MsetField);
-        slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'IPI_Hall' , 'Horizon' , [1:5],'MsetField' ,MsetField)
-        %% fit all Windows for IPIs 1 and MT using H=1:5 and initial conditions
-        load([baseDir ,'arbitraryIPI_Hall_4  5/param_arbitraryIPI_Hall_4  5.mat']) 
-        input_parName = {'bAll'    'theta_stim'    'Aintegrate'    'planFunc(2)'    'planFunc(3)'    'planFunc(4)'    'planFunc(5)'};
-        input_initalParam = [0.6000    0.0082    0.9862    0.5000    0.5000    0.5000    0.5000];
-%         for pp = 1:size(param.par , 2)
-%             input_parName = [input_parName , param.parName{end , pp} ];
-%             input_initalParam = [input_initalParam ,  param.par(end,pp)];
-%         end
-        slm_NoiselessFitModel(W , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1:5],'input_initalParam' , input_initalParam,...
-                'input_parName' , input_parName,'NameExt' , 'IPIMTall_Hall','loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
-                'MsetField' ,MsetField,'optimizeIPINumber' , [1],'includeMT' , 1);
-        slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'IPIMTall_Hall' , 'Horizon' , [1:5],'MsetField' ,MsetField)
-        
+            
     case 'FitIPIRT'
         %% STEP 1 - fit the ball and the planning function parametrs to get MT
         MSF = {'PlanningCurve' , planFunc  ,'theta_stim' ,0.0084,'Aintegrate' , 1};
@@ -289,9 +208,9 @@ switch what
         else
             optim= {'IPI'};
         end
-        [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'_',num2str(day)],...
+        [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'_',num2str(Day)],...
             'Horizon' , Horizon , 'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , optim ,'MsetField' , MSF ,...
-            'NumPresses' , NumPresses,'loBound' , loBound , 'hiBound',hiBound,'optimizeIPINumber',optimizeIPINumber , 'diffMT' , diffMT);
+            'NumPresses' , NumPresses,'loBound' , loBound , 'hiBound',hiBound,'optimizeIPINumber',optimizeIPINumber , 'diffMT' , diffMT, 'Day' , Day);
         if includeRT
             slm_NoiselessFitModel('FitRT' , Dall , varargin);
         end
@@ -304,9 +223,9 @@ switch what
         %% STEP 1 - fit the ball and the planning function parametrs to get MT
         MSF = {'PlanningCurve' , planFunc  ,'theta_stim' ,0.0084,'Aintegrate' ,1};
         MSF = [MSF , MsetField];
-        [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'_',num2str(day)],...
+        [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'_',num2str(Day)],...
             'Horizon' , Horizon , 'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , optim ,'MsetField' ,...
-            MSF , 'NumPresses' , NumPresses,'loBound' , loBound , 'hiBound',hiBound, 'diffMT' , diffMT);
+            MSF , 'NumPresses' , NumPresses,'loBound' , loBound , 'hiBound',hiBound, 'diffMT' , diffMT, 'Day' , Day);
         if includeRT
             slm_NoiselessFitModel('FitRT' , Dall , varargin);
         end
@@ -315,10 +234,10 @@ switch what
         Horizon = [1:5];
         MSF = {'PlanningCurve' , planFunc  ,'theta_stim' ,0.0084,'Aintegrate' ,1};
         MSF = [MSF , MsetField];
-        saveDir = [planFunc,NameExt,'_',num2str(day)];
+        saveDir = [planFunc,NameExt,'_',num2str(Day)];
         cd([baseDir , saveDir]);
         parName = { 'bInit'};
-        load(['param_',planFunc,NameExt,'_',num2str(day),'.mat'])
+        load(['param_',planFunc,NameExt,'_',num2str(Day),'.mat'])
         parcount = 1;
         for p = 1:size(param.parName,2)
             if strcmp(param.parName{end,p} , 'planFunc')
@@ -331,38 +250,54 @@ switch what
         end
         
         for  h = 1:length(Horizon)
-            [Param Fval] = slm_optimize(Dall ,  .49 , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'Binit_',num2str(h),'_',num2str(day)],...
+            [Param Fval] = slm_optimize(Dall ,  .49 , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'Binit_',num2str(h),'_',num2str(Day)],...
                 'samNum'  , [5] ,'Horizon' , [Horizon(h)] ,'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'RT'} ,...
-                'MsetField' , MSF ,'saveDir' , saveDir, 'NumPresses' , NumPresses,'loBound' , loBound , 'hiBound',hiBound);
+                'MsetField' , MSF ,'saveDir' , saveDir, 'NumPresses' , NumPresses,'loBound' , loBound , 'hiBound',hiBound, 'Day' , Day);
         end
     case 'Simulate'
         %% STEP 3 - create the noise-free simulation
-        saveDir = [planFunc,NameExt,'_',num2str(day)];
+        saveDir = [planFunc,NameExt,'_',num2str(Day)];
         cd([baseDir , saveDir]);
-        MSF = {'PlanningCurve' , planFunc  ,'theta_stim' ,0.0084,'Aintegrate' , 1};
+        MSF = {'PlanningCurve' , planFunc  ,'Aintegrate' , 1};
         MSF = [MSF , MsetField];
-        load(['param_',planFunc,NameExt,'_',num2str(day),'.mat'])
-        parcount = 1;
-        for p = 1:size(param.parName,2)
-            if strcmp(param.parName{end,p} , 'planFunc')
-                MSF = [MSF , param.parName{end,p},param.par(end,parcount:parcount+(NumPresses-1))];
-                parcount = parcount  +NumPresses;
-            else
-                MSF = [MSF , param.parName{end,p},param.par(end,parcount)];
-                parcount = parcount  +1;
-            end
-        end
         AllR = [];
-        for  h = 1:length(Horizon)
-            clear  param
-            fname = ['param_',planFunc,NameExt,'Binit_',num2str(h),'_',num2str(day) , '.mat'];
-            load(fname)
-            parName = param.parName(end,:);
-            par = param.par(end , :);
+        if includeRT
+            load(['param_',planFunc,NameExt,'_',num2str(Day),'.mat'])
+            parcount = 1;
+            for p = 1:size(param.parName,2)
+                if strcmp(param.parName{end,p} , 'planFunc')
+                    MSF = [MSF , param.parName{end,p},param.par(end,parcount:parcount+(NumPresses-1))];
+                    parcount = parcount  +NumPresses;
+                else
+                    MSF = [MSF , param.parName{end,p},param.par(end,parcount)];
+                    parcount = parcount  +1;
+                end
+            end
+            
+            
+            for  h = 1:length(Horizon)
+                clear  param
+                fname = ['param_',planFunc,NameExt,'Binit_',num2str(h),'_',num2str(Day) , '.mat'];
+                load(fname)
+                parName = param.parName(end,:);
+                par = param.par(end , :);
+                [R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 100 ,...
+                    'Day' , Day, 'Horizon' , [Horizon(h)] , 'poolHorizons' , [5:13] , 'noise' ,0, 'subjNum' , [1:15],'MsetField' , MSF, 'NumPresses' , NumPresses);
+                AllR = addstruct(AllR , R);
+            end
+        else
+            parName = {};
+            par = [];
+            load(['param_',planFunc,NameExt,'_',num2str(Day),'.mat'])
+            for p = 1:size(param.parName,2)
+                parName = [parName , param.parName{end,p}];
+                par = [par param.par(end , p)];
+            end
             [R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 100 ,...
-                'Day' , day, 'Horizon' , [Horizon(h)] , 'poolHorizons' , [5:13] , 'noise' ,0, 'subjNum' , [1:15],'MsetField' , MSF, 'NumPresses' , NumPresses);
-            AllR = addstruct(AllR , R);
+                    'Day' , Day, 'Horizon' , [1:5] , 'poolHorizons' , [5:13] , 'noise' ,0, 'subjNum' , [1:15],'MsetField' , MSF, 'NumPresses' , NumPresses);
+             AllR = addstruct(AllR , R);
         end
+            
         %% STEP 4 - visualize
         view = 1; % 1 if you just want to view so everything is plotted in one figure - 0 for publications, separate figures
         c1 = [255, 153, 179]/255; % Random Red Tones
@@ -387,7 +322,7 @@ switch what
         
         R_seq = AllR;
         Dall.RT = Dall.AllPressTimes(:,1)-1500;
-        A = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , [4 5]) &...
+        A = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) &...
             ismember(Dall.Horizon , [1:5]));
         figure('color' , 'white')
         if view
@@ -398,7 +333,7 @@ switch what
         % MT
         hold on
         plot(R_seq.MT , 'o-', 'color' , [0 0 1] )
-        lineplot(A.Horizon  , A.MT ,  'plotfcn','nanmedian' ,'style_thickline',...
+        lineplot(A.Horizon  , A.MT ,  'plotfcn','nanmean' ,'style_thickline',...
             'linecolor' ,  'm','errorcolor' , 'm')
         title('MT')
         set(gca,'FontSize' , 18,'GridAlpha' , .2 , 'Box' , 'off','YLim' , [3000 7000] , 'YTick' , [3000:1000: 6000],...
@@ -414,7 +349,7 @@ switch what
         end
         hold on
         plot(R_seq.RT , 'o-')
-        lineplot(A.Horizon  , A.RT ,  'plotfcn','nanmedian' , ...
+        lineplot(A.Horizon  , A.RT ,  'plotfcn','nanmean' , ...
             'style_thickline','linecolor' ,  'm','errorcolor' , 'm')
         title('RT')
         set(gca,'FontSize' , 18,'GridAlpha' , .2 , 'Box' , 'off',...
@@ -473,7 +408,7 @@ switch what
             subplot(122)
         end
         colorz = colz(:,2);
-        lineplot(All.ipiNum , All.IPI , 'plotfcn' , 'nanmedian',...
+        lineplot(All.ipiNum , All.IPI , 'plotfcn' , 'nanmean',...
             'split', All.singleH  , 'linecolor' , colorz,...
             'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
             'linewidth' , 1.5 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
