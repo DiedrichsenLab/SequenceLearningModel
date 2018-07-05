@@ -60,7 +60,15 @@ M.Bound = [M.bInit ones(1 ,size(T.stimulus,2)-1)*M.bAll]; % boundry is a vector 
 AllT = T;
 AllR = [];
 R = [];
-for trls = 1:length(T.TN)
+SE = M.SigEps;
+for trls = 1:length(AllT.TN)
+    if nanmean(AllT.Horizon(trls,:)) == 1
+        M.SigEps = SE(1);
+    elseif nanmean(AllT.Horizon(trls,:)) == 5 
+        M.SigEps = SE(3);
+    else
+        M.SigEps = SE(2);
+    end  
     M.Capacity   = origCap;
     T = getrow(AllT , trls);
     dT = 2;            %delta-t in ms

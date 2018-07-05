@@ -12,8 +12,8 @@ noisefreeRep = [];
 optimizeIPINumber = [1:3];
 c = 1;
 diffMT = 0;
-% mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
-mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+% mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
 
 while(c<=length(varargin))
     switch(varargin{c})
@@ -134,7 +134,7 @@ for i = 1:cycNum
     ANA = getrow(Dall , ismember(Dall.Horizon , Horizon));
     ANA.RT = ANA.AllPressTimes(:,1)-1500;
     %% set up the desired output
-    G = tapply(ANA , {'Horizon'} , {'MT' , 'nanmean'},{'RT' , 'nanmean'},{'IPI' , 'nanmean'});
+    G = tapply(ANA , {'Horizon'} , {'MT' , 'nanmedian'},{'RT' , 'nanmedian'},{'IPI' , 'nanmedian'});
     G.MT = G.MT;%/NumPresses;
     if diffMT
                 G.diffMT = [G.MT ; -diff(10*G.MT,1,1)];
@@ -226,7 +226,7 @@ for i = 1:cycNum
     if~noise
         M.SigEps    = 0;
     else
-        M.SigEps    = 0.02;
+        M.SigEps    = 0.001;
     end
     
     c = 1;

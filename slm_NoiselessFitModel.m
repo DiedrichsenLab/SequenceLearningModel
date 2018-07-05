@@ -21,6 +21,7 @@ optimizeIPINumber = [1:3];
 includeMT = 0;
 includeRT = 1;
 diffMT = 0;
+noise = 0;
 if length(varargin)==1
     varargin = varargin{1}; % coming from a highr loop, so nneds to be unpacked
 end
@@ -103,6 +104,10 @@ while(c<=length(varargin))
             % use the difference between MTs instead of MTs
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+        case {'noise'}
+            % 1 or 0 -
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error('Unknown option: %s',varargin{c});
     end
@@ -154,8 +159,8 @@ end
 if ~isempty(input_parName)
     parName = input_parName;
 end
-baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
-% baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+% baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
 switch what
     case 'stepwiseWindowPlan'
         windo = {1 2 3 4 5};
@@ -175,11 +180,13 @@ switch what
             end
             
             input_parName = {'planFunc(3)' 'planFunc(4)' 'planFunc(5)'};
-            input_initalParam = [0.1 0.03 0.00];%	0.20	0.0888];
+            input_initalParam = [0.1 0.04 0.001]; %best so far
             slm_NoiselessFitModel('FitIPIRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [3:5],'input_initalParam' , input_initalParam,...
                 'input_parName' , input_parName,'NameExt' , 'IPIMTRTHall_H3-5','loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
-                'MsetField' ,MsetField,'optimizeIPINumber' , [1:4],'includeMT' , 1 , 'diffMT' , 1, 'Day' , Day);
-            slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'IPIMTRTHall_H3-5' , 'Horizon' , [1:5],'MsetField' ,MsetField, 'Day' , Day)
+                'MsetField' ,MsetField,'optimizeIPINumber' , [1:5],'includeMT' , 1 , 'diffMT' , 1, 'Day' , Day,'noise' , noise);
+            
+            slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'IPIMTRTHall_H3-5' , 'Horizon' , [1:5],...
+                'MsetField' ,MsetField, 'Day' , Day,'noise' , 1)
         else
             load([baseDir ,'arbitraryIPIMTRTHall_H1-2_4  5/param_arbitraryIPIMTRTHall_H1-2_4  5.mat'])
             MsetField = {'planFunc(1)'    [1]};
@@ -190,8 +197,10 @@ switch what
             input_initalParam = [.5	0.2	0];%	0.32	0.05];%	0.20	0.0888];
             slm_NoiselessFitModel('FitIPIRT' , Dall , 'planFunc' , 'arbitrary', 'Horizon' , [1:5],'input_initalParam' , input_initalParam,...
                 'input_parName' , input_parName,'NameExt' , 'IPIMTRTHall_H1-5','loBound' , loBound , 'hiBound',hiBound,'includeRT',1,...
-                'MsetField' ,MsetField,'optimizeIPINumber' , [1:4],'includeMT' , 1 , 'diffMT' , 1 , 'Day' , Day);
-            slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'IPIMTRTHall_H1-5' , 'Horizon' , [1:5],'MsetField' ,MsetField,'includeRT',1, 'Day' , Day)
+                'MsetField' ,MsetField,'optimizeIPINumber' , [1:4],'includeMT' , 1 , 'diffMT' , 1 , 'Day' , Day ,'noise' , noise);
+            
+            slm_NoiselessFitModel('Simulate' , Dall , 'planFunc' , 'arbitrary','NameExt' , 'IPIMTRTHall_H1-5' , 'Horizon' , [1:5],...
+                'MsetField' ,MsetField,'includeRT',1, 'Day' , Day,'noise' , 1)
         end
             
     case 'FitIPIRT'
@@ -209,7 +218,7 @@ switch what
             optim= {'IPI'};
         end
         [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'_',num2str(Day)],...
-            'Horizon' , Horizon , 'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , optim ,'MsetField' , MSF ,...
+            'Horizon' , Horizon , 'noise' , noise ,  'subjNum' , [1:15] , 'desiredField' , optim ,'MsetField' , MSF ,...
             'NumPresses' , NumPresses,'loBound' , loBound , 'hiBound',hiBound,'optimizeIPINumber',optimizeIPINumber , 'diffMT' , diffMT, 'Day' , Day);
         if includeRT
             slm_NoiselessFitModel('FitRT' , Dall , varargin);
@@ -224,7 +233,7 @@ switch what
         MSF = {'PlanningCurve' , planFunc  ,'theta_stim' ,0.0084,'Aintegrate' ,1};
         MSF = [MSF , MsetField];
         [Param Fval] = slm_optimize(Dall ,  initParam , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'_',num2str(Day)],...
-            'Horizon' , Horizon , 'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , optim ,'MsetField' ,...
+            'Horizon' , Horizon , 'noise' , noise ,  'subjNum' , [1:15] , 'desiredField' , optim ,'MsetField' ,...
             MSF , 'NumPresses' , NumPresses,'loBound' , loBound , 'hiBound',hiBound, 'diffMT' , diffMT, 'Day' , Day);
         if includeRT
             slm_NoiselessFitModel('FitRT' , Dall , varargin);
@@ -251,7 +260,7 @@ switch what
         
         for  h = 1:length(Horizon)
             [Param Fval] = slm_optimize(Dall ,  .49 , 'parName' , parName,'runNum' ,['_',planFunc,NameExt,'Binit_',num2str(h),'_',num2str(Day)],...
-                'samNum'  , [5] ,'Horizon' , [Horizon(h)] ,'noise' , 0 ,  'subjNum' , [1:15] , 'desiredField' , {'RT'} ,...
+                'samNum'  , [5] ,'Horizon' , [Horizon(h)] ,'noise' , noise ,  'subjNum' , [1:15] , 'desiredField' , {'RT'} ,...
                 'MsetField' , MSF ,'saveDir' , saveDir, 'NumPresses' , NumPresses,'loBound' , loBound , 'hiBound',hiBound, 'Day' , Day);
         end
     case 'Simulate'
@@ -281,8 +290,8 @@ switch what
                 load(fname)
                 parName = param.parName(end,:);
                 par = param.par(end , :);
-                [R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 100 ,...
-                    'Day' , Day, 'Horizon' , [Horizon(h)] , 'poolHorizons' , [5:13] , 'noise' ,0, 'subjNum' , [1:15],'MsetField' , MSF, 'NumPresses' , NumPresses);
+                [R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 200 ,...
+                    'Day' , Day, 'Horizon' , [Horizon(h)] , 'poolHorizons' , [5:13] , 'noise' ,noise, 'subjNum' , [1:15],'MsetField' , MSF, 'NumPresses' , NumPresses);
                 AllR = addstruct(AllR , R);
             end
         else
@@ -294,7 +303,7 @@ switch what
                 par = [par param.par(end , p)];
             end
             [R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 100 ,...
-                    'Day' , Day, 'Horizon' , [1:5] , 'poolHorizons' , [5:13] , 'noise' ,0, 'subjNum' , [1:15],'MsetField' , MSF, 'NumPresses' , NumPresses);
+                    'Day' , Day, 'Horizon' , [1:5] , 'poolHorizons' , [5:13] , 'noise' ,noise, 'subjNum' , [1:15],'MsetField' , MSF, 'NumPresses' , NumPresses);
              AllR = addstruct(AllR , R);
         end
             
@@ -332,8 +341,13 @@ switch what
         end
         % MT
         hold on
-        plot(R_seq.MT , 'o-', 'color' , [0 0 1] )
-        lineplot(A.Horizon  , A.MT ,  'plotfcn','nanmean' ,'style_thickline',...
+        if ~noise
+            plot(R_seq.MT , 'o-', 'color' , [0 0 1] )
+        else
+            lineplot(R_seq.singleH  , R_seq.MT ,  'plotfcn','nanmedian' ,'style_thickline',...
+                'linecolor' ,  'b','errorcolor' , 'b')
+        end
+        lineplot(A.Horizon  , A.MT ,  'plotfcn','nanmedian' ,'style_thickline',...
             'linecolor' ,  'm','errorcolor' , 'm')
         title('MT')
         set(gca,'FontSize' , 18,'GridAlpha' , .2 , 'Box' , 'off','YLim' , [3000 7000] , 'YTick' , [3000:1000: 6000],...
@@ -348,8 +362,14 @@ switch what
             subplot(122)
         end
         hold on
-        plot(R_seq.RT , 'o-')
-        lineplot(A.Horizon  , A.RT ,  'plotfcn','nanmean' , ...
+        
+        if ~noise
+            plot(R_seq.RT , 'o-')
+        else
+            lineplot(R_seq.singleH  , R_seq.RT ,  'plotfcn','nanmedian' ,'style_thickline',...
+                'linecolor' ,  'b','errorcolor' , 'b')
+        end
+        lineplot(A.Horizon  , A.RT ,  'plotfcn','nanmedian' , ...
             'style_thickline','linecolor' ,  'm','errorcolor' , 'm')
         title('RT')
         set(gca,'FontSize' , 18,'GridAlpha' , .2 , 'Box' , 'off',...
@@ -389,18 +409,32 @@ switch what
         end
         
         H = unique(All.singleH);
-        for h= 1:length(H)
-            A = getrow(Fit , Fit.singleH==H(h));
-            plot(A.ipiNum  ,A.IPI, '-o' , 'Color' , colorz{h} , ...
-                'MarkerEdgeColor' , colorz{h} , 'MarkerFaceColor' , colorz{h},...
-                'LineWidth' , 1.5 , 'MarkerSize' , 5)
-            hold on
+        if ~noise
+            for h= 1:length(H)
+                A = getrow(Fit , Fit.singleH==H(h));
+                plot(A.ipiNum  ,A.IPI, '-o' , 'Color' , colorz{h} , ...
+                    'MarkerEdgeColor' , colorz{h} , 'MarkerFaceColor' , colorz{h},...
+                    'LineWidth' , 1.5 , 'MarkerSize' , 5)
+                hold on
+            end
+            legend({'W = 1' , 'W = 2' , 'W = 3' , 'W = 4' , 'W = 5-13'} , 'Box' , 'off')
+            xlabel('IPI number')
+            ylabel('Inter-press interval time [s]')
+            set(gca , 'FontSize' , 16 , 'Box' , 'off' , 'YLim' , [150 650],'YTick' , [200:100: 600],...
+                'YTickLabel' , [0.2:.1:0.6] )
+        else
+            lineplot(All.ipiNum , All.IPI , 'plotfcn' , 'nanmedian',...
+                'split', All.singleH  , 'linecolor' , colorz,...
+                'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
+                'linewidth' , 1.5 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
+                'markersize' , 5, 'markercolor' , colorz , 'leg' , {'W = 1' , 'W = 2' , 'W = 3' , 'W = 4' , 'W = 5-13'} , ...
+                'subset' , All.fitoract == 0);
+            
+            ylabel('Inter-press interval time [s]')
+            xlabel('IPIs number')
+            set(gca , 'FontSize' , 16 , 'Box' , 'off' , 'YLim' , [150 650],'YTick' , [200:100: 600],...
+                'YTickLabel' , [0.2:.1:0.6] )
         end
-        legend({'W = 1' , 'W = 2' , 'W = 3' , 'W = 4' , 'W = 5-13'} , 'Box' , 'off')
-        xlabel('IPI number')
-        ylabel('Inter-press interval time [s]')
-        set(gca , 'FontSize' , 16 , 'Box' , 'off' , 'YLim' , [150 650],'YTick' , [200:100: 600],...
-            'YTickLabel' , [0.2:.1:0.6] )
         
         if view
             subplot(235)
@@ -408,7 +442,7 @@ switch what
             subplot(122)
         end
         colorz = colz(:,2);
-        lineplot(All.ipiNum , All.IPI , 'plotfcn' , 'nanmean',...
+        lineplot(All.ipiNum , All.IPI , 'plotfcn' , 'nanmedian',...
             'split', All.singleH  , 'linecolor' , colorz,...
             'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
             'linewidth' , 1.5 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...

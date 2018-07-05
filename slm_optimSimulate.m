@@ -141,13 +141,13 @@ M.B_coef2       = 0;       % for the 'logistic' option of PlanningCurve
 M.Box           = 1;          % box size for the 'boxcar' option of PlanningCurve
 M.rampDecay1     = size(T.stimulus , 2);   % for the 'ramp' option of PlanningCurve
 M.rampDecay2     = 0;   % for the 'ramp' option of PlanningCurve
-M.theta_stim    = 0.01;
+M.theta_stim    = 0.0001;
 M.parName       = parName;
 M.planFunc = zeros(1,NumPresses); % for the arbitrary option of the PlanningCurve
 if~noise
     M.SigEps    = 0;
 else
-    M.SigEps    = 0.02;
+    M.SigEps    = [0.0035 0.0045 0.005]; % 0.0035 for window 1  --- 0.0045 for the rest;
 end
 
 %% re-set the fields that have been defined in input
@@ -169,116 +169,4 @@ opts.desiredField = [];
 
 R = slm_optimSimTrial(par , T , M , opts);
 
-%% Horizon
-plt = 0;
-if plt
-    ANA = getrow(Dall , ismember(Dall.Horizon , Horizon));
-    ANA.RT = ANA.AllPressTimes(:,1)-1500;
-    C = R;
-    R = getrow(R , ~R.isError);
-    All = [];
-    Act = [];
-    Fit = R;
-    Act.singleH = ANA.Horizon;
-    Fit.singleH  = nanmean(R.Horizon, 2);
-    Act.MT = ANA.MT;
-    Act.RT = ANA.AllPressTimes(:,1) - 1500;
-    
-    Act.fitoract = ones(size(Act.MT));
-    Fit.fitoract = zeros(size(Fit.MT));
-    
-    All  = addstruct(Fit , Act);
-    
-    figure('color' , 'white')
-    subplot(211)
-    colorz = colz(3,:);{[0.840000000000000,0.360000000000000,0.501176470588235],[0.360000000000000,0.456470588235294,0.760000000000000]};
-    lineplot(All.singleH , All.MT , 'plotfcn' , 'nanmean',...
-        'split', All.fitoract  , 'linecolor' , colorz,...
-        'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
-        'linewidth' , 3 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
-        'markersize' , 10, 'markercolor' , colorz , 'leg' , {'Fitted' , 'Actual'});
-    title('MT')
-    grid on
-    set(gca , 'FontSize' , 16, 'YLim' , [2000 9000])
-    xlabel('Horizon')
-    
-    
-    subplot(212)
-    lineplot(All.singleH , All.RT , 'plotfcn' , 'nanmean',...
-        'split', All.fitoract  , 'linecolor' , colorz,...
-        'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
-        'linewidth' , 3 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
-        'markersize' , 10, 'markercolor' , colorz , 'leg' , {'Fitted' , 'Actual'});
-    title('RT')
-    xlabel('Horizon')
-    grid on
-    set(gca , 'FontSize' , 16 , 'YLim' , [300 750])
-    
-    MTRT = All;
-    %% IPI
-    All = [];
-    Act = [];
-    Fit = [];
-    clear Fit Act
-    Fit.IPI = R.IPI;
-    Fit.IPI = reshape(Fit.IPI , numel(Fit.IPI) , 1);
-    Act.IPI = ANA.IPI;
-    Act.IPI = reshape(Act.IPI , numel(Act.IPI) , 1);
-    
-    Fit.singleH  = repmat(nanmean(R.Horizon, 2), 1 , size(ANA.AllPress,2)-1);
-    Fit.singleH  = reshape(Fit.singleH , numel(Fit.IPI) , 1);
-    Act.singleH  = repmat(nanmean(ANA.Horizon, 2) , 1 , size(ANA.AllPress,2)-1);
-    Act.singleH  = reshape(Act.singleH , numel(Act.IPI) , 1);
-    
-    
-    Fit.ipiNum = repmat(1:size(T.stimulus,2)-1 , size(T.stimulus,1) , 1);
-    Fit.ipiNum = reshape(Fit.ipiNum , numel(Fit.ipiNum) , 1);
-    Act.ipiNum = repmat(1:size(T.stimulus,2)-1 , length(ANA.AllPress) , 1);
-    Act.ipiNum = reshape(Act.ipiNum , numel(Act.ipiNum) , 1);
-    
-    Act.fitoract = ones(size(Act.ipiNum));
-    Fit.fitoract = zeros(size(Fit.ipiNum));
-    
-    
-    All  = addstruct(Fit , Act);
-    colorz = colz(:,1);
-    figure('color' , 'white')
-    subplot(211)
-    if noise
-        lineplot(All.ipiNum , All.IPI , 'plotfcn' , 'nanmean',...
-            'split', All.singleH  , 'linecolor' , colorz,...
-            'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
-            'linewidth' , 1.5 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
-            'markersize' , 5, 'markercolor' , colorz , 'leg' , {'H = 1' , 'H = 2' , 'H = 3' , 'H = 4' , 'H = 5-13'} , ...
-            'subset' , All.fitoract == 0);
-    else
-        H = unique(All.singleH);
-        for h= 1:length(H)
-            A = getrow(Fit , Fit.singleH==H(h));
-            plot(A.ipiNum  ,A.IPI, '-o' , 'Color' , colorz{h} , ...
-                'MarkerEdgeColor' , colorz{h} , 'MarkerFaceColor' , colorz{h},...
-                'LineWidth' , 1.5 , 'MarkerSize' , 5)
-            hold on
-        end
-        legend({'H = 1' , 'H = 2' , 'H = 3' , 'H = 4' , 'H = 5-13'} , 'Box' , 'off')
-    end
-    title('IPIs - fitted')
-    xlabel('IPIs number')
-    grid on
-    set(gca , 'FontSize' , 16 , 'Box' , 'off' , 'YLim' , [150 700])
-    
-    subplot(212)
-    colorz = colz(:,2);
-    lineplot(All.ipiNum , All.IPI , 'plotfcn' , 'nanmean',...
-        'split', All.singleH  , 'linecolor' , colorz,...
-        'errorcolor' , colorz , 'errorbars' , {'shade'}  , 'shadecolor' ,colorz,...
-        'linewidth' , 1.5 , 'markertype' , repmat({'o'} , 1  , 2) , 'markerfill' , colorz,...
-        'markersize' , 5, 'markercolor' , colorz , 'leg' , {'H = 1' , 'H = 2' , 'H = 3' , 'H = 4' , 'H = 5-13'} , ...
-        'subset' , All.fitoract == 1);
-    
-    title('IPIs - Actual')
-    xlabel('IPIs number')
-    grid on
-    set(gca , 'FontSize' , 16 , 'YLim' , [150 700])
-    IPI = All;
 end
