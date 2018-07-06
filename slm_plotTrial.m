@@ -48,7 +48,7 @@ switch what
         
     case 'TrialHorseRace_pres'
         colz = [83, 255, 26;26, 255, 255;255, 26, 255;255, 26, 26;255, 153, 0]/255;
-        figure('color' , 'black')
+        figure('color' , 'white')
         [~,~,numPresses] = size(SIM.X);
         
         numDec = unique(T.decisionTime);
@@ -72,11 +72,11 @@ switch what
                 plot(SIM.t,SIM.X(opts,:,i), 'LineWidth' , 2,'color' , colz(opts , :));
                 hold on
             end
-            plot(SIM.t,SIM.B(T.response(i),:,i),'w', 'LineWidth' , 3);
+            plot(SIM.t,SIM.B(T.response(i),:,i),'k', 'LineWidth' , 3);
             ylim = get(gca , 'YLim');
             h1 = line([T.stimTime(i) T.stimTime(i)] , ylim ,'color','r','linestyle',':' , 'LineWidth' , 2);
             h2 = line([T.decisionTime(i) T.decisionTime(i)] , ylim,'color','r', 'LineWidth' , 2);
-            h3 = line([T.pressTime(i) T.pressTime(i)],ylim,'color','w', 'LineWidth' , 2);
+            h3 = line([T.pressTime(i) T.pressTime(i)],ylim,'color','k', 'LineWidth' , 2);
             
             % just legend the first one, the rest are the same
             if ~isnan(T.forcedPressTime(1,1))
@@ -95,7 +95,7 @@ switch what
             end
  
 %             title(['Decision No. ' ,num2str(T.decNum(i)), ', press No.' , num2str(i)])
-            set(gca , 'Box' , 'off' , 'FontSize' , 16 , 'Ylim' , [-.3 .8],'ColorOrder',colz)
+            set(gca , 'Box' , 'off' , 'FontSize' , 16 , 'Ylim' , [-.4 1.2],'ColorOrder',colz)
         end;
     case 'BlockMT'
         %colorz = {[0 0  1],[1 0 0],[0 1 0],[1 0 1],[0 1 1],[0.7 0.7 0.7],[1 1 0],[.3 .3 .3]};

@@ -76,6 +76,9 @@ for i = 1:length(tempcol)
     avgCol{i} = mean([colz{i,2} ; colz{i,1}],1);
 end
 
+if ~isempty(poolHorizons)
+    Dall.Horizon(ismember(Dall.Horizon , poolHorizons)) = poolHorizons(1);
+end
 
 Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) & ...
     ismember(Dall.Horizon , Horizon) & ismember(Dall.SN , subjNum));

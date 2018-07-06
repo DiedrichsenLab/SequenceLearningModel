@@ -12,8 +12,8 @@ noisefreeRep = [];
 optimizeIPINumber = [1:3];
 c = 1;
 diffMT = 0;
-mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
-% mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+% mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
 
 while(c<=length(varargin))
     switch(varargin{c})
@@ -114,11 +114,13 @@ else
     saveDir = [mainDir , saveDir];
 end
 %% optimization
-Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) &...
-    ismember(Dall.Horizon , Horizon) & ismember(Dall.SN , subjNum));
 if ~isempty(poolHorizons)
     Dall.Horizon(ismember(Dall.Horizon , poolHorizons)) = poolHorizons(1);
 end
+
+Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) &...
+    ismember(Dall.Horizon , Horizon) & ismember(Dall.SN , subjNum));
+
 
 
 Horizon = unique(Dall.Horizon);

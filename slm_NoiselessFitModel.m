@@ -159,8 +159,8 @@ end
 if ~isempty(input_parName)
     parName = input_parName;
 end
-% baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
-baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+% baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
 switch what
     case 'stepwiseWindowPlan'
         windo = {1 2 3 4 5};
@@ -290,7 +290,7 @@ switch what
                 load(fname)
                 parName = param.parName(end,:);
                 par = param.par(end , :);
-                [R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 200 ,...
+                [R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 190 ,...
                     'Day' , Day, 'Horizon' , [Horizon(h)] , 'poolHorizons' , [5:13] , 'noise' ,noise, 'subjNum' , [1:15],'MsetField' , MSF, 'NumPresses' , NumPresses);
                 AllR = addstruct(AllR , R);
             end
@@ -302,7 +302,7 @@ switch what
                 parName = [parName , param.parName{end,p}];
                 par = [par param.par(end , p)];
             end
-            [R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 100 ,...
+            [R] = slm_optimSimulate(Dall , par  , 'parName' , parName,'samNum'  , 190 ,...
                     'Day' , Day, 'Horizon' , [1:5] , 'poolHorizons' , [5:13] , 'noise' ,noise, 'subjNum' , [1:15],'MsetField' , MSF, 'NumPresses' , NumPresses);
              AllR = addstruct(AllR , R);
         end

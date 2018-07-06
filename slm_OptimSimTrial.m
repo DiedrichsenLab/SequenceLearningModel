@@ -62,13 +62,15 @@ AllR = [];
 R = [];
 SE = M.SigEps;
 for trls = 1:length(AllT.TN)
-    if nanmean(AllT.Horizon(trls,:)) == 1
-        M.SigEps = SE(1);
-    elseif nanmean(AllT.Horizon(trls,:)) == 5 
-        M.SigEps = SE(3);
-    else
-        M.SigEps = SE(2);
-    end  
+    if length(SE)>1
+        if nanmean(AllT.Horizon(trls,:)) == 1
+            M.SigEps = SE(1);
+        elseif nanmean(AllT.Horizon(trls,:)) == 5
+            M.SigEps = SE(3);
+        else
+            M.SigEps = SE(2);
+        end
+    end
     M.Capacity   = origCap;
     T = getrow(AllT , trls);
     dT = 2;            %delta-t in ms
