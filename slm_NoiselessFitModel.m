@@ -159,8 +159,8 @@ end
 if ~isempty(input_parName)
     parName = input_parName;
 end
-baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
-% baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+% baseDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+baseDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
 switch what
     case 'stepwiseWindowPlan'
         windo = {1 2 3 4 5};

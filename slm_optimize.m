@@ -12,8 +12,8 @@ noisefreeRep = [];
 optimizeIPINumber = [1:3];
 c = 1;
 diffMT = 0;
-% mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
-mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
+% mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
 
 while(c<=length(varargin))
     switch(varargin{c})
