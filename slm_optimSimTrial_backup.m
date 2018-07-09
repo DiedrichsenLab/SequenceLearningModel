@@ -1,4 +1,4 @@
-function R = slm_optimSimTrial(par , T , M ,opts)
+function R = slm_optimSimTrial_backup(par , T , M ,opts)
 %% Intro
 % function R = slm_optimSimTrial(par , T , opts.runNum ,opts.cycNum , parName , mode , noise)
 % incoporates horizon size (T.Horizon) as well as buffer size (M.Capacity)
@@ -87,7 +87,14 @@ for trls = 1:length(AllT.TN)
     % this is because the first "capacity" presses would be planned in one decision step
     dec=1: max(maxPresses - M.Capacity+1,M.Capacity);  % Number of decision steps
     %       dec=1: maxPresses;
-
+    
+    
+    % for the first decision step, "capacity" digits are planned and for the rest, the shift is 1 by 1.
+    maxPlan = ones(1 , length(dec)); % Number of digits being planned in every decision step
+    if length(dec)>2 & length(dec)<maxPresses
+        maxPlan(1) = M.Capacity;
+    end
+    
     % set the stimTime for presses that are not shown at time 0 to NaN (depending on the horizon size)
     % These will be filled with press times (depending on the horizon size)
     T.stimTime(~isnan(T.Horizon)) = NaN;
@@ -107,12 +114,14 @@ for trls = 1:length(AllT.TN)
     nDecision = 1;           % Current decision to male
     numPresses = 0;          % Number of presses produced
     isPressing = 0;          % Is the motor system currently occupied?
+    remPress = maxPresses;   % Remaining presses. This variable will be useful if/whenever multiple digits are being planned in every decsion step
     % Set up parameters
     
     A  = eye(M.numOptions)*(M.Aintegrate)+(~eye(M.numOptions)).*M.Ainhibit;      % A defined the matrix of autoregressive coefficients
-    prs = 1; % indexes the pressesd digits
+    prs = 0; % indexes the pressesd digits
     
     % find the press indecies that have to be planned in the first decision cycle
+    PlanIndx= prs+1 : prs+1+(maxPlan(nDecision)-1);
     
     
     %% planning curve funsction for the stimulus evidence intake
@@ -177,6 +186,13 @@ for trls = 1:length(AllT.TN)
     end
     
     %%
+    
+    dtgrowth = linspace(M.dT_motor ,M.dT_motor* M.dtGrowth, M.Capacity);
+    decPressCount = 1;
+    %% Linear growth for dt_motor to start faster and slow down to steady state
+    % implimenting the idea of making dT a function of the percentage of the M.Capacity that you have planned ahead
+    plannedAhead = zeros(1,maxPresses); % the number of digits planned ahead on each press
+    %%
     eps = randn([M.numOptions maxTime/dT maxPresses]) * M.SigEps;
     while nDecision<=length(dec) && i<maxTime/dT
         % Update the stimulus: Fixed stimulus time
@@ -202,20 +218,31 @@ for trls = 1:length(AllT.TN)
         end
         % if the system is in the first decision cycle, it wont start pressing
         % until all the digits within the buffer size have been planned
-        if ~isPressing && sum(squeeze(X(:,i+1,prs))>B(prs , i+1)) >= 1
-            T.decisionTime(1,prs) = t(i+1);    % Decision made at this time
-            [~,T.response(1,prs)]=max(X(:,i+1,prs));
-            T.pressTime(prs) = T.decisionTime(prs)+M.dT_motor; % Press time delayed by motor delay
-            % if there are any stumuli that have not appeared yet, set their stimTime to press time of Horizon presses before
-            if sum(isnan(T.stimTime))
-                idx2  = find(isnan(T.stimTime));
-                for k = 1:length(idx2)
-                    if ~isnan(T.pressTime(idx2(k) - T.Horizon(idx2(k))))
-                        T.stimTime(idx2(k)) = T.pressTime(prs);
+        if ~isPressing && sum(squeeze(X(:,i+1,PlanIndx(decPressCount)))>B(prs+1 , i+1)) >= 1
+            plannedAhead(PlanIndx) = length(PlanIndx):-1:1;
+            if decPressCount <= length(PlanIndx)
+                T.decisionTime(1,PlanIndx(decPressCount)) = t(i+1);                            % Decision made at this time
+                [~,T.response(1,PlanIndx(decPressCount))]=max(X(:,i+1,PlanIndx(decPressCount)));
+                decPressCount = decPressCount + 1;
+            end
+            % after filling the buffer, start pressing
+            if decPressCount == length(PlanIndx)+1
+                dtcount = 0;
+                for prs = PlanIndx
+                    T.pressTime(prs) = T.decisionTime(PlanIndx(end))+sum(dtgrowth(plannedAhead(PlanIndx(1):PlanIndx(1+dtcount)))); % Press time delayed by motor delay
+                    % if there are any stumuli that have not appeared yet, set their stimTime to press time of Horizon presses before
+                    if sum(isnan(T.stimTime))
+                        idx2  = find(isnan(T.stimTime));
+                        for k = 1:length(idx2)
+                            if ~isnan(T.pressTime(idx2(k) - T.Horizon(idx2(k))))
+                                T.stimTime(idx2(k)) = T.pressTime(prs);
+                            end
+                        end
                     end
+                    isPressing = 1;                % Motor system engaged
+                    dtcount = dtcount+1;
                 end
             end
-            isPressing = 1;                % Motor system engaged
         end
         % Update the motor system: Checking if current movement is done
         if (isPressing)
@@ -224,15 +251,18 @@ for trls = 1:length(AllT.TN)
                 planFunc(prs+1 : end) = planFunc(prs:end-1);
                 planFunc(1:prs) = 0;
                 % update the remaining presses
+                remPress = max(0 , remPress - maxPlan(nDecision));
                 nDecision = nDecision+1;       % Waiting for the next decision
+                decPressCount = 1;
                 if nDecision<=length(dec)
                     % update the press indecies that have to be planed in next decision cycle
-                    prs = prs +1;
+                    PlanIndx= prs+1 : prs+1+(maxPlan(nDecision)-1);
+                    decPressCount = 1;
                 end
             end
         end
         i=i+1;
-    end
+    end;
     T.X{1} = X(:,1:i,:);
     T.B{1} = M.Bound;
     if size(T.pressTime , 2)~=size(T.stimulus , 2) || size(T.decisionTime , 2)~=size(T.stimulus , 2)

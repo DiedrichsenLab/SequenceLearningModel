@@ -74,8 +74,8 @@ switch what
             SIM.X(opt,:,:) =SIM.X(opt,:,:)+addToFing(opt);
             SIM.B(opt,:,:) = SIM.B(opt,:,:)+addToFing(opt);
         end
-        for i=1:3
-            subplot(3,1,i);
+        for i=1:5
+            subplot(5,1,i);
             for opts = 1:5
                 plot(SIM.t,SIM.X(opts,:,i), 'LineWidth' , 1,'color' , colz(opts , :));
                 hold on
