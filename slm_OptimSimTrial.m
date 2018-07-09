@@ -55,6 +55,7 @@ for pn = 1:length(M.parName)
         parcount = parcount+1;
     end
 end
+M.bInit = M.bAll;
 M.Bound = [M.bInit ones(1 ,size(T.stimulus,2)-1)*M.bAll]; % boundry is a vector of length maxPresses
 %%
 AllT = T;

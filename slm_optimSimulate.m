@@ -80,11 +80,8 @@ if ~isempty(poolHorizons)
     Dall.Horizon(ismember(Dall.Horizon , poolHorizons)) = poolHorizons(1);
 end
 
-Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) & ...
+Dall = getrow(Dall , Dall.isgood & ismember(Dall.seqNumb , [0]) & ~Dall.isError & ismember(Dall.Day , Day) &...
     ismember(Dall.Horizon , Horizon) & ismember(Dall.SN , subjNum));
-if ~isempty(poolHorizons)
-    Dall.Horizon(ismember(Dall.Horizon , poolHorizons)) = poolHorizons(1);
-end
 
 
 ANA = getrow(Dall , ismember(Dall.Horizon , Horizon));
@@ -96,11 +93,11 @@ if ~noise
     samNum = 1;
 end
 A = [];
+
 for h = 1:length(Horizon)
     N = getrow(ANA , ANA.Horizon == Horizon(h)); % when the noise is off all the trials will turn out identical
-    if ~isempty(samNum)
-        N =  getrow(N , randperm(length(N.TN) , samNum));
-    end
+    idx = randi([1 length(N.TN)],1,samNum);
+    N =  getrow(N , idx);
     A = addstruct(A , N);
 end
 ANA = A;
@@ -136,7 +133,6 @@ M.dtGrowth      = 1;
 M.TSDecayParam  = 3;
 M.Aintegrate    = 0.98;
 M.bAll          = 0.5;     % press boundary for 5 window sizes
-M.bInit         = M.bAll; % initial bound for 5 window sizes
 M.PlanningCurve = 'exp'; % other options: 'logistic', 'box' , 'ramp'
 M.DecayParam    = 7; % the decay constant for the 'exp' option of PlanningCurve
 M.B_coef1       = 1;       % for the 'logistic' option of PlanningCurve
@@ -150,7 +146,12 @@ M.planFunc = zeros(1,NumPresses); % for the arbitrary option of the PlanningCurv
 if~noise
     M.SigEps    = 0;
 else
-    M.SigEps    = [0.0035 0.0045 0.005]; % 0.0035 for window 1  --- 0.0045 for the rest;
+    if sum(ismember(Day , [4 5]))
+        M.SigEps    = [0.0035 0.0045 0.005]; % 0.0035 for window 1  --- 0.0045 for the rest;
+    else
+        M.SigEps    = [0.0029 0.0036 0.0036];
+    end
+        
 end
 
 %% re-set the fields that have been defined in input
@@ -163,7 +164,7 @@ while(c<=length(MsetField))
     eval(['M.',MsetField{c} '= MsetField{c+1};']);
     c=c+2;
 end
-
+M.bInit         = M.bAll;  % initial bound for 5 window sizes
 %% simulate
 opts.runNum       = [];
 opts.cycNum       = [];

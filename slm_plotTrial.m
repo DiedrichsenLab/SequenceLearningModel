@@ -47,7 +47,14 @@ switch what
         end;
         
     case 'TrialHorseRace_pres'
+%         clear tempcol
+%         c1 = [153, 0, 0]/255; % structured blue tones
+%         ce = [102, 204, 255]/255;
+%         for rgb = 1:3
+%             colz(:, rgb) = linspace(c1(rgb),ce(rgb)' , 5);
+%         end
         colz = [83, 255, 26;26, 255, 255;255, 26, 255;255, 26, 26;255, 153, 0]/255;
+%         colz = repmat(linspace(0, 200 , 5)' , 1 , 3)/255;
         figure('color' , 'white')
         [~,~,numPresses] = size(SIM.X);
         
@@ -60,23 +67,24 @@ switch what
         end
         % for better visualization of the noise free state so that the traces are not super-imposed
         addToFing = [0 -.05 -.1 -.15 -.2];
+        addToFing = [0 0 0 0 0];
         B(1,:,:) = SIM.B; 
         SIM.B = repmat(B , 5,1,1);
         for opt = 1:5
             SIM.X(opt,:,:) =SIM.X(opt,:,:)+addToFing(opt);
             SIM.B(opt,:,:) = SIM.B(opt,:,:)+addToFing(opt);
         end
-        for i=1:5
-            subplot(5,1,i);
+        for i=1:3
+            subplot(3,1,i);
             for opts = 1:5
-                plot(SIM.t,SIM.X(opts,:,i), 'LineWidth' , 2,'color' , colz(opts , :));
+                plot(SIM.t,SIM.X(opts,:,i), 'LineWidth' , 1,'color' , colz(opts , :));
                 hold on
             end
-            plot(SIM.t,SIM.B(T.response(i),:,i),'k', 'LineWidth' , 3);
+            plot(SIM.t,SIM.B(T.response(i),:,i),'color', [184 184 184]/255 ,'LineWidth' , 1);
             ylim = get(gca , 'YLim');
-            h1 = line([T.stimTime(i) T.stimTime(i)] , ylim ,'color','r','linestyle',':' , 'LineWidth' , 2);
-            h2 = line([T.decisionTime(i) T.decisionTime(i)] , ylim,'color','r', 'LineWidth' , 2);
-            h3 = line([T.pressTime(i) T.pressTime(i)],ylim,'color','k', 'LineWidth' , 2);
+            h1 = line([T.stimTime(i) T.stimTime(i)] , ylim ,'color','r','linestyle',':' , 'LineWidth' , 1);
+            h2 = line([T.decisionTime(i) T.decisionTime(i)] , ylim,'color','r', 'LineWidth' , 1);
+            h3 = line([T.pressTime(i) T.pressTime(i)],ylim,'color','k', 'LineWidth' , 1);
             
             % just legend the first one, the rest are the same
             if ~isnan(T.forcedPressTime(1,1))
@@ -95,7 +103,7 @@ switch what
             end
  
 %             title(['Decision No. ' ,num2str(T.decNum(i)), ', press No.' , num2str(i)])
-            set(gca , 'Box' , 'off' , 'FontSize' , 16 , 'Ylim' , [-.4 1.2],'ColorOrder',colz)
+            set(gca , 'Box' , 'off' , 'FontSize' , 7 , 'Ylim' , [-.4 1.5],'ColorOrder',colz , 'Xlim' , [0 2000])
         end;
     case 'BlockMT'
         %colorz = {[0 0  1],[1 0 0],[0 1 0],[1 0 1],[0 1 1],[0.7 0.7 0.7],[1 1 0],[.3 .3 .3]};

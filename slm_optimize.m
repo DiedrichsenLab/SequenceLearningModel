@@ -12,8 +12,8 @@ noisefreeRep = [];
 optimizeIPINumber = [1:3];
 c = 1;
 diffMT = 0;
-mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
-% mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+
+
 
 while(c<=length(varargin))
     switch(varargin{c})
@@ -104,15 +104,26 @@ while(c<=length(varargin))
             % use the difference between MTs instead of MTs
             eval([varargin{c} '= varargin{c+1};']);
             c=c+2;
+         case {'mORi'}
+            % m for mcbook, i for iMac
+            eval([varargin{c} '= varargin{c+1};']);
+            c=c+2;
         otherwise
             error('Unknown option: %s',varargin{c});
     end
+end
+switch mORi
+    case 'm'
+        mainDir = '/Users/nedakordjazi/Documents/GitHub/SequenceLearningModel/';
+    case 'i'
+        mainDir = '/Users/nkordjazi/Documents/GitHub/SequenceLearningModel/';
 end
 if ~exist('saveDir')
     saveDir = [mainDir , runNum(2:end)];
 else
     saveDir = [mainDir , saveDir];
 end
+
 %% optimization
 if ~isempty(poolHorizons)
     Dall.Horizon(ismember(Dall.Horizon , poolHorizons)) = poolHorizons(1);
@@ -133,16 +144,13 @@ for i = 1:cycNum
         load([saveDir , '/param' , runNum , '.mat'])
         initParam = param.par(end , :);
     end
-    ANA = getrow(Dall , ismember(Dall.Horizon , Horizon));
-    ANA.RT = ANA.AllPressTimes(:,1)-1500;
+    Dall.RT = Dall.AllPressTimes(:,1)-1500;
     %% set up the desired output
-    G = tapply(ANA , {'Horizon'} , {'MT' , 'nanmedian'},{'RT' , 'nanmedian'},{'IPI' , 'nanmedian'});
+    G = tapply(Dall , {'Horizon'} , {'MT' , 'nanmean'},{'RT' , 'nanmean'},{'IPI' , 'nanmean'});
     G.MT = G.MT;%/NumPresses;
     if diffMT
-                G.diffMT = [G.MT ; -diff(10*G.MT,1,1)];
-%         G.diffMT = [-diff(G.MT,1,1)];
+        G.diffMT = [G.MT ; -diff(10*G.MT,1,1)];
     end
-    %     G.diffIPI = diff(G.IPI , 1,2);
     x_desired = [];
     x_d = [];
     if exist('noisefreeRep') & ~isempty(noisefreeRep)
@@ -173,7 +181,7 @@ for i = 1:cycNum
     end
     A = [];
     for h = 1:length(Horizon)
-        N = getrow(ANA , ANA.Horizon == Horizon(h)); % when the noise is off all the trials will turn out identical
+        N = getrow(Dall , Dall.Horizon == Horizon(h)); % when the noise is off all the trials will turn out identical
         if ~isempty(samNum)
             N =  getrow(N , randperm(length(N.TN) , samNum));
         end
@@ -214,7 +222,6 @@ for i = 1:cycNum
     M.TSDecayParam  = 3;
     M.Aintegrate    = 0.98;
     M.bAll          = 0.5;     % press boundary for 5 window sizes
-    M.bInit         = M.bAll;  % initial bound for 5 window sizes
     M.PlanningCurve = 'exp';   % other options: 'logistic', 'box' , 'ramp'
     M.DecayParam    = 7;       % the decay constant for the 'exp' option of PlanningCurve
     M.B_coef1       = 1;       % for the 'logistic' option of PlanningCurve
@@ -228,7 +235,12 @@ for i = 1:cycNum
     if~noise
         M.SigEps    = 0;
     else
-        M.SigEps    = 0.001;
+        if sum(ismember(Day , [4 5]))
+            M.SigEps    = [0.0035 0.0045 0.005]; % 0.0035 for window 1  --- 0.0045 for the rest;
+        else
+            M.SigEps    = [0.0029 0.0036 0.0036];
+        end
+        
     end
     
     c = 1;
@@ -237,7 +249,7 @@ for i = 1:cycNum
         eval(['M.',MsetField{c} '= MsetField{c+1};']);
         c=c+2;
     end
-
+    M.bInit         = M.bAll;  % initial bound for 5 window sizes
     %% set up the cost function
     opts.runNum       = runNum;
     opts.cycNum       = i;
