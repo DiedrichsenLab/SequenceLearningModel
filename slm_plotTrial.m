@@ -19,19 +19,19 @@ switch what
             plot(SIM.t,SIM.X(:,:,i));
             hold on;
             plot(SIM.t,SIM.B,'k', 'LineWidth' , 1.5);
-            ylim = get(gca , 'YLim');
-            h1 = line([T.stimTime(i) T.stimTime(i)] , ylim ,'color','r','linestyle',':' , 'LineWidth' , 2);
-            h2 = line([T.decisionTime(i) T.decisionTime(i)] , ylim,'color','r', 'LineWidth' , 2);
-            h3 = line([T.pressTime(i) T.pressTime(i)],ylim,'color','k', 'LineWidth' , 2);
+            ylimit = get(gca , 'YLim');
+            h1 = line([T.stimTime(i) T.stimTime(i)] , ylimit ,'color','r','linestyle',':' , 'LineWidth' , 2);
+            h2 = line([T.decisionTime(i) T.decisionTime(i)] , ylimit,'color','r', 'LineWidth' , 2);
+            h3 = line([T.pressTime(i) T.pressTime(i)],ylimit,'color','k', 'LineWidth' , 2);
             
             % just legend the first one, the rest are the same
             if ~isnan(T.forcedPressTime(1,1))
-                h4 = line([0 0],ylim,'color','b', 'LineWidth' , 1);
-                line([800 800],ylim,'color','b', 'LineWidth' , 1);
-                line([1600 1600],ylim,'color','b', 'LineWidth' , 1);
-                line([2400 2400],ylim,'color','b', 'LineWidth' , 1);
-                h5 = line([2300 2300],ylim,'color','g', 'LineWidth' , 1);
-                line([2500 2500],ylim,'color','g', 'LineWidth' , 1);
+                h4 = line([0 0],ylimit,'color','b', 'LineWidth' , 1);
+                line([800 800],ylimit,'color','b', 'LineWidth' , 1);
+                line([1600 1600],ylimit,'color','b', 'LineWidth' , 1);
+                line([2400 2400],ylimit,'color','b', 'LineWidth' , 1);
+                h5 = line([2300 2300],ylimit,'color','g', 'LineWidth' , 1);
+                line([2500 2500],ylimit,'color','g', 'LineWidth' , 1);
                 legend([h1 h2 h3 h4 h5],{'Stimulus came on' , 'Decision boundry reached' , 'Press executed',...
                     'Forced-RT tones','Response window'})
             else
@@ -45,7 +45,8 @@ switch what
             end
             
             title(['Decision No. ' ,num2str(T.decNum(i)), ', press No.' , num2str(i)])
-            set(gca , 'Box' , 'off' , 'FontSize' , 16)
+            set(gca , 'Box' , 'off' , 'FontSize' , 16); 
+            %ylim([min(SIM.B)-.5 max(SIM.B)+.5]);
         end;
     case 'BlockMT'
         %colorz = {[0 0  1],[1 0 0],[0 1 0],[1 0 1],[0 1 1],[0.7 0.7 0.7],[1 1 0],[.3 .3 .3]};
@@ -153,11 +154,12 @@ switch what
             plt.line(R.prepTime,(1-R.isError)*100,'errorbars','shade');
             xlabel('prep time'); ylabel('accuracy %');
         else
-            R1=tapply(R,{'SN','prepTime'},{R.isError,'nanmean','name','ER','subset',R.timingError==0});
-            plt.line(R1.prepTime,(1-R1.ER)*100,'errorbars','shade');
-            xlabel('prep time'); ylabel('accuracy %'); axis square; title(sprintf('Aint: %1.3f, Theta: %1.4f, Noise: %1.3f, Initial bound: %1.2f',M.Aintegrate,M.theta_stim,M.SigEps,M.Bound/2));
+            R1 = tapply(R,{'SN','prepTime'},{(1-R.isError)*100,'nanmean','name','ACC','subset',R.timingError==0});
+            R1 = normData(R1, {'ACC'}, 'sub'); % within subj error bars
+            plt.line(R1.prepTime,R1.normACC,'errorbars','shade');
+            xlabel('prep time'); ylabel('accuracy %'); axis square; title(sprintf('Aint: %1.4f, Theta: %1.4f, Noise: %1.4f, Initial bound: %1.4f',M.Aintegrate,M.theta_stim,M.SigEps,M.Bound));
             figure;
             plt.hist(R.pressTime(:,1)); 
-            xlabel('RT (ms)'); ylabel('Distribution (n trials)'); axis square; title(sprintf('Aint: %1.4f, Theta: %1.4f, Noise: %1.4f, Initial bound: %1.4f',M.Aintegrate,M.theta_stim,M.SigEps,M.Bound/2));
+            xlabel('RT (ms)'); ylabel('Distribution (n trials)'); axis square; title(sprintf('Aint: %1.4f, Theta: %1.4f, Noise: %1.4f, Initial bound: %1.4f',M.Aintegrate,M.theta_stim,M.SigEps,M.Bound));
         end
 end

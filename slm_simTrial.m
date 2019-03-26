@@ -52,11 +52,13 @@ if ~isnan(T.forcedPressTime(1,1))
     b = T.forcedPressTime + 100; % in ms, the inflexion point
     B = (M.Bound ./ (1 + exp ( a * (t - b) ) ) ) - M.Bound / 2; % Decision Bound - logistic decay
     B(B<=0)=0;
+    %     B = ones(1,maxTime/dT)*M.Bound;
+    %     B(t>=(T.forcedPressTime-100)) = -M.Bound; % Decision Bound - vertical collapse
 else
     B = ones(1,maxTime/dT)*M.Bound; % Decision Bound - constant value
 end
 
-i = 1;                   % Index of simlation
+i = 1;                   % Index of simulation
 nDecision = 1;           % Current decision to make
 isPressing = 0;          % Is the motor system currently occupied?
 remPress = maxPresses;   % Remaining presses. This variable will be useful if/whenever multiple digits are being planned in every decsion step
@@ -65,10 +67,10 @@ remPress = maxPresses;   % Remaining presses. This variable will be useful if/wh
 A  = eye(M.numOptions)*(M.Aintegrate)+...
     (~eye(M.numOptions)*M.Ainhibit); % A defined the matrix of autoregressive coefficients
 
-% Use logistic growth for stimulus horse race
-a = .1; %0.09; % the growth constant: the bigger the faster the growth --> reaches Bound faster
-b = 400; %200; %400; % in ms, how long it takes for the function to reach max
-G = (M.Bound/2) ./ (1 + exp ( -a * (t - (T.stimTime(1)+b/2) ) ) ); % logistic growth
+% % Use logistic growth for stimulus horse race
+% a = .1; %0.09; % the growth constant: the bigger the faster the growth --> reaches Bound faster
+% b = 400; %200; %400; % in ms, how long it takes for the function to reach max
+% G = (M.Bound/2) ./ (1 + exp ( -a * (t - (T.stimTime(1)+b/2) ) ) ); % logistic growth
 
 %% Start time-by-time simulation
 while remPress && i<maxTime/dT
@@ -107,10 +109,11 @@ while remPress && i<maxTime/dT
     end
     mult(dec<nDecision)=0;                    % Made decisions will just decay
     for j =1:maxPresses
-        X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*mult(j).*S(:,i,j).*G(i)) + dT*eps(:,1,j);
+        %X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*mult(j).*S(:,i,j).*G(i)) + dT*eps(:,1,j);
+        X(:,i+1,j) = (A*X(:,i,j)) + (M.theta_stim.*mult(j).*S(:,i,j)) + dT*eps(:,1,j);
     end
     
-    % find the press indecies that have to be planed in this decision cycle
+    % find the press indecies that have to be planned in this decision cycle
     % doing it this way will be useful if/whenever multiple digits are being planned in every decsion step
     indx1 = nDecision * maxPlan - (maxPlan-1):min(nDecision * maxPlan , maxPresses);
     
@@ -120,8 +123,8 @@ while remPress && i<maxTime/dT
         count = 1;
         for prs = indx1
             [~,T.response(1,prs)]=max(X(:,i+1,prs));
-            T.decisionTime(1,prs) = t(i+1);                            % Decision made at this time
-            T.pressTime(prs) = T.decisionTime(prs)+count*M.dT_motor; % Press time delayed by motor delay
+            T.decisionTime(1,prs) = t(i+1);                             % Decision made at this time
+            T.pressTime(prs) = T.decisionTime(prs)+count*M.dT_motor;    % Press time delayed by motor delay
             % if there are any stumuli that have not appeared yet, set their stimTime to press time of Horizon presses before
             if sum(isnan(T.stimTime))
                 idx2  = find(isnan(T.stimTime));

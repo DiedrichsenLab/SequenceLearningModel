@@ -6,25 +6,25 @@ function [R,S,B,SIM,T,TR,M]=slm_testModel(what,varargin)
 c = 1;
 
 %% Set default parameters
-% subj = 1;
-% block = 1;
-% trial = 1;
-% plotSim = 1; %0|1: whether to plot each single trial simulation, or not
+subj = 1;
+block = 1;
+trial = 1;
+plotSim = 1; %0|1|2: whether to plot nothing, each single trial simulation, or the group data simulation 
 
-subj = [1:20,1:20];
-block = [1,2];
-trial = 1:55;
-plotSim = 0; %0|1: whether to plot each single trial simulation, or not
+% subj = 1:20;
+% block = [1,2];
+% trial = 1:55;
+% plotSim = 2; %0|1|2: whether to plot nothing, each single trial simulation, or the group data simulation
 
 DecayFunc = 'exp';
 DecayParam = 2;
-Aintegrate = 0.985; % 0.98
+Aintegrate = 1.00; %.999; %1.00; %0.998; %0.985; % 0.98
 Ainhibit = 0.0;
-theta_stim = 0.0084; %0.0075; % 0.0084
-dT_motor = 90;
-dT_visual = 70;
-SigEps = 0.034; % 0.01
-Bound = 4; %1; %0.45;
+theta_stim = 0.003548764584234; %0.0084; %0.0075; % 0.0084
+dT_motor = 120; %90
+dT_visual = 100; %70;
+SigEps = 0.005; %0.0125; %0.034; % 0.01
+Bound =  4; %0.520010903154414; %1; %0.45;
 numOptions = 5;
 cap = 1;
 
@@ -137,7 +137,7 @@ switch(what)
             S.SN=ones(numel(S.TN),1)*s;
             R=addstruct(R,S);
         end
-        if plotSim==0
+        if plotSim==2
             slm_plotTrial('plotSim',SIM,TR,R,M);
         end
         
