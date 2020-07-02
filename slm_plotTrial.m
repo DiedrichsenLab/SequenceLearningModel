@@ -16,5 +16,4 @@ for i=1:numPresses
     drawline(T.decisionTime(i),'color','r'); 
     drawline(T.pressTime(i),'color','k'); 
     hold off; 
-end; 
-
+end

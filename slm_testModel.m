@@ -6,7 +6,7 @@ switch(what)
         % Make Model 
         M.Aintegrate = 1;    % Diagnonal of A  
         M.Ainhibit = 0;      % Inhibition of A 
-        M.theta_stim = 0.01;  % Rate constant for integration of sensory information 
+        M.theta = 0.01;  % Rate constant for integration of sensory information 
         M.dT_motor = 90;     % Motor non-decision time 
         M.dT_visual = 70;    % Visual non-decision time 
         M.SigEps    = 0.01;   % Standard deviation of the gaussian noise 
@@ -16,7 +16,7 @@ switch(what)
         % Make experiment 
         T.TN = 1; 
         T.numPress = 1; 
-        T.stimTime = 0; 
+        T.window = 1; 
         T.forcedPressTime = [NaN NaN]; 
         T.stimulus = 1; 
         
@@ -36,7 +36,7 @@ switch(what)
           % Make Model 
         M.Aintegrate = 0.98;    % Diagnonal of A  
         M.Ainhibit = 0;      % Inhibition of A 
-        M.theta_stim = 0.01;  % Rate constant for integration of sensory information 
+        M.theta = 0.01;  % Rate constant for integration of sensory information 
         M.dT_motor = 90;     % Motor non-decision time 
         M.dT_visual = 70;    % Visual non-decision time 
         M.SigEps    = 0.02;   % Standard deviation of the gaussian noise 
@@ -47,7 +47,7 @@ switch(what)
         % Make experiment 
         T.TN = 1; 
         T.numPress = 5; 
-        T.stimTime = [0;0;0;0;0];  
+        T.window = 1; 
         T.forcedPressTime = nan(5,2); 
         T.stimulus = [1;2;5;4;3];  
         
@@ -61,6 +61,32 @@ switch(what)
         subplot(1,2,1); 
         histplot(R.pressTime,'split',R.stimulus==R.response,'style_bar1'); 
         subplot(1,2,2); 
+        
+        keyboard; 
+    case 'horizon'
+        % Make Model 
+        M.Aintegrate = 1;    % Diagnonal of A  
+        M.Ainhibit = 0;      % Inhibition of A 
+        x=[0:4]; 
+        M.theta = 0.003;  % Rate constant for integration of sensory information 
+        M.dT_motor = 90;     % Motor non-decision time 
+        M.dT_visual = 70;    % Visual non-decision time 
+        M.SigEps    = 0;   % Standard deviation of the gaussian noise 
+        M.Bound     = 1;     % Boundary condition 
+        M.numOptions = 5;    % Number of response options 
+        M.capacity   = 2;   % Capacity for preplanning (buffer size) 
+        
+        % Make experiment 
+        T.TN = 1; 
+        T.numPress = 10; 
+        T.window = 3;  
+        T.forcedPressTime = nan(1,5); 
+        T.stimulus = [1 2 5 4 3 1 2 5 4 3];  
+        
+        R=[]; 
+        [TR,SIM]=slm_simTrial(M,T); 
+        slm_plotTrial(SIM,TR); 
+        R=addstruct(R,TR); 
         
         keyboard; 
         
