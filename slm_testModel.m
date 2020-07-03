@@ -1,4 +1,4 @@
-function vararout=slm_testModel(what,varargin)
+function varargout=slm_testModel(what,varargin)
 % Wrapper function to test different aspects of the sml toolbox 
 switch(what)
    
@@ -12,7 +12,7 @@ switch(what)
         M.SigEps    = 0.01;   % Standard deviation of the gaussian noise 
         M.Bound     = 0.45;     % Boundary condition 
         M.numOptions = 5;    % Number of response options 
-        M.capacity   = 3;   % Capacity for preplanning (buffer size) 
+        M.capacity   = 3;   % Exponential decay on theta into future 
         % Make experiment 
         T.TN = 1; 
         T.numPress = 1; 
@@ -42,7 +42,7 @@ switch(what)
         M.SigEps    = 0.02;   % Standard deviation of the gaussian noise 
         M.Bound     = 0.45;     % Boundary condition 
         M.numOptions = 5;    % Number of response options 
-        M.capacity   = 1;   % Capacity for preplanning (buffer size) 
+        M.capacity   = 1;   % Exponential decay on theta into future  
         
         % Make experiment 
         T.TN = 1; 
@@ -64,30 +64,62 @@ switch(what)
         
         keyboard; 
     case 'horizon'
+        
         % Make Model 
-        M.Aintegrate = 1;    % Diagnonal of A  
+        M.Aintegrate = 0.995;    % Diagnonal of A  
         M.Ainhibit = 0;      % Inhibition of A 
         x=[0:4]; 
-        M.theta = 0.003;  % Rate constant for integration of sensory information 
-        M.dT_motor = 90;     % Motor non-decision time 
-        M.dT_visual = 70;    % Visual non-decision time 
+        M.theta = 0.01;  % Rate constant for integration of sensory information 
+        M.dT_motor = 100;     % Motor non-decision time 
+        M.dT_visual = 100;    % Visual non-decision time 
         M.SigEps    = 0;   % Standard deviation of the gaussian noise 
         M.Bound     = 1;     % Boundary condition 
         M.numOptions = 5;    % Number of response options 
-        M.capacity   = 2;   % Capacity for preplanning (buffer size) 
+        M.capacity   = 3;   % Exponential decay on theta into future 
         
         % Make experiment 
         T.TN = 1; 
-        T.numPress = 10; 
+        T.numPress = 13; 
         T.window = 3;  
-        T.forcedPressTime = nan(1,5); 
-        T.stimulus = [1 2 5 4 3 1 2 5 4 3];  
+        T.RT = 600; 
+        T.stimulus = [1 2 3 4 5 1 2 3 4 5 1 2 3];  
         
-        R=[]; 
-        [TR,SIM]=slm_simTrial(M,T); 
-        slm_plotTrial(SIM,TR); 
-        R=addstruct(R,TR); 
+        T=vararginoptionsStruct(varargin,{'window','RT'},T);
+
+        [R,SIM]=slm_simTrial(M,T); 
+        slm_plotTrial(SIM,R); 
         
-        keyboard; 
+        varargout= {R}; 
+    case 'windowExp' 
+        
+        % Make Model 
+        M.Aintegrate = 0.995;    % Diagnonal of A  
+        M.Ainhibit = 0;      % Inhibition of A 
+        x=[0:4]; 
+        M.theta = 0.01;  % Rate constant for integration of sensory information 
+        M.dT_motor = 100;     % Motor non-decision time 
+        M.dT_visual = 100;    % Visual non-decision time 
+        M.SigEps    = 0;   % Standard deviation of the gaussian noise 
+        M.Bound     = 1;     % Boundary condition 
+        M.numOptions = 5;    % Number of response options 
+        M.capacity   = 3;   % Exponential decay on theta into future 
+        
+        % Make experiment 
+        T.TN = 1; 
+        T.numPress = 13; 
+        T.RT = NaN; 
+        T.stimulus = [1 2 3 4 5 1 2 3 4 5 1 2 3];  
+        
+        RR=[];
+        for w=[1:4]
+            T.window=w; 
+            [R,SIM]=slm_simTrial(M,T); 
+            S.ITI=diff(R.pressTime)';
+            S.num=[1:T.numPress-1]';
+            S.window = ones(T.numPress-1,1)*w; 
+            RR=addstruct(RR,S); 
+        end;
+        lineplot(RR.num,RR.ITI,'split',RR.window,'style_thickline')
+        varargout= {RR}; 
         
 end
