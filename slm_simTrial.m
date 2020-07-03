@@ -40,14 +40,16 @@ while numPresses<T.numPress && i<maxTime/dT
         end; 
     end; 
     
-    % Update the evidence state 
-    eps = randn([M.numOptions 1 T.numPress]) * M.SigEps; 
+        
+    % Determine the distribution of rates planning 
     mult=exp(-[dec-nDecision]./M.capacity);  % Distribution of weight onto future decisions 
     mult(dec<nDecision)=0;                  % Made decisions will just decay 
-    
-    % Update all the force races
+    rate = M.theta .* mult;
+
+    % Update the horse race
+    eps = randn([M.numOptions 1 T.numPress]) * M.SigEps; % Noise 
     for j=1:T.numPress 
-        X(:,i+1,j)= A * X(:,i,j) + M.theta .* mult(j) .* S(:,i,j) + dT*eps(:,1,j); 
+        X(:,i+1,j)= A * X(:,i,j) + rate(j).* S(:,i,j) + dT*eps(:,1,j); 
     end; 
     
     % Determine if we issue a decision 
