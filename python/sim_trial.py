@@ -1,10 +1,11 @@
 import numpy as np
 
-def do_sim(M, T, dT=2, maxTime=200000,plan_func='plan_exp',trigger_func='trig_indep'):
+def do_sim(M, T, dT=2, maxTime=200000):
 
     T.reinit()
+    win_trig = M.trigger_dict['win_trig']
     T.stimTime = np.full(T.numPress, np.nan)
-    T.futureTime = np.full((T.numPress,M.wFuture), np.nan) # time that triggering horizon is reached for each element
+    T.futureTime = np.full((T.numPress,win_trig), np.nan) # time that triggering horizon is reached for each element
 
     # Initialize variables
     X = np.zeros((M.numOptions, maxTime // dT, T.numPress))  # Hidden state
@@ -19,14 +20,11 @@ def do_sim(M, T, dT=2, maxTime=200000,plan_func='plan_exp',trigger_func='trig_in
     isPressing = 0  # Is the motor system currently occupied?
 
     # Set up parameters
-    dec = np.arange(1, T.numPress + 1)  # Number of decision
     A = np.eye(M.numOptions) * (M.Aintegrate - M.Ainhibit) + np.ones((M.numOptions, M.numOptions)) * M.Ainhibit
-
+    theta = M.get_theta()
+    
     # Start time-by-time simulation
     while numPresses < T.numPress and i < maxTime // dT:
-
-        # horizon for triggering rule
-        horizon = np.arange(nDecision,T.numPress)[:M.wFuture]
 
         # Figure out when stimuli appear
         visible = np.arange(min(T.numPress, numPresses + T.window))
@@ -39,18 +37,21 @@ def do_sim(M, T, dT=2, maxTime=200000,plan_func='plan_exp',trigger_func='trig_in
                 S[T.stimulus[j] - 1, i, j] = 1
 
         # Determine the distribution of rates planning
-        rate = getattr(M, plan_func)(dec,nDecision)
+        Theta = np.zeros(T.numPress+M.plan_dict['capacity'])
+        Theta[nDecision-1:nDecision-1+M.plan_dict['capacity']] = theta
+        Theta = Theta[:T.numPress]
 
         # Update the horse race
         eps = np.random.randn(M.numOptions, 1, T.numPress) * M.SigEps  # Noise
         for j in range(T.numPress):
-            X[:, i + 1, j] = np.dot(A, X[:, i, j]) + rate[j] * S[:, i, j] + dT * eps[:, 0, j]
+            X[:, i + 1, j] = np.dot(A, X[:, i, j]) + Theta[j] * S[:, i, j] + dT * eps[:, 0, j]
 
         # Determine if we issue a decision
         if nDecision <= T.numPress and not isPressing and np.any(X[:, i + 1, nDecision - 1] > B[i + 1]):
             
             # check if all future decisions are above bound
-            horizoncheck, element_done = getattr(M, trigger_func)(X[:,i+1,horizon], rate[horizon])
+            X_future = X[:,i+1,nDecision:nDecision+win_trig]
+            horizoncheck, element_done = M.get_trigger(X_future)
             mask = np.isnan(T.futureTime[nDecision-1, :]) & (element_done == 1)
             T.futureTime[nDecision-1,mask] = t[i+1]
 

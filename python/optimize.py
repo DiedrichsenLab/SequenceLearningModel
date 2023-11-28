@@ -1,4 +1,4 @@
-from exp import Exp
+from experiment import Exp
 from sim_trial import do_sim
 import numpy as np
 from scipy.stats import logistic

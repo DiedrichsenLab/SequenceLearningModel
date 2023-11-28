@@ -1,2 +1,9 @@
-
 *.m~
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+__pycache__/*/
+__pycache__/*.*
+.DS_Store
+.DS_Store
