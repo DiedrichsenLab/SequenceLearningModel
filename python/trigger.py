@@ -11,18 +11,21 @@ def indep(X,ss,w,param=[0.72]):
         ss (list/np.array): steady state of hidden state
         param (list): triggering parameter
     """
-    horizoncheck = False
+    trigger_check = False
     nHorizon = X.shape[1]
     element_done = np.full(w,0)
 
+    if len(param)==1:
+        param = param*w
+
     for i in range(nHorizon):
-        if any(X[:,i] > (ss[i]*param[0])):
+        if any(X[:,i] > (ss[i]*param[i])):
             element_done[i] = 1
 
     if np.sum(element_done)==nHorizon:
-        horizoncheck = True
+        trigger_check = True
 
-    return horizoncheck, element_done
+    return trigger_check, element_done
 
 
 

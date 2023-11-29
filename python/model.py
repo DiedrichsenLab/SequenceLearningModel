@@ -3,9 +3,14 @@ import plan
 import trigger
 
 class Model:
-    def __init__(self, numOptions=5, Aintegrate=0.995, Ainhibit=0, dT_motor=90, dT_visual=70, SigEps=0, Bound=1, 
-                 plan_dict = {'func':'exp', 'capacity':10, 'param':[0.34, 0.01]},
-                 trigger_dict = {'func':'indep', 'win_trig':0, 'param':[0.72]}):
+    def __init__(self, numOptions=5, Aintegrate=0.996, Ainhibit=0, dT_motor=90, dT_visual=70, SigEps=0, 
+                 plan_dict = {'func':'exp', 'capacity':10, 'param':[0.01,0.34]},
+                 trigger_dict = {'func':'indep', 'win_trig':1, 'param':[0.6]}):
+        """
+        args:
+            param (list/np.array): [scale,....]
+            win_trig (int): window size for triggering (1 means naive triggering)
+        """
 
         # Model parameters
         self.numOptions = numOptions
@@ -14,11 +19,11 @@ class Model:
         self.dT_motor = dT_motor
         self.dT_visual = dT_visual
         self.SigEps = SigEps
-        self.Bound = Bound
 
         # relate to planning and triggering
         self.plan_dict = plan_dict
         self.trigger_dict = trigger_dict
+
 
     def get_theta(self):
         self.theta = getattr(plan,self.plan_dict['func'])(capacity = self.plan_dict['capacity'],param = self.plan_dict['param'])
@@ -30,10 +35,15 @@ class Model:
         A = self.Aintegrate
 
         # calculate the steady state of hidden state
-        ss = theta[1:(w+1)]/(1-A)
+        ss = theta[:w]/(1-A)
 
-        horizoncheck, element_done = getattr(trigger,self.trigger_dict['func'])(X,ss,w,param=self.trigger_dict['param'])
-        return horizoncheck, element_done
+        trigger_check, element_done = getattr(trigger,self.trigger_dict['func'])(X,ss,w,param=self.trigger_dict['param'])
+        return trigger_check, element_done
+    
+
+
+    #def get_bound(self,perc=0.587):
+    #    self.Bound = perc*(self.plan_dict['param'][0])/(1-self.Aintegrate)
 
     # def get_param(self,fit):
     #     param = []
